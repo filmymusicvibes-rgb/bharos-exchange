@@ -1,0 +1,49 @@
+{
+  "name": "wallets",
+  "type": "object",
+  "required": [
+    "user_id",
+    "usdt_balance",
+    "brs_balance",
+    "bep20_wallet_address",
+    "creator",
+    "createdAt",
+    "updatedAt"
+  ],
+  "properties": {
+    "user_id": {
+      "bsonType": "string",
+      "description": "Reference to users collection"
+    },
+    "usdt_balance": {
+      "bsonType": "number",
+      "description": "USDT wallet balance"
+    },
+    "brs_balance": {
+      "bsonType": "number",
+      "description": "BRS token wallet balance"
+    },
+    "bep20_wallet_address": {
+      "bsonType": "string",
+      "description": "BEP20 wallet address"
+    },
+    "creator": {
+      "bsonType": "string",
+      "description": "User ID of creator"
+    },
+    "creatorEmail": {
+      "bsonType": "string",
+      "description": "Creator user email"
+    },
+    "createdAt": {
+      "bsonType": "string",
+      "title": "datetime",
+      "description": "ISO 8601 datetime string (UTC): YYYY-MM-DDTHH:mm:ss.sssZ"
+    },
+    "updatedAt": {
+      "bsonType": "string",
+      "title": "datetime",
+      "description": "ISO 8601 datetime string (UTC): YYYY-MM-DDTHH:mm:ss.sssZ"
+    }
+  }
+}

@@ -1,0 +1,133 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #0B0919;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: 'Orbitron', sans-serif;
+  }
+}
+
+@layer utilities {
+
+  /* 🔥 FLOAT */
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  @keyframes float {
+
+    0%,
+    100% {
+      transform: translateY(0px);
+    }
+
+    50% {
+      transform: translateY(-20px);
+    }
+  }
+
+  /* 🔥 GLOW */
+  .animate-glow {
+    animation: glow 2s ease-in-out infinite alternate;
+  }
+
+  @keyframes glow {
+    from {
+      box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+    }
+
+    to {
+      box-shadow: 0 0 40px rgba(0, 212, 255, 0.6);
+    }
+  }
+
+  /* 🔥 SCALE */
+  .animate-scale-in {
+    animation: scale-in 0.3s ease-out;
+  }
+
+  @keyframes scale-in {
+    0% {
+      transform: scale(0.9);
+      opacity: 0;
+    }
+
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  .delay-300 {
+    animation-delay: 300ms;
+  }
+
+  /* 🔥 DRAW */
+  .animate-draw-path {
+    animation: draw-path 2s ease-out forwards;
+  }
+
+  @keyframes draw-path {
+    0% {
+      stroke-dasharray: 0 1000;
+    }
+
+    100% {
+      stroke-dasharray: 1000 0;
+    }
+  }
+
+  /* 🔥 GOLD GLOW */
+  .glow-box {
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+    animation: glow-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes glow-pulse {
+
+    0%,
+    100% {
+      box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+    }
+
+    50% {
+      box-shadow: 0 0 50px rgba(255, 215, 0, 0.6);
+    }
+  }
+
+  /* 🔥 SCROLL MARQUEE (IMPORTANT) */
+  .animate-marquee {
+    animation: marquee 12s linear infinite;
+    display: inline-block;
+  }
+}
+
+/* 🔥 KEYFRAMES OUTSIDE (IMPORTANT) */
+@keyframes marquee {
+  0% {
+    transform: translateX(100%);
+  }
+
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}

@@ -1,0 +1,44 @@
+{
+  "name": "announcements",
+  "type": "object",
+  "required": [
+    "title",
+    "content",
+    "image_url",
+    "creator",
+    "createdAt",
+    "updatedAt"
+  ],
+  "properties": {
+    "title": {
+      "bsonType": "string",
+      "description": "Announcement title"
+    },
+    "content": {
+      "bsonType": "string",
+      "description": "Announcement content"
+    },
+    "image_url": {
+      "bsonType": "string",
+      "description": "Banner image URL"
+    },
+    "creator": {
+      "bsonType": "string",
+      "description": "Admin user ID"
+    },
+    "creatorEmail": {
+      "bsonType": "string",
+      "description": "Creator user email"
+    },
+    "createdAt": {
+      "bsonType": "string",
+      "title": "datetime",
+      "description": "ISO 8601 datetime string (UTC): YYYY-MM-DDTHH:mm:ss.sssZ"
+    },
+    "updatedAt": {
+      "bsonType": "string",
+      "title": "datetime",
+      "description": "ISO 8601 datetime string (UTC): YYYY-MM-DDTHH:mm:ss.sssZ"
+    }
+  }
+}

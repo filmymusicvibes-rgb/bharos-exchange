@@ -1,0 +1,58 @@
+{
+  "name": "referral_earnings",
+  "type": "object",
+  "required": [
+    "user_id",
+    "from_user",
+    "level",
+    "amount",
+    "currency",
+    "creator",
+    "createdAt",
+    "updatedAt"
+  ],
+  "properties": {
+    "user_id": {
+      "bsonType": "string",
+      "description": "Recipient user ID"
+    },
+    "from_user": {
+      "bsonType": "string",
+      "description": "Origin user ID who triggered the commission"
+    },
+    "level": {
+      "bsonType": "int",
+      "description": "Referral level (1-12)"
+    },
+    "amount": {
+      "bsonType": "number",
+      "description": "Commission amount"
+    },
+    "currency": {
+      "bsonType": "string",
+      "enum": [
+        "USDT",
+        "BRS"
+      ],
+      "description": "Currency type"
+    },
+    "creator": {
+      "bsonType": "string",
+      "description": "User ID of creator"
+    },
+    "creatorEmail": {
+      "bsonType": "string",
+      "description": "Creator user email"
+    },
+    "createdAt": {
+      "bsonType": "string",
+      "title": "datetime",
+      "description": "ISO 8601 datetime string (UTC): YYYY-MM-DDTHH:mm:ss.sssZ"
+    },
+    "updatedAt": {
+      "bsonType": "string",
+      "title": "datetime",
+      "description": "ISO 8601 datetime string (UTC): YYYY-MM-DDTHH:mm:ss.sssZ"
+    }
+  }
+}

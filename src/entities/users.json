@@ -1,0 +1,80 @@
+{
+  "name": "users",
+  "type": "object",
+  "required": [
+    "email",
+    "username",
+    "password",
+    "referral_code",
+    "status",
+    "user_role",
+    "creator",
+    "createdAt",
+    "updatedAt"
+  ],
+  "properties": {
+    "email": {
+      "bsonType": "string",
+      "description": "User email address"
+    },
+    "username": {
+      "bsonType": "string",
+      "description": "User display name"
+    },
+    "password": {
+      "bsonType": "string",
+      "description": "Hashed password"
+    },
+    "referral_code": {
+      "bsonType": "string",
+      "description": "Unique referral code (BRSxxxx)"
+    },
+    "referred_by": {
+      "bsonType": "string",
+      "description": "Referral code of sponsor"
+    },
+    "user_id": {
+      "bsonType": "string",
+      "description": "Lumi platform user ID"
+    },
+    "status": {
+      "bsonType": "string",
+      "description": "Account status",
+      "enum": [
+        "pending",
+        "active",
+        "inactive"
+      ]
+    },
+    "user_role": {
+      "bsonType": "string",
+      "description": "User role",
+      "enum": [
+        "USER",
+        "ADMIN"
+      ]
+    },
+    "mobile_number": {
+      "bsonType": "string",
+      "description": "User mobile phone number"
+    },
+    "creator": {
+      "bsonType": "string",
+      "description": "Creator user ID"
+    },
+    "creatorEmail": {
+      "bsonType": "string",
+      "description": "Creator user email"
+    },
+    "createdAt": {
+      "bsonType": "string",
+      "title": "datetime",
+      "description": "ISO 8601 datetime string (UTC): YYYY-MM-DDTHH:mm:ss.sssZ"
+    },
+    "updatedAt": {
+      "bsonType": "string",
+      "title": "datetime",
+      "description": "ISO 8601 datetime string (UTC): YYYY-MM-DDTHH:mm:ss.sssZ"
+    }
+  }
+}

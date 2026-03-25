@@ -1,0 +1,63 @@
+{
+  "name": "deposits",
+  "type": "object",
+  "required": [
+    "user_id",
+    "amount",
+    "transaction_hash",
+    "screenshot_url",
+    "status",
+    "creator",
+    "createdAt",
+    "updatedAt"
+  ],
+  "properties": {
+    "user_id": {
+      "bsonType": "string",
+      "description": "Reference to users collection"
+    },
+    "amount": {
+      "bsonType": "number",
+      "description": "Deposit amount in USDT"
+    },
+    "transaction_hash": {
+      "bsonType": "string",
+      "description": "Blockchain transaction hash (TXID)"
+    },
+    "screenshot_url": {
+      "bsonType": "string",
+      "description": "Public URL of the transaction screenshot"
+    },
+    "status": {
+      "bsonType": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected"
+      ],
+      "description": "Deposit approval status"
+    },
+    "admin_notes": {
+      "bsonType": "string",
+      "description": "Admin notes for approval/rejection"
+    },
+    "creator": {
+      "bsonType": "string",
+      "description": "User ID of creator"
+    },
+    "creatorEmail": {
+      "bsonType": "string",
+      "description": "Creator user email"
+    },
+    "createdAt": {
+      "bsonType": "string",
+      "title": "datetime",
+      "description": "ISO 8601 datetime string (UTC): YYYY-MM-DDTHH:mm:ss.sssZ"
+    },
+    "updatedAt": {
+      "bsonType": "string",
+      "title": "datetime",
+      "description": "ISO 8601 datetime string (UTC): YYYY-MM-DDTHH:mm:ss.sssZ"
+    }
+  }
+}

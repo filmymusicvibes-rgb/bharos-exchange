@@ -1,0 +1,35 @@
+{
+  "tasks": {
+    "dev": "deno run --allow-all --watch functions/dev.ts"
+  },
+  "functions": {
+    "depositSubmission": {
+      "path": "functions/depositSubmission/index.ts",
+      "method": "POST"
+    },
+    "userRegistration": {
+      "path": "functions/userRegistration/index.ts",
+      "method": "POST"
+    },
+    "adminApproveDeposit": {
+      "path": "functions/adminApproveDeposit/index.ts",
+      "method": "POST"
+    },
+    "adminGetDeposits": {
+      "path": "functions/adminGetDeposits/index.ts",
+      "method": "GET"
+    },
+    "adminGetUsers": {
+      "path": "functions/adminGetUsers/index.ts",
+      "method": "GET"
+    },
+    "getUserWallet": {
+      "path": "functions/getUserWallet/index.ts",
+      "method": "GET"
+    },
+    "getUserReferralNetwork": {
+      "path": "functions/getUserReferralNetwork/index.ts",
+      "method": "GET"
+    }
+  }
+}

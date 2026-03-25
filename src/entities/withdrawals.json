@@ -1,0 +1,59 @@
+{
+  "name": "withdrawals",
+  "type": "object",
+  "required": [
+    "user_id",
+    "token",
+    "amount",
+    "wallet_address",
+    "status",
+    "creator",
+    "createdAt",
+    "updatedAt"
+  ],
+  "properties": {
+    "user_id": {
+      "bsonType": "string",
+      "description": "Reference to user"
+    },
+    "token": {
+      "bsonType": "string",
+      "description": "Token type (USDT or BRS)"
+    },
+    "amount": {
+      "bsonType": "double",
+      "description": "Withdrawal amount"
+    },
+    "wallet_address": {
+      "bsonType": "string",
+      "description": "Destination wallet address"
+    },
+    "status": {
+      "bsonType": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected"
+      ],
+      "description": "Withdrawal status"
+    },
+    "creator": {
+      "bsonType": "string",
+      "description": "Creator user ID"
+    },
+    "creatorEmail": {
+      "bsonType": "string",
+      "description": "Creator user email"
+    },
+    "createdAt": {
+      "bsonType": "string",
+      "title": "datetime",
+      "description": "ISO 8601 datetime string (UTC): YYYY-MM-DDTHH:mm:ss.sssZ"
+    },
+    "updatedAt": {
+      "bsonType": "string",
+      "title": "datetime",
+      "description": "ISO 8601 datetime string (UTC): YYYY-MM-DDTHH:mm:ss.sssZ"
+    }
+  }
+}
