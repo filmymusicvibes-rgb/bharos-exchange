@@ -13,7 +13,6 @@ import Membership from "@/components/Membership"
 import Referral from "@/components/Referral"
 import Roadmap from "@/components/Roadmap"
 import MobileApp from "@/components/MobileApp"
-
 import Community from "@/components/Community"
 import Footer from "@/components/Footer"
 import Navbar from "@/components/Navbar"
@@ -30,28 +29,70 @@ function Home() {
   }, [])
 
   return (
-    <div className="relative min-h-screen bg-[#0B0919] text-white overflow-hidden">
+    <div className="relative min-h-screen bg-[#0B0919] text-white overflow-x-hidden">
 
       <ParticleBackground />
       <Navbar />
 
-      <main className={`relative z-10 transition-opacity duration-1000 ${mounted ? "opacity-100" : "opacity-0"}`}>
+      <main className={`relative z-10 px-4 transition-opacity duration-1000 ${mounted ? "opacity-100" : "opacity-0"}`}>
 
         <Hero />
-        <AnnouncementsSlider />
-        <section id="about"><About /></section>
-        <Features />
-        <section id="tokenomics"><Tokenomics /></section>
-        <BRSSmartContract />
-        <PriceGrowthStrategy />
-        <AIGrowthModel />
-        <CommunityGovernance />
-        <BharosATMCard />
-        <Membership />
-        <Referral />
-        <section id="roadmap"><Roadmap /></section>
-        <MobileApp />
-        <section id="community"><Community /></section>
+
+        <div className="mt-6">
+          <AnnouncementsSlider />
+        </div>
+
+        <section id="about" className="py-6">
+          <About />
+        </section>
+
+        <div className="py-4">
+          <Features />
+        </div>
+
+        <section id="tokenomics" className="py-6">
+          <Tokenomics />
+        </section>
+
+        <div className="py-4">
+          <BRSSmartContract />
+        </div>
+
+        <div className="py-4">
+          <PriceGrowthStrategy />
+        </div>
+
+        <div className="py-4">
+          <AIGrowthModel />
+        </div>
+
+        <div className="py-4">
+          <CommunityGovernance />
+        </div>
+
+        <div className="py-4">
+          <BharosATMCard />
+        </div>
+
+        <div className="py-4">
+          <Membership />
+        </div>
+
+        <div className="py-4">
+          <Referral />
+        </div>
+
+        <section id="roadmap" className="py-6">
+          <Roadmap />
+        </section>
+
+        <div className="py-4">
+          <MobileApp />
+        </div>
+
+        <section id="community" className="py-6">
+          <Community />
+        </section>
 
       </main>
 

@@ -54,7 +54,7 @@ function Roadmap() {
   ]
 
   return (
-    <section id="roadmap" ref={sectionRef} className="relative py-24 px-4 bg-gradient-to-b from-transparent via-blue-600/5 to-transparent">
+    <section id="roadmap" ref={sectionRef} className="relative py-8 lg:py-16 px-4 bg-gradient-to-b from-transparent via-blue-600/5 to-transparent">
       <div className="max-w-6xl mx-auto">
         <div className={`text-center mb-16 transition-all duration-1000 ${
           isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'

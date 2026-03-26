@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import {Brain, TrendingUp, Users, Activity} from 'lucide-react'
+import {TrendingUp, BarChart, Users, Activity} from 'lucide-react'
 
 function AIGrowthModel() {
   const [isVisible, setIsVisible] = useState(false)
@@ -47,7 +47,7 @@ function AIGrowthModel() {
   ]
 
   return (
-    <section id="ai-growth" ref={sectionRef} className="relative py-24 px-4 bg-gradient-to-b from-transparent via-cyan-500/5 to-transparent">
+    <section id="ai-growth" ref={sectionRef} className="relative py-8 lg:py-16 px-4 bg-gradient-to-b from-transparent via-cyan-500/5 to-transparent">
       <div className="max-w-6xl mx-auto">
         <div className={`text-center mb-16 transition-all duration-1000 ${
           isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'

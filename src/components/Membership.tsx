@@ -6,11 +6,10 @@ import { useNavigate } from 'react-router-dom'
 function Membership() {
   const [isVisible, setIsVisible] = useState(false)
   const sectionRef = useRef<HTMLDivElement>(null)
-  const { isAuthenticated, loading } = useAuth()
+  const { isAuthenticated } = useAuth()
   const navigate = useNavigate()
 
   const handleActivateClick = () => {
-    if (loading) return
     if (isAuthenticated) {
       navigate('/activate-membership')
     } else {
@@ -36,7 +35,7 @@ function Membership() {
   }, [])
 
   return (
-    <section id="membership" ref={sectionRef} className="relative py-24 px-4">
+    <section id="membership" ref={sectionRef} className="relative py-8 lg:py-16 px-4">
       <div className="max-w-5xl mx-auto">
         <div className={`text-center mb-16 transition-all duration-1000 ${
           isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'

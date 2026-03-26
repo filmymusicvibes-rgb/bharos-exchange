@@ -14,7 +14,7 @@ import Transactions from "./pages/Transactions"
 import Wallet from "./pages/Wallet"
 import Leaderboard from "./pages/Leaderboard"
 import TransferBRS from "./pages/TransferBRS"
-import Profile from "./pages/Profile" // ✅ ADDED
+import Profile from "./pages/Profile"
 import AdminLogin from "./pages/AdminLogin"
 
 export default function App() {
@@ -49,14 +49,15 @@ export default function App() {
   if (path === "/activate") Page = <ActivateMembership />
   if (path === "/admin") Page = <AdminPanel />
   if (path === "/admin-login") Page = <AdminLogin />
-
-  if (path === "/profile") Page = <Profile /> // ✅ THIS FIX
+  if (path === "/profile") Page = <Profile />
 
   return (
-    <div className="bg-[#0B0919] min-h-screen">
-      <div className="max-w-6xl mx-auto min-h-screen px-4 md:px-8">
+    <div className="bg-[#0B0919] min-h-screen overflow-x-hidden">
+
+      <div className="w-full max-w-6xl mx-auto px-4">
         {Page}
       </div>
+
     </div>
   )
 }

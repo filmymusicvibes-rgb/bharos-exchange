@@ -33,7 +33,7 @@ function MobileApp() {
 
   return (
     <>
-      <section id="mobile-app" ref={sectionRef} className="relative py-24 px-4">
+      <section id="mobile-app" ref={sectionRef} className="relative py-8 lg:py-16 px-4">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className={`text-center mb-16 transition-all duration-1000 ${

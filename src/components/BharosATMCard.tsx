@@ -51,7 +51,7 @@ function BharosATMCard() {
   ]
 
   return (
-    <section id="atm-card" ref={sectionRef} className="relative py-24 px-4 bg-gradient-to-b from-transparent via-cyan-500/5 to-transparent">
+    <section id="atm-card" ref={sectionRef} className="relative py-8 lg:py-16 px-4 bg-gradient-to-b from-transparent via-cyan-500/5 to-transparent">
       <div className="max-w-7xl mx-auto">
         <div className={`text-center mb-16 transition-all duration-1000 ${
           isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
@@ -101,10 +101,10 @@ function BharosATMCard() {
             </div>
 
             {/* Apply button */}
-            <div className="mt-8">
-              <button className="px-8 py-4 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-lg rounded-xl hover:from-cyan-400 hover:to-blue-500 transition-all duration-300 hover:scale-105 hover:shadow-[0_0_30px_rgba(0,212,255,0.5)] flex items-center space-x-2">
-                <CreditCard className="w-6 h-6" />
-                <span>Apply for Bharos ATM Card</span>
+            <div className="mt-8 flex justify-center lg:justify-start">
+              <button className="w-full sm:w-auto px-6 sm:px-8 py-4 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-base sm:text-lg rounded-xl hover:from-cyan-400 hover:to-blue-500 transition-all duration-300 hover:scale-105 hover:shadow-[0_0_30px_rgba(0,212,255,0.5)] flex justify-center items-center space-x-2">
+                <CreditCard className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" />
+                <span className="whitespace-nowrap">Apply for Bharos ATM Card</span>
               </button>
             </div>
           </div>

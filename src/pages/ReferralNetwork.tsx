@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react"
-import { navigate, getCurrentPath } from "@/lib/router"
+import { navigate } from "@/lib/router"
 import { db } from "../lib/firebase"
-import { collection, getDocs, doc, getDoc, updateDoc, addDoc, onSnapshot } from "firebase/firestore"
+import { collection, getDocs, doc, getDoc } from "firebase/firestore"
 import { Users, DollarSign } from "lucide-react"
+import Navbar from "@/components/Navbar"
 
 interface LevelData {
   level: number
@@ -27,13 +28,6 @@ const COMMISSION_STRUCTURE = [
 
 export default function ReferralNetwork() {
 
-  const path = getCurrentPath()
-
-  const linkClass = (route: string) =>
-    path === route
-      ? "text-cyan-400 scale-110 drop-shadow-[0_0_8px_cyan]"
-      : "text-gray-300 hover:text-cyan-400 hover:scale-105"
-
   const [loading, setLoading] = useState(true)
   const [levelStats, setLevelStats] = useState<LevelData[]>([])
   const [totalMembers, setTotalMembers] = useState(0)
@@ -52,24 +46,8 @@ export default function ReferralNetwork() {
   const [matrixAchieved, setMatrixAchieved] = useState(false)
   const [tripAchieved, setTripAchieved] = useState(false)
   const [directAchieved, setDirectAchieved] = useState(false)
-  const [isAdmin, setIsAdmin] = useState(false)
 
-  useEffect(() => {
-    const checkAdmin = async () => {
-      const email = localStorage.getItem("bharos_user")
-      if (!email) return
 
-      const snap = await getDoc(doc(db, "users", email))
-
-      if (snap.exists()) {
-        const data: any = snap.data()
-        if (data.role === "admin") {
-          setIsAdmin(true)
-        }
-      }
-    }
-    checkAdmin()
-  }, [])
 
   useEffect(() => {
     loadNetwork()
@@ -175,57 +153,15 @@ export default function ReferralNetwork() {
 
     <div className="min-h-screen bg-[#0B0919] text-white animate-scale-in">
 
+      <Navbar />
+
       {loading && (
         <div className="fixed top-20 right-5 bg-black/70 px-4 py-2 rounded-lg text-cyan-400 text-sm animate-pulse">
           Updating...
         </div>
       )}
 
-      <div className="flex justify-between py-4 border-b border-white/10 px-6">
-
-        <h1 className="text-cyan-400 font-bold text-xl">
-          Bharos Dashboard
-        </h1>
-
-        <div className="flex gap-6 text-sm font-medium">
-
-          <button onClick={() => navigate("/dashboard")} className={linkClass("/dashboard")}>
-            Dashboard
-          </button>
-
-          <button onClick={() => navigate("/referral-network")} className={linkClass("/referral-network")}>
-            Network
-          </button>
-
-          <button onClick={() => navigate("/leaderboard")} className={linkClass("/leaderboard")}>
-            Leaderboard
-          </button>
-
-          {isAdmin && (
-            <button onClick={() => navigate("/admin")} className={linkClass("/admin")}>
-              Admin
-            </button>
-          )}
-
-          <button onClick={() => navigate("/profile")} className={linkClass("/profile")}>
-            Profile
-          </button>
-
-          <button
-            onClick={() => {
-              localStorage.removeItem("bharos_user")
-              navigate("/")
-            }}
-            className="text-red-400 hover:text-red-300"
-          >
-            Logout
-          </button>
-
-        </div>
-
-      </div>
-
-      <div className="max-w-7xl mx-auto p-10">
+      <div className="max-w-7xl mx-auto p-6 md:p-10">
 
         <h1 className="text-4xl text-cyan-400 mb-10 font-bold">
           Referral Network 🚀

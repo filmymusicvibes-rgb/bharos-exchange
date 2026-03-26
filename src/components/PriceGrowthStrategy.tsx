@@ -44,7 +44,7 @@ function PriceGrowthStrategy() {
   ]
 
   return (
-    <section id="price-growth" ref={sectionRef} className="relative py-24 px-4 bg-gradient-to-b from-transparent via-yellow-500/5 to-transparent">
+    <section id="price-growth" ref={sectionRef} className="relative py-8 lg:py-16 px-4 bg-gradient-to-b from-transparent via-yellow-500/5 to-transparent">
       <div className="max-w-6xl mx-auto">
         <div className={`text-center mb-16 transition-all duration-1000 ${
           isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
@@ -70,7 +70,7 @@ function PriceGrowthStrategy() {
             {/* Chart container */}
             <div className="relative">
               {/* Price points */}
-              <div className="flex justify-between items-end mb-8">
+              <div className="flex flex-col md:flex-row gap-4 justify-between items-center md:items-end mb-8">
                 <div className="text-center">
                   <div className="inline-block px-6 py-4 bg-gradient-to-br from-cyan-500/20 to-blue-600/20 border border-cyan-400/50 rounded-xl mb-4">
                     <p className="text-sm text-cyan-300 mb-1">Launch Price</p>

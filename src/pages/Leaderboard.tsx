@@ -1,39 +1,14 @@
 import { useEffect, useState } from "react"
 import { db } from "../lib/firebase"
-import { collection, getDocs, doc, getDoc } from "firebase/firestore"
-import { navigate, getCurrentPath } from "../lib/router"
+import { collection, getDocs } from "firebase/firestore"
+import { navigate } from "../lib/router"
+import Navbar from "@/components/Navbar"
 
 export default function Leaderboard() {
-
-    const path = getCurrentPath()
-
-    const linkClass = (route: string) =>
-        `transition-all duration-300 ${path === route
-            ? "text-cyan-400 scale-110 drop-shadow-[0_0_8px_cyan]"
-            : "text-gray-300 hover:text-cyan-400 hover:scale-105"
-        }`
 
     const [referrers, setReferrers] = useState<any[]>([])
     const [earners, setEarners] = useState<any[]>([])
     const [myReferrals, setMyReferrals] = useState(0)
-    const [isAdmin, setIsAdmin] = useState(false)
-
-    useEffect(() => {
-        const checkAdmin = async () => {
-            const email = localStorage.getItem("bharos_user")
-            if (!email) return
-
-            const snap = await getDoc(doc(db, "users", email))
-
-            if (snap.exists()) {
-                const data: any = snap.data()
-                if (data.role === "admin") {
-                    setIsAdmin(true)
-                }
-            }
-        }
-        checkAdmin()
-    }, [])
 
     useEffect(() => {
         loadLeaderboard()
@@ -102,37 +77,9 @@ export default function Leaderboard() {
 
         <div className="min-h-screen bg-[#0B0919] text-white">
 
-            {/* 🔥 GLOBAL NAVBAR */}
-            <div className="flex justify-between py-4 border-b border-white/10 px-6">
+            <Navbar />
 
-                <h1 className="text-cyan-400 font-bold text-xl">
-                    Bharos Dashboard
-                </h1>
-
-                <div className="flex gap-6 text-sm font-medium">
-
-                    <button onClick={() => navigate("/dashboard")} className={linkClass("/dashboard")}>Dashboard</button>
-                    <button onClick={() => navigate("/referral-network")} className={linkClass("/referral-network")}>Network</button>
-                    <button onClick={() => navigate("/leaderboard")} className={linkClass("/leaderboard")}>Leaderboard</button>
-                    {isAdmin && (
-                        <button onClick={() => navigate("/admin")} className={linkClass("/admin")}>Admin</button>
-                    )}
-                    <button onClick={() => navigate("/profile")} className={linkClass("/profile")}>Profile</button>
-
-                    <button
-                        onClick={() => {
-                            localStorage.removeItem("bharos_user")
-                            navigate("/")
-                        }}
-                        className="text-red-400 hover:text-red-300 transition"
-                    >
-                        Logout
-                    </button>
-
-                </div>
-            </div>
-
-            <div className="max-w-6xl mx-auto p-10">
+            <div className="max-w-6xl mx-auto p-6 md:p-10">
 
                 <h1 className="text-4xl font-bold mb-10 text-yellow-400">
                     🏆 Bharos Leaderboard

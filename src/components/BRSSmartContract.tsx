@@ -47,7 +47,7 @@ function BRSSmartContract() {
     <section 
       id="smart-contract" 
       ref={sectionRef} 
-      className="relative py-24 px-4 bg-gradient-to-b from-transparent via-blue-500/5 to-transparent"
+      className="relative py-8 lg:py-16 px-4 bg-gradient-to-b from-transparent via-blue-500/5 to-transparent"
     >
       <div className="max-w-4xl mx-auto">
         <div className={`transition-all duration-1000 ${
@@ -80,11 +80,11 @@ function BRSSmartContract() {
               </div>
 
               {/* Contract Address Display */}
-              <div className="bg-[#0B0919] border border-cyan-500/30 rounded-xl p-6 mb-6">
-                <div className="flex items-center justify-between gap-4 flex-wrap">
-                  <div className="flex-1 min-w-0">
+              <div className="bg-[#0B0919] border border-cyan-500/30 rounded-xl p-4 sm:p-6 mb-6">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex-1 w-full min-w-0 text-center sm:text-left">
                     <p className="text-gray-400 text-sm mb-2">Contract Address</p>
-                    <div className="font-mono text-lg sm:text-xl text-white break-all">
+                    <div className="font-mono text-base sm:text-lg lg:text-xl text-white break-all">
                       {isLaunched ? (
                         // Show full address after launch
                         <span className="tracking-wide">{fullContractAddress}</span>
@@ -96,7 +96,7 @@ function BRSSmartContract() {
                       )}
                     </div>
                     {!isLaunched && (
-                      <p className="text-cyan-400 text-sm mt-3 animate-pulse">
+                      <p className="text-cyan-400 text-xs sm:text-sm mt-3 animate-pulse">
                         Full address will be revealed after token listing
                       </p>
                     )}
@@ -105,12 +105,12 @@ function BRSSmartContract() {
                   {/* Copy Button */}
                   <button
                     onClick={handleCopy}
-                    className={`group relative px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2 shadow-lg hover:scale-105 ${
+                    className={`group relative w-full sm:w-auto justify-center px-4 sm:px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2 shadow-lg hover:scale-105 ${
                       glowActive ? 'shadow-cyan-400/70' : 'shadow-cyan-500/30 hover:shadow-cyan-400/50'
                     }`}
                   >
-                    <Copy className="w-5 h-5" />
-                    <span>Copy Contract Address</span>
+                    {copied ? <Check className="w-5 h-5 shrink-0 text-white" /> : <Copy className="w-5 h-5 shrink-0" />}
+                    <span className="text-sm sm:text-base whitespace-nowrap">{copied ? "Copied!" : "Copy Contract Address"}</span>
                     
                     {/* Enhanced glowing border effect */}
                     <div className={`absolute inset-0 rounded-lg bg-gradient-to-r from-cyan-400 to-blue-500 blur transition-all duration-300 ${

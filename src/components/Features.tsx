@@ -51,7 +51,7 @@ function Features() {
   ]
 
   return (
-    <section id="features" ref={sectionRef} className="relative py-24 px-4">
+    <section id="features" ref={sectionRef} className="relative py-8 lg:py-16 px-4">
       <div className="max-w-7xl mx-auto">
         <div className={`text-center mb-16 transition-all duration-1000 ${
           isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
