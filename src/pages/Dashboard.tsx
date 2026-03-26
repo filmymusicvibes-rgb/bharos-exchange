@@ -164,7 +164,11 @@ export default function Dashboard() {
                   navigate("/activate")
                   window.scrollTo(0, 0)
                 }}
-                className="bg-yellow-500 px-6 py-2 rounded-lg font-bold hover:scale-105 transition"
+                style={{
+                  background: "linear-gradient(90deg, #f59e0b, #d97706)",
+                  boxShadow: "0 0 15px rgba(245,158,11,0.5)"
+                }}
+                className="px-6 py-2 rounded-lg font-bold text-black hover:scale-105 transition"
               >
                 Activate Now (12 USDT)
               </button>
@@ -176,9 +180,14 @@ export default function Dashboard() {
           <div className="grid md:grid-cols-2 gap-6 mb-8">
 
             {/* BRS */}
-            <div className="p-6 rounded-2xl border border-yellow-400/40 
-            bg-gradient-to-br from-yellow-500/20 to-black 
-            shadow-[0_0_60px_rgba(255,215,0,0.25)] animate-glow">
+            <div
+              className="p-6 rounded-2xl animate-glow"
+              style={{
+                border: "1.5px solid rgba(250, 204, 21, 0.6)",
+                background: "linear-gradient(135deg, rgba(202,138,4,0.35) 0%, #0d0d1a 100%)",
+                boxShadow: "0 0 40px rgba(255, 200, 0, 0.3)"
+              }}
+            >
 
               <div className="flex justify-between mb-3">
                 <h3 className="text-yellow-300">BRS Coin</h3>
@@ -204,10 +213,11 @@ export default function Dashboard() {
 
               <button
                 onClick={() => navigate("/transfer")}
-                className="mt-5 w-full py-3 rounded-full 
-                bg-gradient-to-r from-yellow-400 to-yellow-600 
-                text-black font-semibold 
-                hover:scale-110 hover:shadow-[0_0_25px_gold] transition-all duration-300"
+                style={{
+                  background: "linear-gradient(90deg, #facc15, #ca8a04)",
+                  boxShadow: "0 0 18px rgba(250,204,21,0.5)"
+                }}
+                className="mt-5 w-full py-3 rounded-full text-black font-semibold hover:scale-110 transition-all duration-300"
               >
                 Send BRS
               </button>
@@ -215,9 +225,14 @@ export default function Dashboard() {
             </div>
 
             {/* USDT */}
-            <div className="p-6 rounded-2xl border border-green-400/40 
-            bg-gradient-to-br from-green-500/20 to-black 
-            shadow-[0_0_60px_rgba(34,197,94,0.25)] animate-glow">
+            <div
+              className="p-6 rounded-2xl animate-glow"
+              style={{
+                border: "1.5px solid rgba(34, 197, 94, 0.6)",
+                background: "linear-gradient(135deg, rgba(21,128,61,0.35) 0%, #0d0d1a 100%)",
+                boxShadow: "0 0 40px rgba(34, 197, 94, 0.25)"
+              }}
+            >
 
               <div className="flex justify-between mb-3">
                 <h3 className="text-green-300">USDT (BEP-20)</h3>
@@ -241,16 +256,21 @@ export default function Dashboard() {
 
               <div className="flex gap-3 mt-5">
 
-                <button className="flex-1 py-3 rounded-full border border-white/20 hover:bg-white/10 hover:scale-105 transition-all">
+                <button
+                  style={{ border: "1.5px solid rgba(255,255,255,0.3)" }}
+                  className="flex-1 py-3 rounded-full hover:bg-white/10 hover:scale-105 transition-all"
+                >
                   Deposit
                 </button>
 
                 <button
                   onClick={() => navigate("/withdraw")}
-                  className="flex-1 py-3 rounded-full 
-                  bg-gradient-to-r from-green-400 to-green-600 
-                  text-black font-semibold 
-                  hover:scale-110 hover:shadow-[0_0_25px_#22c55e] transition-all duration-300">
+                  style={{
+                    background: "linear-gradient(90deg, #4ade80, #16a34a)",
+                    boxShadow: "0 0 18px rgba(34,197,94,0.5)"
+                  }}
+                  className="flex-1 py-3 rounded-full text-black font-semibold hover:scale-110 transition-all duration-300"
+                >
                   Withdraw
                 </button>
 
