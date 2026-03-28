@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { navigate } from "@/lib/router"
 import { db } from "../lib/firebase"
-import { doc, getDoc, updateDoc } from "firebase/firestore"
+import { doc, getDoc, updateDoc, addDoc, collection } from "firebase/firestore"
 
 import Navbar from "../components/Navbar" // ✅ ADDED
 
@@ -18,6 +18,7 @@ export default function Dashboard() {
   const [brs, setBrs] = useState(0)
   const [isAdmin, setIsAdmin] = useState(false)
   const [days, setDays] = useState(0)
+  const [rewardClaimed, setRewardClaimed] = useState(false)
   const [tripAchieved, setTripAchieved] = useState(false)
   
   const email = localStorage.getItem("bharos_user")
@@ -70,7 +71,7 @@ export default function Dashboard() {
           window.location.origin + "/auth?ref=" + data.referralCode
         )
 
-        // ✅ DAYS CALCULATION
+        // ✅ DAYS CALCULATION + 30-DAY AUTO REWARD
         if (data.activatedAt) {
           const start = new Date(data.activatedAt.seconds * 1000)
           const now = new Date()
@@ -80,6 +81,40 @@ export default function Dashboard() {
           )
 
           setDays(diff > 30 ? 30 : diff)
+
+          // 🔥 AUTO-CREDIT 150 BRS after 30 days
+          if (diff >= 30 && !data.brs30DayRewardPaid) {
+
+            const freshSnap = await getDoc(ref)
+            const freshData: any = freshSnap.data()
+
+            if (!freshData?.brs30DayRewardPaid) {
+              const currentBrs = Number(freshData?.brsBalance || 0)
+              const newBrs = currentBrs + 150
+
+              await updateDoc(ref, {
+                brsBalance: newBrs,
+                brs30DayRewardPaid: true
+              })
+
+              await addDoc(collection(db, "transactions"), {
+                userId: email,
+                amount: 150,
+                currency: "BRS",
+                type: "BRS_RECEIVE",
+                description: "30-day membership BRS reward",
+                createdAt: new Date()
+              })
+
+              setBrs(newBrs)
+              setRewardClaimed(true)
+              console.log(`✅ 30-day reward 150 BRS credited to ${email}`)
+            }
+          }
+
+          if (data.brs30DayRewardPaid) {
+            setRewardClaimed(true)
+          }
         }
 
       }
@@ -282,15 +317,18 @@ export default function Dashboard() {
 
           {/* PROGRESS */}
           <div className="bg-[#1a1a2e] p-4 rounded-xl mb-6">
-            <p>Upcoming Reward</p>
+            <p>{rewardClaimed ? "🎉 Reward Claimed" : "Upcoming Reward"}</p>
             <div className="w-full bg-gray-700 h-2 rounded mt-2">
               <div
-                className="bg-cyan-400 h-2 rounded transition-all"
+                className={`h-2 rounded transition-all ${rewardClaimed ? "bg-green-400" : "bg-cyan-400"}`}
                 style={{ width: `${(days / 30) * 100}%` }}
               />
             </div>
             <p className="text-xs mt-2">
-              {days}/30 days → +150 BRS
+              {rewardClaimed
+                ? "✅ +150 BRS Credited!"
+                : `${days}/30 days → +150 BRS`
+              }
             </p>
           </div>
 
