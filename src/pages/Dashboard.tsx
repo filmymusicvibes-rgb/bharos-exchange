@@ -212,11 +212,11 @@ export default function Dashboard() {
           </div>
 
           {/* CARDS */}
-          <div className="grid md:grid-cols-2 gap-6 mb-8">
+          <div className="grid md:grid-cols-2 gap-6 mb-8 mt-8">
 
             {/* BRS */}
             <div
-              className="p-6 rounded-2xl animate-glow"
+              className="p-7 rounded-2xl animate-glow"
               style={{
                 border: "1.5px solid rgba(250, 204, 21, 0.6)",
                 background: "linear-gradient(135deg, rgba(202,138,4,0.35) 0%, #0d0d1a 100%)",
@@ -224,22 +224,22 @@ export default function Dashboard() {
               }}
             >
 
-              <div className="flex justify-between mb-3">
-                <h3 className="text-yellow-300">BRS Coin</h3>
-                <img src={brsLogo} className="w-10" />
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-yellow-300 text-lg font-bold">BRS Coin</h3>
+                <img src={brsLogo} className="w-14 h-14 drop-shadow-[0_0_12px_rgba(250,204,21,0.6)]" />
               </div>
 
-              <h1 className="text-3xl font-bold">{brs} BRS</h1>
+              <h1 className="text-4xl font-bold">{brs} BRS</h1>
 
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-gray-400 mt-2">
                 Token Price: <span className="text-yellow-400">$0.005</span>
               </p>
 
-              <p className="text-green-400">
+              <p className="text-green-400 mt-1 font-semibold">
                 Value: ${(brs * 0.005).toFixed(2)}
               </p>
 
-              <div className="flex items-center gap-3 mt-3">
+              <div className="flex items-center gap-3 mt-4">
                 <img src={trustLogo} className="w-6" />
                 <span className="text-xs text-blue-400">
                   Phase 3: Transfer to Trust Wallet
@@ -252,7 +252,7 @@ export default function Dashboard() {
                   background: "linear-gradient(90deg, #facc15, #ca8a04)",
                   boxShadow: "0 0 18px rgba(250,204,21,0.5)"
                 }}
-                className="mt-5 w-full py-3 rounded-full text-black font-semibold hover:scale-110 transition-all duration-300"
+                className="mt-6 w-full py-3 rounded-full text-black font-semibold hover:scale-110 transition-all duration-300"
               >
                 Send BRS
               </button>
@@ -261,7 +261,7 @@ export default function Dashboard() {
 
             {/* USDT */}
             <div
-              className="p-6 rounded-2xl animate-glow"
+              className="p-7 rounded-2xl animate-glow"
               style={{
                 border: "1.5px solid rgba(34, 197, 94, 0.6)",
                 background: "linear-gradient(135deg, rgba(21,128,61,0.35) 0%, #0d0d1a 100%)",
@@ -269,27 +269,27 @@ export default function Dashboard() {
               }}
             >
 
-              <div className="flex justify-between mb-3">
-                <h3 className="text-green-300">USDT (BEP-20)</h3>
-                <img src={usdtLogo} className="w-10" />
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-green-300 text-lg font-bold">USDT (BEP-20)</h3>
+                <img src={usdtLogo} className="w-14 h-14 drop-shadow-[0_0_12px_rgba(34,197,94,0.6)]" />
               </div>
 
-              <h1 className="text-3xl font-bold">${usdt.toFixed(2)}</h1>
+              <h1 className="text-4xl font-bold">${usdt.toFixed(2)}</h1>
 
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-gray-400 mt-2">
                 Network: <span className="text-green-400">BEP-20 (BSC)</span>
               </p>
 
-              <p className="text-green-400">Status: Active</p>
+              <p className="text-green-400 mt-1 font-semibold">Status: Active</p>
 
-              <div className="flex items-center gap-3 mt-3">
+              <div className="flex items-center gap-3 mt-4">
                 <img src={usdtLogo} className="w-6 h-6" />
                 <span className="text-xs text-blue-400">
                   Phase 3: Deposits Live Soon
                 </span>
               </div>
 
-              <div className="flex gap-3 mt-5">
+              <div className="flex gap-3 mt-6">
 
                 <button
                   style={{ border: "1.5px solid rgba(255,255,255,0.3)" }}
