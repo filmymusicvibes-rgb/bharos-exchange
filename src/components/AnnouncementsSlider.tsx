@@ -1,26 +1,27 @@
 import { useState, useEffect } from 'react'
 
-// Note: This slider is designed to support future admin uploads
-// Administrators can upload announcement banners in 16:9 format
-// Images should be high-resolution banners (recommended: 1920x1080)
+import update1Img from '../assets/Update1.gif'
+import update2Img from '../assets/Update2.jpeg'
+import update3Img from '../assets/Update3.jpeg'
+
 const announcements = [
   {
     id: 1,
     title: 'Bharos Exchange Beta Launch',
     description: 'Explore the preview of our upcoming trading platform.',
-    gradient: 'from-cyan-500/20 to-blue-600/20'
+    image: update1Img
   },
   {
     id: 2,
     title: 'BRS Ecosystem Expansion',
     description: 'Community growth and ecosystem development underway.',
-    gradient: 'from-yellow-500/20 to-orange-600/20'
+    image: update2Img
   },
   {
     id: 3,
     title: 'Bharos Mobile App Coming Soon',
     description: 'Our mobile trading app will be available soon.',
-    gradient: 'from-purple-500/20 to-pink-600/20'
+    image: update3Img
   }
 ]
 
@@ -76,40 +77,22 @@ function AnnouncementsSlider() {
                 {/* 16:9 Aspect Ratio Banner */}
                 <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
                   <div className="absolute inset-0 rounded-2xl overflow-hidden border-2 border-[#00d4ff]/30 hover:border-[#00d4ff]/60 transition-all duration-300 group">
-                    {/* Glowing Border Effect */}
-                    <div className="absolute inset-0 bg-gradient-to-br opacity-40 blur-xl group-hover:opacity-60 transition-opacity duration-300" 
-                         style={{ background: `linear-gradient(135deg, rgba(0, 212, 255, 0.3), rgba(255, 215, 0, 0.3))` }} />
                     
-                    {/* Banner Content */}
-                    <div className={`absolute inset-0 bg-gradient-to-br ${announcement.gradient} backdrop-blur-sm flex flex-col justify-center items-center p-8 md:p-12`}>
-                      {/* Crypto Grid Background */}
-                      <div className="absolute inset-0 opacity-10" 
-                           style={{ 
-                             backgroundImage: 'linear-gradient(#00d4ff 1px, transparent 1px), linear-gradient(90deg, #00d4ff 1px, transparent 1px)',
-                             backgroundSize: '50px 50px'
-                           }} />
-                      
-                      {/* Content */}
-                      <div className="relative z-10 text-center max-w-3xl">
-                        <div className="mb-4 inline-block">
-                          <div className="w-16 h-16 rounded-full bg-[#00d4ff]/20 flex items-center justify-center border-2 border-[#00d4ff] animate-pulse">
-                            <svg className="w-8 h-8 text-[#00d4ff]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                          </div>
-                        </div>
-                        
-                        <h3 className="text-3xl md:text-5xl font-bold mb-4 text-white drop-shadow-lg">
-                          {announcement.title}
-                        </h3>
-                        <p className="text-lg md:text-xl text-gray-200 drop-shadow-md">
-                          {announcement.description}
-                        </p>
+                    {/* Actual Image */}
+                    <img 
+                      src={announcement.image} 
+                      alt={announcement.title}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
 
-                        {/* Decorative Elements */}
-                        <div className="absolute top-0 left-0 w-32 h-32 border-t-4 border-l-4 border-[#00d4ff]/30 rounded-tl-2xl" />
-                        <div className="absolute bottom-0 right-0 w-32 h-32 border-b-4 border-r-4 border-[#ffd700]/30 rounded-br-2xl" />
-                      </div>
+                    {/* Bottom Gradient Overlay for text readability */}
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-6 md:p-8">
+                      <h3 className="text-xl md:text-3xl font-bold text-white drop-shadow-lg">
+                        {announcement.title}
+                      </h3>
+                      <p className="text-sm md:text-base text-gray-200 mt-1 drop-shadow-md">
+                        {announcement.description}
+                      </p>
                     </div>
 
                     {/* Glow Effect */}
