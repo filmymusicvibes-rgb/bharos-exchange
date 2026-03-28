@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import {Smartphone, TrendingUp, Wallet, Users, Shield, BarChart3, Download, Clock} from 'lucide-react'
+import mobileAppImg from '../assets/mobileapp.jpg'
 
 function MobileApp() {
   const [isVisible, setIsVisible] = useState(false)
@@ -123,69 +124,11 @@ function MobileApp() {
                   
                   {/* Screen */}
                   <div className="relative bg-[#0B0919] rounded-[2.5rem] overflow-hidden aspect-[9/19] border border-cyan-500/20">
-                    {/* Status Bar */}
-                    <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-black/50 to-transparent z-10 flex items-center justify-between px-8 pt-2">
-                      <span className="text-white text-xs">9:41</span>
-                      <div className="flex gap-1">
-                        <div className="w-4 h-4 rounded-full border border-white/30" />
-                        <div className="w-4 h-4 rounded-full border border-white/30" />
-                      </div>
-                    </div>
-
-                    {/* App Content */}
-                    <div className="p-6 pt-16 h-full">
-                      {/* Header */}
-                      <div className="mb-6">
-                        <h3 className="text-2xl font-bold text-white mb-1">BRS Trading</h3>
-                        <p className="text-cyan-400 text-sm">Bharos Exchange</p>
-                      </div>
-
-                      {/* Price Card */}
-                      <div className="bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-cyan-500/30 rounded-2xl p-5 mb-4 backdrop-blur-sm">
-                        <div className="flex justify-between items-start mb-3">
-                          <div>
-                            <p className="text-gray-400 text-xs mb-1">BRS/USDT</p>
-                            <p className="text-3xl font-bold text-white">$0.0245</p>
-                          </div>
-                          <div className="bg-green-500/20 text-green-400 px-3 py-1 rounded-lg text-sm font-semibold">
-                            +12.5%
-                          </div>
-                        </div>
-                        
-                        {/* Mini Chart Bars */}
-                        <div className="flex items-end gap-1 h-16">
-                          {[40, 55, 35, 65, 50, 75, 60, 85, 70, 90, 80, 95].map((height, i) => (
-                            <div
-                              key={i}
-                              className="flex-1 bg-gradient-to-t from-cyan-500 to-blue-400 rounded-t"
-                              style={{ height: `${height}%` }}
-                            />
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Quick Actions */}
-                      <div className="grid grid-cols-2 gap-3 mb-4">
-                        <div className="bg-[#1a1a2e] border border-cyan-500/20 rounded-xl p-4 text-center">
-                          <TrendingUp className="w-6 h-6 text-green-400 mx-auto mb-2" />
-                          <p className="text-white text-sm font-semibold">Buy BRS</p>
-                        </div>
-                        <div className="bg-[#1a1a2e] border border-cyan-500/20 rounded-xl p-4 text-center">
-                          <Wallet className="w-6 h-6 text-yellow-400 mx-auto mb-2" />
-                          <p className="text-white text-sm font-semibold">My Wallet</p>
-                        </div>
-                      </div>
-
-                      {/* Portfolio Preview */}
-                      <div className="bg-[#1a1a2e] border border-cyan-500/20 rounded-xl p-4">
-                        <p className="text-gray-400 text-xs mb-2">Total Balance</p>
-                        <p className="text-2xl font-bold text-white mb-3">$2,450.00</p>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-400">BRS Holdings</span>
-                          <span className="text-cyan-400 font-semibold">100,000 BRS</span>
-                        </div>
-                      </div>
-                    </div>
+                    <img 
+                      src={mobileAppImg} 
+                      alt="Bharos Exchange Mobile App"
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
 
                     {/* Glow Effect */}
                     <div className="absolute inset-0 bg-gradient-to-t from-cyan-500/10 via-transparent to-transparent pointer-events-none" />
