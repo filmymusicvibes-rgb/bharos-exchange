@@ -1,15 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
-import {Copy, Check, Shield} from 'lucide-react'
+import {Lock, Shield} from 'lucide-react'
 
 function BRSSmartContract() {
   const [isVisible, setIsVisible] = useState(false)
-  const [copied, setCopied] = useState(false)
-  const [isLaunched, setIsLaunched] = useState(false) // Set to true after token listing
-  const [glowActive, setGlowActive] = useState(false)
+  const [shaking, setShaking] = useState(false)
   const sectionRef = useRef<HTMLDivElement>(null)
   
   // Full contract address (will be revealed after launch)
-  const fullContractAddress = "0xB7A9C5E3D8F92A6B4E1C7D9F2A5B8C3E6D9F1A4B"
   const maskedAddress = "0xB7A9****F92A"
   
   useEffect(() => {
@@ -29,18 +26,9 @@ function BRSSmartContract() {
     return () => observer.disconnect()
   }, [])
 
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(fullContractAddress)
-      setCopied(true)
-      setGlowActive(true)
-      setTimeout(() => {
-        setCopied(false)
-        setGlowActive(false)
-      }, 1000)
-    } catch (err) {
-      console.error('Failed to copy:', err)
-    }
+  const handleCopy = () => {
+    setShaking(true)
+    setTimeout(() => setShaking(false), 600)
   }
 
   return (
@@ -85,37 +73,26 @@ function BRSSmartContract() {
                   <div className="flex-1 w-full min-w-0 text-center sm:text-left">
                     <p className="text-gray-400 text-sm mb-2">Contract Address</p>
                     <div className="font-mono text-base sm:text-lg lg:text-xl text-white break-all">
-                      {isLaunched ? (
-                        // Show full address after launch
-                        <span className="tracking-wide">{fullContractAddress}</span>
-                      ) : (
-                        // Show animated masked address before launch
-                        <span className="inline-block animate-pulse tracking-wide">
-                          {maskedAddress}
-                        </span>
-                      )}
+                      <span className="inline-block animate-pulse tracking-wide">
+                        {maskedAddress}
+                      </span>
                     </div>
-                    {!isLaunched && (
-                      <p className="text-cyan-400 text-xs sm:text-sm mt-3 animate-pulse">
-                        Full address will be revealed after token listing
-                      </p>
-                    )}
+                    <p className="text-cyan-400 text-xs sm:text-sm mt-3 animate-pulse">
+                      Full address will be revealed after token listing
+                    </p>
                   </div>
 
-                  {/* Copy Button */}
+                  {/* Lock Button - Coming Soon */}
                   <button
                     onClick={handleCopy}
-                    className={`group relative w-full sm:w-auto justify-center px-4 sm:px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2 shadow-lg hover:scale-105 ${
-                      glowActive ? 'shadow-cyan-400/70' : 'shadow-cyan-500/30 hover:shadow-cyan-400/50'
+                    className={`group relative w-full sm:w-auto justify-center px-4 sm:px-6 py-3 bg-gradient-to-r from-gray-600 to-gray-700 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2 shadow-lg cursor-not-allowed ${
+                      shaking ? 'animate-[shake_0.5s_ease-in-out]' : ''
                     }`}
                   >
-                    {copied ? <Check className="w-5 h-5 shrink-0 text-white" /> : <Copy className="w-5 h-5 shrink-0" />}
-                    <span className="text-sm sm:text-base whitespace-nowrap">{copied ? "Copied!" : "Copy Contract Address"}</span>
-                    
-                    {/* Enhanced glowing border effect */}
-                    <div className={`absolute inset-0 rounded-lg bg-gradient-to-r from-cyan-400 to-blue-500 blur transition-all duration-300 ${
-                      glowActive ? 'opacity-40 scale-110' : 'opacity-0 group-hover:opacity-20'
-                    }`} />
+                    <Lock className="w-5 h-5 shrink-0 text-yellow-400" />
+                    <span className="text-sm sm:text-base whitespace-nowrap text-gray-300">
+                      {shaking ? "🔒 Available after listing" : "🔒 Coming Soon"}
+                    </span>
                   </button>
                 </div>
               </div>

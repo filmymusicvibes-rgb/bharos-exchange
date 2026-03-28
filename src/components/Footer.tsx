@@ -1,4 +1,5 @@
 import {Twitter, Github, Send} from 'lucide-react'
+import brsLogo from "../assets/brs.png"
 
 function Footer() {
   const currentYear = new Date().getFullYear()
@@ -10,9 +11,7 @@ function Footer() {
           {/* Brand */}
           <div className="md:col-span-2">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/50">
-                <span className="text-xl font-bold text-white">B</span>
-              </div>
+              <img src={brsLogo} className="w-10 h-10 rounded-full drop-shadow-[0_0_10px_rgba(250,204,21,0.5)]" alt="BRS" />
               <span className="text-lg font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
                 Bharos Exchange
               </span>
