@@ -213,37 +213,54 @@ export default function AdminPanel() {
 
   }
 
-  // SPECIAL REWARDS ENGINE
+  // SPECIAL REWARDS ENGINE (FIXED — REAL MEMBER COUNTING)
 
   const checkSpecialRewards = async (userEmail: string, userData: any) => {
 
     const usersSnap = await getDocs(collection(db, "users"))
+    const allUsers = usersSnap.docs.map(d => d.data())
 
-    let level1 = 0
-    let totalTeam = 0
+    // 🔥 REAL Level 1 members
+    const level1Users = allUsers.filter(
+      u => u.referredBy === userData.referralCode && u.status === "active"
+    )
+    const level1Count = level1Users.length
 
-    usersSnap.forEach((u: any) => {
+    // 🔥 REAL Level 2 members
+    const level1Codes = level1Users.map(u => u.referralCode)
+    const level2Users = allUsers.filter(
+      u => level1Codes.includes(u.referredBy) && u.status === "active"
+    )
+    const level2Count = level2Users.length
 
-      const d = u.data()
+    // 🔥 REAL Level 3 members
+    const level2Codes = level2Users.map(u => u.referralCode)
+    const level3Users = allUsers.filter(
+      u => level2Codes.includes(u.referredBy) && u.status === "active"
+    )
+    const level3Count = level3Users.length
 
-      if (
-        d.referredBy === userData.referralCode &&
-        d.status === "active"
-      ) {
-        level1++
-        totalTeam++
-      }
+    // 🔥 REAL Level 4 members
+    const level3Codes = level3Users.map(u => u.referralCode)
+    const level4Users = allUsers.filter(
+      u => level3Codes.includes(u.referredBy) && u.status === "active"
+    )
+    const level4Count = level4Users.length
 
-    })
+    // 🔥 REAL Total Team (all 4 levels)
+    const totalTeam = level1Count + level2Count + level3Count + level4Count
 
-    // DIRECT 10 REWARD
+    // ============================
+    // 🎁 REWARD 1: DIRECT 10 ($20)
+    // ============================
 
     const freshSnap = await getDoc(doc(db, "users", userEmail))
     const freshUser: any = freshSnap.data()
 
-    if (level1 >= 10 && !freshUser?.directRewardPaid) {
+    if (level1Count >= 10 && !freshUser?.directRewardPaid) {
 
-      const newBalance = Number(((freshUser?.usdtBalance || 0) + 20).toFixed(2))
+      const currentBalance = Number(freshUser?.usdtBalance || 0)
+      const newBalance = Number((currentBalance + 20).toFixed(2))
 
       await updateDoc(doc(db, "users", userEmail), {
         usdtBalance: newBalance,
@@ -256,21 +273,27 @@ export default function AdminPanel() {
         "USDT",
         "Direct 10 referral reward"
       )
+
+      console.log(`✅ Direct reward $20 credited to ${userEmail}`)
     }
 
-    // MATRIX REWARD (SAFE)
+    // ========================================
+    // 🎁 REWARD 2: MATRIX 3+9+27 ($30)
+    // ========================================
 
-    const level2 = level1 * 3
-    const level3 = level2 * 3
+    // Re-fetch after possible direct reward update
+    const freshSnap2 = await getDoc(doc(db, "users", userEmail))
+    const freshUser2: any = freshSnap2.data()
 
     if (
-      level1 >= 3 &&
-      level2 >= 9 &&
-      level3 >= 27 &&
-      !freshUser?.matrixRewardPaid
+      level1Count >= 3 &&
+      level2Count >= 9 &&
+      level3Count >= 27 &&
+      !freshUser2?.matrixRewardPaid
     ) {
 
-      const newBalance = Number(((freshUser?.usdtBalance || 0) + 30).toFixed(2))
+      const currentBalance = Number(freshUser2?.usdtBalance || 0)
+      const newBalance = Number((currentBalance + 30).toFixed(2))
 
       await updateDoc(doc(db, "users", userEmail), {
         usdtBalance: newBalance,
@@ -283,11 +306,19 @@ export default function AdminPanel() {
         "USDT",
         "Matrix reward (3+9+27)"
       )
+
+      console.log(`✅ Matrix reward $30 credited to ${userEmail}`)
     }
 
-    // TRIP ACHIEVEMENT
+    // =============================================
+    // 🎁 REWARD 3: TRIP ACHIEVEMENT (100 team)
+    // =============================================
 
-    if (totalTeam >= 100 && !freshUser?.tripAchieved) {
+    // Re-fetch after possible matrix reward update
+    const freshSnap3 = await getDoc(doc(db, "users", userEmail))
+    const freshUser3: any = freshSnap3.data()
+
+    if (totalTeam >= 100 && !freshUser3?.tripAchieved) {
 
       await updateDoc(doc(db, "users", userEmail), {
         tripAchieved: true,
@@ -298,8 +329,39 @@ export default function AdminPanel() {
         userEmail,
         0,
         "SYSTEM",
-        "Trip Achieved - User eligible for reward"
+        `Trip Achieved — Team: ${totalTeam} (L1:${level1Count} L2:${level2Count} L3:${level3Count} L4:${level4Count})`
       )
+
+      console.log(`✅ Trip achieved for ${userEmail} — Team: ${totalTeam}`)
+    }
+
+  }
+
+  // 🔥 CHECK UPLINE REWARDS — walks UP the chain after each activation
+
+  const checkUplineRewards = async (activatedUser: any) => {
+
+    let currentRef = activatedUser.referredBy
+
+    // Walk UP the referral chain
+    while (currentRef && currentRef !== "none") {
+
+      const refIndexSnap = await getDoc(doc(db, "referralIndex", currentRef))
+      if (!refIndexSnap.exists()) break
+
+      const uplineEmail = refIndexSnap.data().userId
+
+      const uplineSnap = await getDoc(doc(db, "users", uplineEmail))
+      if (!uplineSnap.exists()) break
+
+      const uplineData: any = uplineSnap.data()
+
+      // 🎁 Check all 3 rewards for this upline user
+      await checkSpecialRewards(uplineEmail, uplineData)
+
+      // Move UP to next upline
+      currentRef = uplineData.referredBy
+
     }
 
   }
@@ -354,11 +416,11 @@ export default function AdminPanel() {
       const updatedSnap = await getDoc(userRef)
       const updatedUser: any = updatedSnap.data()
 
-      // 🔥 MAIN COMMISSION SYSTEM
+      // 🔥 MAIN COMMISSION SYSTEM (12 LEVELS)
       await distributeReferral(updatedUser)
 
-      // 🎁 REWARDS SYSTEM
-      await checkSpecialRewards(userEmail, updatedUser)
+      // 🎁 REWARDS SYSTEM — check ALL upline users (not just activated user)
+      await checkUplineRewards(updatedUser)
 
       alert("User activated + MLM distributed")
 

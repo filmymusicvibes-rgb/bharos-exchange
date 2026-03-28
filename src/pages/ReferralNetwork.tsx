@@ -138,7 +138,12 @@ export default function ReferralNetwork() {
     setLevelStats(levelData)
 
     setTotalMembers(levelData.reduce((s, l) => s + l.members, 0))
-    setTotalEarnings(levelData.reduce((s, l) => s + (l.members * l.commission), 0))
+
+    // 🔥 Total Earnings = Level Commissions + Special Rewards
+    let earnings = levelData.reduce((s, l) => s + (l.members * l.commission), 0)
+    if (userData.directRewardPaid) earnings += 20
+    if (userData.matrixRewardPaid) earnings += 30
+    setTotalEarnings(earnings)
 
     setLoading(false)
   }

@@ -3,6 +3,7 @@ import { db, storage } from "../lib/firebase"
 import { collection, addDoc, getDocs, query, where, doc, getDoc, updateDoc } from "firebase/firestore"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 import { navigate } from "../lib/router"
+import qrBharos from "../assets/qr-bharos.jpeg"
 
 function ActivateMembership() {
 
@@ -155,7 +156,7 @@ function ActivateMembership() {
         <div className="flex gap-3 mb-6">
 
           <input
-            value="0x742d35cc6634C0532925a3b844Bc9e7595f0Ebb1"
+            value="0xCD72FfF7F22eC409FCAcED1A06AEC227da6C1A56"
             readOnly
             className="w-full p-3 bg-[#0B0919] rounded"
           />
@@ -164,7 +165,7 @@ function ActivateMembership() {
             onClick={async () => {
               try {
                 await navigator.clipboard.writeText(
-                  "0x742d35cc6634C0532925a3b844Bc9e7595f0Ebb1"
+                  "0xCD72FfF7F22eC409FCAcED1A06AEC227da6C1A56"
                 )
                 alert("Address copied!")
               } catch {
@@ -181,9 +182,11 @@ function ActivateMembership() {
         <div className="flex justify-center">
 
           <img
-            src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=0x742d35cc6634C0532925a3b844Bc9e7595f0Ebb1"
-            alt="qr"
+            src={qrBharos}
+            alt="Bharos Payment QR Code"
             className="rounded"
+            width={200}
+            height={200}
           />
 
         </div>
