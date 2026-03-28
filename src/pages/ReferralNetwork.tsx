@@ -238,13 +238,14 @@ export default function ReferralNetwork() {
 
         {/* LEVEL TABLE */}
         <div className="bg-[#1a1a2e] rounded-xl overflow-hidden mb-10">
-          <table className="w-full">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[340px]">
             <thead className="bg-[#16213e]">
               <tr>
-                <th className="p-4 text-left">Level</th>
-                <th className="p-4">Members</th>
-                <th className="p-4">Commission</th>
-                <th className="p-4">Total</th>
+                <th className="p-2 md:p-4 text-left">Level</th>
+                <th className="p-2 md:p-4">Members</th>
+                <th className="p-2 md:p-4">Commission</th>
+                <th className="p-2 md:p-4">Total</th>
               </tr>
             </thead>
             <tbody>
@@ -267,10 +268,10 @@ export default function ReferralNetwork() {
                 return (
                   <tr key={l.level}
                     className={`bg-gradient-to-r ${colors[i]}/10 border-t border-white/10 hover:shadow-[0_0_20px_rgba(0,212,255,0.3)] hover:scale-[1.01] transition`}>
-                    <td className="p-4 font-semibold">Level {l.level}</td>
-                    <td className="p-4 text-center">{l.members}</td>
-                    <td className="p-4 text-yellow-400 text-center">${l.commission}</td>
-                    <td className="p-4 text-green-400 text-center">
+                    <td className="p-2 md:p-4 font-semibold whitespace-nowrap">Level {l.level}</td>
+                    <td className="p-2 md:p-4 text-center">{l.members}</td>
+                    <td className="p-2 md:p-4 text-yellow-400 text-center">${l.commission}</td>
+                    <td className="p-2 md:p-4 text-green-400 text-center whitespace-nowrap">
                       ${(l.members * l.commission).toFixed(2)}
                     </td>
                   </tr>
@@ -278,6 +279,7 @@ export default function ReferralNetwork() {
               })}
             </tbody>
           </table>
+          </div>
         </div>
 
         {/* DIRECT REFERRALS FINAL */}
