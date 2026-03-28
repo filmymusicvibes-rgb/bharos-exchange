@@ -28,14 +28,17 @@ export default function Transactions() {
                 if (data.userId === email) {
                     const isSend = data.type === "send" || data.type === "BRS_SEND"
                     const isReceive = data.type === "receive" || data.type === "BRS_RECEIVE"
-                    
-                    list.push({
-                        ...data,
-                        displayType: isSend ? "BRS Sent" : isReceive ? "BRS Received" : "BRS Transfer",
-                        displayAmount: `${data.amount} BRS`,
-                        displayStatus: "success", // Transfers are usually instant/success
-                        icon: isSend ? "📤" : "📥"
-                    })
+
+                    // ✅ Only show user-initiated BRS transfers (send/receive)
+                    if (isSend || isReceive) {
+                        list.push({
+                            ...data,
+                            displayType: isSend ? "BRS Sent" : "BRS Received",
+                            displayAmount: `${data.amount} BRS`,
+                            displayStatus: "success",
+                            icon: isSend ? "📤" : "📥"
+                        })
+                    }
                 }
             })
 
