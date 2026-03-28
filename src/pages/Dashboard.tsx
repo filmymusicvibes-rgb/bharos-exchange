@@ -151,7 +151,7 @@ export default function Dashboard() {
 
       {/* ✅ GLOBAL NAVBAR */}
       <Navbar />
-      <LoginPopup />
+      <LoginPopup userStatus={status} />
 
       <div className="px-4">
 

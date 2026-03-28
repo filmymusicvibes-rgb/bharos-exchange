@@ -5,14 +5,17 @@ import { X } from 'lucide-react'
 // Import images from assets folder:
 // import popupImg from '../assets/popup.jpg'
 
-// ✅ POPUP SLIDES — Add/edit/remove easily!
-const popupSlides = [
+// Slides for NEW / INACTIVE users only
+const newUserSlides = [
   {
-    // image: popupImg,  // ← Uncomment when you add popup.jpg to assets
     title: "🎉 Welcome to Bharos Exchange!",
     message: "Activate your account today and earn referral commissions on 12 levels + special rewards!",
     bgGradient: "from-cyan-500/20 to-blue-600/20"
-  },
+  }
+]
+
+// Slides for ALL users (active + inactive)
+const commonSlides = [
   {
     title: "🚀 BRS Token Update",
     message: "BRS token listing coming soon! Early members get exclusive benefits. Stay tuned for official announcements.",
@@ -25,9 +28,14 @@ const popupSlides = [
   }
 ]
 
-export default function LoginPopup() {
+export default function LoginPopup({ userStatus = "inactive" }: { userStatus?: string }) {
   const [show, setShow] = useState(false)
   const [currentSlide, setCurrentSlide] = useState(0)
+
+  // Build slides based on user status
+  const popupSlides = userStatus === "active" 
+    ? commonSlides 
+    : [...newUserSlides, ...commonSlides]
 
   useEffect(() => {
     // Show popup once per session (per browser tab)
