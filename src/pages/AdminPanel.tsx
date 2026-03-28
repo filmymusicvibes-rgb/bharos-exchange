@@ -318,7 +318,7 @@ export default function AdminPanel() {
     const freshSnap3 = await getDoc(doc(db, "users", userEmail))
     const freshUser3: any = freshSnap3.data()
 
-    if (totalTeam >= 100 && !freshUser3?.tripAchieved) {
+    if ((level4Count >= 81 || totalTeam >= 100) && !freshUser3?.tripAchieved) {
 
       await updateDoc(doc(db, "users", userEmail), {
         tripAchieved: true,
