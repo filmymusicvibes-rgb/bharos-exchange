@@ -4,6 +4,7 @@ import { db } from "../lib/firebase"
 import { doc, getDoc, updateDoc, addDoc, collection } from "firebase/firestore"
 
 import Navbar from "../components/Navbar" // ✅ ADDED
+import LoginPopup from "../components/LoginPopup"
 
 import brsLogo from "../assets/brs.png"
 import usdtLogo from "../assets/usdt.png"
@@ -150,6 +151,7 @@ export default function Dashboard() {
 
       {/* ✅ GLOBAL NAVBAR */}
       <Navbar />
+      <LoginPopup />
 
       <div className="px-4">
 
