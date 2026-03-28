@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import {CreditCard, Zap, Landmark, Globe, Shield, RefreshCw} from 'lucide-react'
+import atmCardImg from '../assets/Update3.jpeg'
 
 function BharosATMCard() {
   const [isVisible, setIsVisible] = useState(false)
@@ -120,7 +121,7 @@ function BharosATMCard() {
               {/* Card image container with floating animation */}
               <div className="relative bg-gradient-to-br from-[#1a1a2e] to-[#16213e] border-2 border-cyan-400/50 rounded-2xl p-2 overflow-hidden animate-float">
                 <img
-                  src="https://static.lumi.new/54/54eacecc5ecdb942c70cd9e9b04987cf.png"
+                  src={atmCardImg}
                   alt="Bharos Crypto ATM Card"
                   className="w-full h-auto rounded-xl object-cover"
                 />
