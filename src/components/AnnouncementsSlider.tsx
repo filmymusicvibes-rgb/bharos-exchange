@@ -85,16 +85,6 @@ function AnnouncementsSlider() {
                       className="absolute inset-0 w-full h-full object-cover"
                     />
 
-                    {/* Bottom Gradient Overlay for text readability */}
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-6 md:p-8">
-                      <h3 className="text-xl md:text-3xl font-bold text-white drop-shadow-lg">
-                        {announcement.title}
-                      </h3>
-                      <p className="text-sm md:text-base text-gray-200 mt-1 drop-shadow-md">
-                        {announcement.description}
-                      </p>
-                    </div>
-
                     {/* Glow Effect */}
                     <div className="absolute inset-0 shadow-[0_0_50px_rgba(0,212,255,0.3)] group-hover:shadow-[0_0_80px_rgba(0,212,255,0.5)] transition-shadow duration-300 rounded-2xl pointer-events-none" />
                   </div>
