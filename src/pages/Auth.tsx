@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { Eye, EyeOff } from "lucide-react"
 import coin from "../assets/brs.png"
 import { db } from "../lib/firebase"
 import { doc, setDoc, collection, query, where, getDocs, getDoc } from "firebase/firestore"
@@ -14,6 +15,7 @@ export default function Auth() {
   const [referralCode, setReferralCode] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   // 🔗 referral auto detect
   useEffect(() => {
@@ -208,14 +210,23 @@ export default function Auth() {
         )}
 
         {/* 🔐 PASSWORD */}
-        <input
-          type="password"
-          placeholder="Enter password"
-          className="w-full px-4 py-3 rounded-lg bg-[#0B0919] border border-cyan-500/20 text-white focus:border-cyan-400 outline-none"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
+        <div className="relative">
+          <input
+            type={showPassword ? "text" : "password"}
+            placeholder="Enter password"
+            className="w-full px-4 py-3 pr-12 rounded-lg bg-[#0B0919] border border-cyan-500/20 text-white focus:border-cyan-400 outline-none"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-cyan-400 transition"
+          >
+            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+          </button>
+        </div>
 
         {/* 🚀 BUTTON */}
         <button
