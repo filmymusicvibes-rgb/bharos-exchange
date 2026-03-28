@@ -7,7 +7,8 @@ import {
   doc,
   updateDoc,
   getDoc,
-  addDoc
+  addDoc,
+  increment
 } from "firebase/firestore"
 
 import AdminStats from "./AdminStats"
@@ -160,9 +161,9 @@ export default function AdminPanel() {
 
   }
 
-  // MLM COMMISSION ENGINE
+  // MLM COMMISSION ENGINE (OPTIMIZED — uses increment() for atomic updates)
 
-  const distributeReferral = async (userData: any) => {
+  const distributeReferral = async (userData: any, allUsers: any[]) => {
 
     const rewards = [
       2, 0.8, 0.75, 0.65, 0.55, 0.50,
@@ -175,29 +176,19 @@ export default function AdminPanel() {
 
       if (!currentRef || currentRef === "none") break
 
-      const refIndexSnap =
-        await getDoc(doc(db, "referralIndex", currentRef))
+      // Find upline from cached allUsers instead of DB fetch
+      const uplineUser = allUsers.find(
+        (u: any) => u.referralCode === currentRef
+      )
 
-      if (!refIndexSnap.exists()) break
+      if (!uplineUser || !uplineUser.email) break
 
-      const userEmail = refIndexSnap.data().userId
-
-      const refUserSnap =
-        await getDoc(doc(db, "users", userEmail))
-
-      if (!refUserSnap.exists()) break
-
-      const refUser: any = refUserSnap.data()
-
+      const userEmail = uplineUser.email
       const reward = rewards[i]
 
-      const freshSnap = await getDoc(doc(db, "users", userEmail))
-      const freshUser: any = freshSnap.data()
-
-      const newBalance = Number(((freshUser?.usdtBalance || 0) + reward).toFixed(2))
-
+      // 🔥 Atomic increment — no need to fetch current balance first
       await updateDoc(doc(db, "users", userEmail), {
-        usdtBalance: newBalance
+        usdtBalance: increment(reward)
       })
 
       await logTransaction(
@@ -207,20 +198,17 @@ export default function AdminPanel() {
         `Level ${i + 1} referral commission`
       )
 
-      currentRef = refUser.referredBy
+      currentRef = uplineUser.referredBy
 
     }
 
   }
 
-  // SPECIAL REWARDS ENGINE (FIXED — REAL MEMBER COUNTING)
+  // SPECIAL REWARDS ENGINE (OPTIMIZED — uses cached allUsers + increment())
 
-  const checkSpecialRewards = async (userEmail: string, userData: any) => {
+  const checkSpecialRewards = async (userEmail: string, userData: any, allUsers: any[]) => {
 
-    const usersSnap = await getDocs(collection(db, "users"))
-    const allUsers = usersSnap.docs.map(d => d.data())
-
-    // 🔥 REAL Level 1 members
+    // 🔥 REAL Level 1 members (from cached allUsers — no DB fetch!)
     const level1Users = allUsers.filter(
       u => u.referredBy === userData.referralCode && u.status === "active"
     )
@@ -254,16 +242,15 @@ export default function AdminPanel() {
     // 🎁 REWARD 1: DIRECT 10 ($20)
     // ============================
 
+    // Single fetch for reward flag checks
     const freshSnap = await getDoc(doc(db, "users", userEmail))
     const freshUser: any = freshSnap.data()
 
     if (level1Count >= 10 && !freshUser?.directRewardPaid) {
 
-      const currentBalance = Number(freshUser?.usdtBalance || 0)
-      const newBalance = Number((currentBalance + 20).toFixed(2))
-
+      // 🔥 Atomic increment — no need to re-fetch balance
       await updateDoc(doc(db, "users", userEmail), {
-        usdtBalance: newBalance,
+        usdtBalance: increment(20),
         directRewardPaid: true
       })
 
@@ -281,22 +268,16 @@ export default function AdminPanel() {
     // 🎁 REWARD 2: MATRIX 3+9+27 ($30)
     // ========================================
 
-    // Re-fetch after possible direct reward update
-    const freshSnap2 = await getDoc(doc(db, "users", userEmail))
-    const freshUser2: any = freshSnap2.data()
-
     if (
       level1Count >= 3 &&
       level2Count >= 9 &&
       level3Count >= 27 &&
-      !freshUser2?.matrixRewardPaid
+      !freshUser?.matrixRewardPaid
     ) {
 
-      const currentBalance = Number(freshUser2?.usdtBalance || 0)
-      const newBalance = Number((currentBalance + 30).toFixed(2))
-
+      // 🔥 Atomic increment — no re-fetch needed
       await updateDoc(doc(db, "users", userEmail), {
-        usdtBalance: newBalance,
+        usdtBalance: increment(30),
         matrixRewardPaid: true
       })
 
@@ -314,11 +295,7 @@ export default function AdminPanel() {
     // 🎁 REWARD 3: TRIP ACHIEVEMENT (100 team)
     // =============================================
 
-    // Re-fetch after possible matrix reward update
-    const freshSnap3 = await getDoc(doc(db, "users", userEmail))
-    const freshUser3: any = freshSnap3.data()
-
-    if ((level4Count >= 81 || totalTeam >= 100) && !freshUser3?.tripAchieved) {
+    if ((level4Count >= 81 || totalTeam >= 100) && !freshUser?.tripAchieved) {
 
       await updateDoc(doc(db, "users", userEmail), {
         tripAchieved: true,
@@ -337,36 +314,33 @@ export default function AdminPanel() {
 
   }
 
-  // 🔥 CHECK UPLINE REWARDS — walks UP the chain after each activation
+  // 🔥 CHECK UPLINE REWARDS — walks UP the chain (OPTIMIZED — reuses cached allUsers)
 
-  const checkUplineRewards = async (activatedUser: any) => {
+  const checkUplineRewards = async (activatedUser: any, allUsers: any[]) => {
 
     let currentRef = activatedUser.referredBy
 
-    // Walk UP the referral chain
+    // Walk UP the referral chain using cached data
     while (currentRef && currentRef !== "none") {
 
-      const refIndexSnap = await getDoc(doc(db, "referralIndex", currentRef))
-      if (!refIndexSnap.exists()) break
+      // Find upline from cached allUsers instead of DB fetches
+      const uplineUser = allUsers.find(
+        (u: any) => u.referralCode === currentRef
+      )
 
-      const uplineEmail = refIndexSnap.data().userId
+      if (!uplineUser || !uplineUser.email) break
 
-      const uplineSnap = await getDoc(doc(db, "users", uplineEmail))
-      if (!uplineSnap.exists()) break
-
-      const uplineData: any = uplineSnap.data()
-
-      // 🎁 Check all 3 rewards for this upline user
-      await checkSpecialRewards(uplineEmail, uplineData)
+      // 🎁 Check all 3 rewards for this upline user (passes cached allUsers)
+      await checkSpecialRewards(uplineUser.email, uplineUser, allUsers)
 
       // Move UP to next upline
-      currentRef = uplineData.referredBy
+      currentRef = uplineUser.referredBy
 
     }
 
   }
 
-  // APPROVE DEPOSIT
+  // APPROVE DEPOSIT (OPTIMIZED — fast activation + background commission)
 
   const approveDeposit = async (depositId: string, userEmail: string) => {
 
@@ -380,6 +354,7 @@ export default function AdminPanel() {
 
       if (!userSnap.exists()) {
         alert("User not found")
+        setProcessingId(null)
         return
       }
 
@@ -387,22 +362,19 @@ export default function AdminPanel() {
 
       if (userData.status === "active") {
         alert("User already active")
+        setProcessingId(null)
         return
       }
 
+      // ⚡ STEP 1: Immediate activation (fast — only 3 writes)
       await updateDoc(doc(db, "deposits", depositId), {
         status: "approved"
       })
 
-      const brs = userData.brsBalance || 0
-
-      // 🔥 activate user
       await updateDoc(userRef, {
-
         status: "active",
-        brsBalance: brs + 150,
+        brsBalance: increment(150),
         activatedAt: new Date()
-
       })
 
       await logTransaction(
@@ -412,19 +384,29 @@ export default function AdminPanel() {
         "Membership activation reward"
       )
 
-      // 🔥 VERY IMPORTANT (REFETCH USER)
+      // ⚡ Immediate UI update — user sees "approved" right away
+      loadDeposits()
+
+      // ⚡ STEP 2: Commission & rewards in background (doesn't block UI)
+      // Fetch all users ONCE and reuse across all functions
+      const allUsersSnap = await getDocs(collection(db, "users"))
+      const allUsers = allUsersSnap.docs.map(d => d.data())
+
+      // Refetch activated user with updated data
       const updatedSnap = await getDoc(userRef)
       const updatedUser: any = updatedSnap.data()
 
-      // 🔥 MAIN COMMISSION SYSTEM (12 LEVELS)
-      await distributeReferral(updatedUser)
+      // 🔥 MAIN COMMISSION SYSTEM (12 LEVELS) — uses cached allUsers
+      await distributeReferral(updatedUser, allUsers)
 
-      // 🎁 REWARDS SYSTEM — check ALL upline users (not just activated user)
-      await checkUplineRewards(updatedUser)
+      // 🎁 REWARDS SYSTEM — uses cached allUsers (no more repeated DB fetches!)
+      await checkUplineRewards(updatedUser, allUsers)
 
-      alert("User activated + MLM distributed")
+      console.log(`✅ Activation + commissions complete for ${userEmail}`)
 
-      loadDeposits()
+    } catch (err) {
+      console.error("Approve error:", err)
+      alert("Error during activation")
     } finally {
       setProcessingId(null)
     }
@@ -636,7 +618,7 @@ export default function AdminPanel() {
                   onClick={() => approveDeposit(d.id, d.userId)}
                   className="bg-green-500 px-4 py-2 mt-3 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Approve
+                  {processingId === d.id ? "⏳ Processing..." : "✅ Approve"}
                 </button>
               )}
 

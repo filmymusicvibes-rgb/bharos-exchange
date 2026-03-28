@@ -1,31 +1,71 @@
 import { useState } from "react"
+import { db } from "../lib/firebase"
+import { doc, getDoc } from "firebase/firestore"
 
 export default function AdminLogin() {
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
 
-  const login = () => {
+  const login = async () => {
 
-    // 🔥 simple check
-    if (email === "admin@bharos.com" && password === "admin123") {
-      localStorage.setItem("bharos_user", email)
+    setError("")
+    setLoading(true)
+
+    try {
+      const cleanEmail = email.trim().toLowerCase()
+
+      if (!cleanEmail || !password) {
+        setError("Please enter email and password")
+        setLoading(false)
+        return
+      }
+
+      // 🔥 Check Firestore admins collection
+      const adminRef = doc(db, "admins", cleanEmail)
+      const adminSnap = await getDoc(adminRef)
+
+      if (!adminSnap.exists()) {
+        setError("Access denied — not an admin")
+        setLoading(false)
+        return
+      }
+
+      const adminData: any = adminSnap.data()
+
+      if (adminData.password !== password) {
+        setError("Invalid password")
+        setLoading(false)
+        return
+      }
+
+      // ✅ Admin verified — login
+      localStorage.setItem("bharos_user", adminData.userEmail || cleanEmail)
       window.location.href = "/admin"
-    } else {
-      alert("Invalid admin credentials")
+
+    } catch (err: any) {
+      setError("Login failed: " + err.message)
     }
+
+    setLoading(false)
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#0B0919] text-white">
 
-      <div className="bg-[#1a1a2e] p-8 rounded-xl w-80 space-y-4">
+      <div className="bg-[#1a1a2e] p-8 rounded-xl w-80 space-y-4 border border-cyan-500/20">
 
-        <h2 className="text-xl text-cyan-400 text-center">Admin Login</h2>
+        <h2 className="text-xl text-cyan-400 text-center font-bold">🔐 Admin Login</h2>
+
+        {error && (
+          <p className="text-red-400 text-center text-sm">{error}</p>
+        )}
 
         <input
-          placeholder="Email"
-          className="w-full p-2 bg-black/30 rounded"
+          placeholder="Admin Email"
+          className="w-full p-3 bg-black/30 rounded border border-cyan-500/20 text-white focus:border-cyan-400 outline-none"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
@@ -33,17 +73,22 @@ export default function AdminLogin() {
         <input
           type="password"
           placeholder="Password"
-          className="w-full p-2 bg-black/30 rounded"
+          className="w-full p-3 bg-black/30 rounded border border-cyan-500/20 text-white focus:border-cyan-400 outline-none"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
 
         <button
           onClick={login}
-          className="w-full bg-cyan-500 py-2 rounded"
+          disabled={loading}
+          className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 py-3 rounded font-semibold hover:shadow-[0_0_20px_rgba(34,211,238,0.5)] transition-all disabled:opacity-50"
         >
-          Login
+          {loading ? "Verifying..." : "Login"}
         </button>
+
+        <p className="text-xs text-gray-500 text-center">
+          Multi-device admin access enabled
+        </p>
 
       </div>
 
