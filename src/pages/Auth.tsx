@@ -6,6 +6,22 @@ import { doc, setDoc, collection, query, where, getDocs, getDoc } from "firebase
 
 type Mode = "signin" | "signup"
 
+// 🔐 Password rules
+const passwordRules = [
+  { id: "length", label: "Minimum 8 characters", test: (p: string) => p.length >= 8 },
+  { id: "upper", label: "One uppercase letter (A-Z)", test: (p: string) => /[A-Z]/.test(p) },
+  { id: "lower", label: "One lowercase letter (a-z)", test: (p: string) => /[a-z]/.test(p) },
+  { id: "number", label: "One number (0-9)", test: (p: string) => /[0-9]/.test(p) },
+  { id: "special", label: "One special character (!@#$%...)", test: (p: string) => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(p) },
+]
+
+// 📧 Valid email domains
+const validEmailDomains = [
+  "gmail.com", "yahoo.com", "yahoo.in", "outlook.com", "hotmail.com",
+  "live.com", "icloud.com", "protonmail.com", "mail.com", "zoho.com",
+  "aol.com", "yandex.com", "rediffmail.com"
+]
+
 export default function Auth() {
 
   const [mode, setMode] = useState<Mode>("signin")
@@ -27,6 +43,18 @@ export default function Auth() {
     }
   }, [])
 
+  // 📧 Validate email format + real domain
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+    if (!emailRegex.test(email)) return false
+
+    const domain = email.split("@")[1]?.toLowerCase()
+    return validEmailDomains.includes(domain)
+  }
+
+  // 🔐 Check all password rules pass
+  const allPasswordRulesPass = passwordRules.every(rule => rule.test(password))
+
   // 🚀 SUBMIT
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,7 +64,21 @@ export default function Auth() {
     try {
       const cleanEmail = email.trim().toLowerCase()
 
+      // 📧 Email validation
+      if (!isValidEmail(cleanEmail)) {
+        setError("Please use a valid email (Gmail, Yahoo, Outlook, etc.)")
+        setLoading(false)
+        return
+      }
+
       if (mode === "signup") {
+
+        // 🔐 Password validation
+        if (!allPasswordRulesPass) {
+          setError("Password does not meet all requirements")
+          setLoading(false)
+          return
+        }
 
         const refCode = referralCode.trim()
 
@@ -69,7 +111,7 @@ export default function Auth() {
         const userSnap = await getDoc(userRef)
 
         if (userSnap.exists()) {
-          setError("User already exists")
+          setError("This email is already registered. Please sign in.")
           setLoading(false)
           return
         }
@@ -96,6 +138,7 @@ export default function Auth() {
         await setDoc(userRef, {
           email: cleanEmail,
           userName: userName || cleanEmail.split("@")[0],
+          password: password,
 
           referralCode: myReferral,
           referredBy: refCode,
@@ -118,12 +161,27 @@ export default function Auth() {
       }
 
       if (mode === "signin") {
-        console.log("Signin:", cleanEmail)
+        const cleanEmailForLogin = cleanEmail
+        const userRef = doc(db, "users", cleanEmailForLogin)
+        const userSnap = await getDoc(userRef)
 
-        // optional future check (skip now)
+        if (!userSnap.exists()) {
+          setError("Account not found. Please sign up first.")
+          setLoading(false)
+          return
+        }
+
+        const userData: any = userSnap.data()
+
+        // 🔐 Password check
+        if (userData.password && userData.password !== password) {
+          setError("Incorrect password")
+          setLoading(false)
+          return
+        }
       }
 
-      // 👉 simulate login
+      // 👉 login
       localStorage.setItem("bharos_user", cleanEmail)
 
       // 🔁 redirect
@@ -178,14 +236,25 @@ export default function Auth() {
         {error && <p className="text-red-400 text-center text-sm">{error}</p>}
 
         {/* 📩 EMAIL */}
-        <input
-          type="email"
-          placeholder="Enter your email"
-          className="w-full px-4 py-3 rounded-lg bg-[#0B0919] border border-cyan-500/20 text-white focus:border-cyan-400 outline-none"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
+        <div>
+          <input
+            type="email"
+            placeholder="Enter your email (Gmail, Yahoo, Outlook...)"
+            className="w-full px-4 py-3 rounded-lg bg-[#0B0919] border border-cyan-500/20 text-white focus:border-cyan-400 outline-none"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          {mode === "signup" && email.length > 3 && (
+            <div className="mt-1.5 flex items-center gap-1.5">
+              {isValidEmail(email) ? (
+                <p className="text-green-400 text-xs">✅ Valid email</p>
+              ) : (
+                <p className="text-red-400 text-xs">❌ Use a valid email (Gmail, Yahoo, Outlook, etc.)</p>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* 👤 USERNAME */}
         {mode === "signup" && (
@@ -228,11 +297,28 @@ export default function Auth() {
           </button>
         </div>
 
+        {/* 🔐 PASSWORD STRENGTH — Live green checkmarks */}
+        {mode === "signup" && password.length > 0 && (
+          <div className="bg-[#0B0919] border border-white/10 rounded-lg p-3 space-y-1.5">
+            <p className="text-xs text-gray-400 mb-1 font-semibold">Password Requirements:</p>
+            {passwordRules.map(rule => (
+              <div key={rule.id} className="flex items-center gap-2">
+                <span className={`text-sm transition-all duration-300 ${rule.test(password) ? "text-green-400 scale-110" : "text-gray-600"}`}>
+                  {rule.test(password) ? "✅" : "⬜"}
+                </span>
+                <span className={`text-xs transition-all duration-300 ${rule.test(password) ? "text-green-400" : "text-gray-500"}`}>
+                  {rule.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* 🚀 BUTTON */}
         <button
           type="submit"
-          disabled={loading}
-          className="w-full py-3 rounded-lg font-semibold text-white bg-gradient-to-r from-cyan-500 to-blue-600 transition-all duration-300 hover:shadow-[0_0_25px_rgba(34,211,238,0.8)] hover:scale-105 active:scale-95"
+          disabled={loading || (mode === "signup" && (!allPasswordRulesPass || !isValidEmail(email)))}
+          className="w-full py-3 rounded-lg font-semibold text-white bg-gradient-to-r from-cyan-500 to-blue-600 transition-all duration-300 hover:shadow-[0_0_25px_rgba(34,211,238,0.8)] hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 disabled:hover:shadow-none"
         >
           {loading ? "Processing..." : mode === "signin" ? "Sign In" : "Create Account"}
         </button>
