@@ -188,6 +188,10 @@ export default function Dashboard() {
                 <p className="text-yellow-400">⚡ Activation in progress</p>
               )}
 
+              {status === "awaiting_verification" && (
+                <p className="text-cyan-400">🔍 Payment verification in progress</p>
+              )}
+
               {status === "active" && (
                 <p className="text-green-400">✅ Active</p>
               )}
@@ -195,19 +199,26 @@ export default function Dashboard() {
 
             {/* 👉 THIS IS IMPORTANT BUTTON */}
 
-            {status === "inactive" && (
+            {(status === "inactive" || status === "awaiting_verification") && (
               <button
                 onClick={() => {
                   navigate("/activate")
                   window.scrollTo(0, 0)
                 }}
                 style={{
-                  background: "linear-gradient(90deg, #f59e0b, #d97706)",
-                  boxShadow: "0 0 15px rgba(245,158,11,0.5)"
+                  background: status === "awaiting_verification"
+                    ? "linear-gradient(90deg, #06b6d4, #0284c7)"
+                    : "linear-gradient(90deg, #f59e0b, #d97706)",
+                  boxShadow: status === "awaiting_verification"
+                    ? "0 0 15px rgba(6,182,212,0.5)"
+                    : "0 0 15px rgba(245,158,11,0.5)"
                 }}
                 className="px-6 py-2 rounded-lg font-bold text-black hover:scale-105 transition"
               >
-                Activate Now (12 USDT)
+                {status === "awaiting_verification"
+                  ? "🔍 Check Payment"
+                  : "Activate Now (12 USDT)"
+                }
               </button>
             )}
 

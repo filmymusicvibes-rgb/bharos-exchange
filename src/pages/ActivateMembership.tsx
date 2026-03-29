@@ -20,11 +20,11 @@ function ActivateMembership() {
   const [fallbackLoading, setFallbackLoading] = useState(false)
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const maxPolls = 60 // 60 polls × 10 sec = 10 minutes
+  const maxPolls = 90 // 90 × 10 sec = 15 minutes
 
   const PAYMENT_AMOUNT = 12
 
-  // 🔒 Check status on load
+  // 🔒 Check status on load — ALSO resumes verification if user left page
   useEffect(() => {
     const init = async () => {
       const email = localStorage.getItem("bharos_user")
@@ -33,25 +33,33 @@ function ActivateMembership() {
       const userRef = doc(db, "users", email)
       const userSnap = await getDoc(userRef)
 
-      if (userSnap.exists()) {
-        const data: any = userSnap.data()
+      if (!userSnap.exists()) return
 
-        if (data.status === "active") {
-          navigate("/dashboard")
-          return
-        }
+      const data: any = userSnap.data()
 
-        // Check pending deposit
-        const q = query(
-          collection(db, "deposits"),
-          where("userId", "==", email),
-          where("status", "==", "pending")
-        )
-        const snap = await getDocs(q)
-        if (!snap.empty) {
-          alert("⚡ Your activation is already in process.")
-          navigate("/dashboard")
-        }
+      // ✅ Already active → go to dashboard
+      if (data.status === "active") {
+        navigate("/dashboard")
+        return
+      }
+
+      // 🔄 RESUME: User left page during verification → auto-resume polling!
+      if (data.status === "awaiting_verification") {
+        setStep("waiting")
+        startPolling()
+        return
+      }
+
+      // Check pending deposit
+      const q = query(
+        collection(db, "deposits"),
+        where("userId", "==", email),
+        where("status", "==", "pending")
+      )
+      const snap = await getDocs(q)
+      if (!snap.empty) {
+        alert("⚡ Your activation is already in process.")
+        navigate("/dashboard")
       }
     }
 
@@ -72,11 +80,31 @@ function ActivateMembership() {
     setPollCount(0)
     setErrorMsg("")
 
+    // 💾 SAVE STATE TO FIRESTORE — survives page close/back!
+    try {
+      const userRef = doc(db, "users", email)
+      const snap = await getDoc(userRef)
+      if (snap.exists()) {
+        const data: any = snap.data()
+        if (data.status !== "awaiting_verification") {
+          await updateDoc(userRef, {
+            status: "awaiting_verification",
+            verificationStartedAt: new Date()
+          })
+        }
+      }
+    } catch (err) {
+      console.error("Save state error:", err)
+    }
+
     // Get used TXID hashes to avoid duplicates
     const depositsSnap = await getDocs(collection(db, "deposits"))
     const usedHashes = depositsSnap.docs
       .map((d: any) => d.data().txHash?.toLowerCase())
       .filter(Boolean)
+
+    // 🛑 Clear any existing polling
+    if (pollRef.current) clearInterval(pollRef.current)
 
     // Start polling every 10 seconds
     pollRef.current = setInterval(async () => {
@@ -103,6 +131,12 @@ function ActivateMembership() {
 
     }, 10000)
 
+    // Also check immediately (don't wait 10 seconds for first check)
+    const immediateResult = await detectPayment(PAYMENT_AMOUNT, usedHashes)
+    if (immediateResult.verified) {
+      if (pollRef.current) clearInterval(pollRef.current)
+      await activateUser(email, immediateResult.amount!, immediateResult.txHash!, immediateResult.from!)
+    }
   }
 
   // 🔗 Fallback: Manual TXID verification
@@ -166,8 +200,7 @@ function ActivateMembership() {
       await updateDoc(userRef, {
         status: "active",
         brsBalance: increment(150),
-        activatedAt: new Date(),
-        pendingAmount: null
+        activatedAt: new Date()
       })
 
       await logTransaction(email, 150, "BRS", "Membership activation reward")
@@ -342,6 +375,13 @@ function ActivateMembership() {
                     Looking for your 12 USDT payment
                   </p>
 
+                  {/* Safe to leave notice */}
+                  <div className="bg-green-500/10 border border-green-400/30 rounded-lg p-3">
+                    <p className="text-green-400 text-xs">
+                      ✅ Safe to close this page — verification will resume when you return
+                    </p>
+                  </div>
+
                   <div className="w-full bg-gray-700 rounded-full h-2">
                     <div
                       className="bg-gradient-to-r from-cyan-500 to-blue-500 h-2 rounded-full transition-all duration-1000"
@@ -350,18 +390,8 @@ function ActivateMembership() {
                   </div>
 
                   <p className="text-gray-500 text-xs">
-                    Elapsed: {formatTime(pollCount)} • Checking every 10 seconds
+                    Elapsed: {formatTime(pollCount)}
                   </p>
-
-                  <button
-                    onClick={() => {
-                      if (pollRef.current) clearInterval(pollRef.current)
-                      setStep("send")
-                    }}
-                    className="text-gray-400 text-sm hover:text-white transition underline"
-                  >
-                    Cancel
-                  </button>
 
                 </div>
               )}
@@ -395,7 +425,7 @@ function ActivateMembership() {
               <p className="text-red-300">• Send <b>exactly 12 USDT</b> — wrong amount will <b>NOT</b> be verified</p>
               <p className="text-red-300">• Use <b>BNB Smart Chain (BEP20)</b> — wrong network = <b>permanent loss</b></p>
               <p className="text-red-300">• Wrong address = <b>permanent loss of funds</b></p>
-              <p className="text-orange-300 mt-2">💡 Payment verified instantly on blockchain — no manual steps needed</p>
+              <p className="text-orange-300 mt-2">💡 Payment verified instantly on blockchain</p>
             </div>
 
           </>

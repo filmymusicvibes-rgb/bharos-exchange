@@ -5,20 +5,20 @@
  * Free API — no fees, no middleman, no KYC.
  * 
  * Two modes:
- * 1. Auto-detect: Polls for incoming USDT transfers matching a unique amount
+ * 1. Auto-detect: Polls for incoming USDT transfers >= 12 USDT
  * 2. Manual verify: Verifies a specific TXID (fallback)
  */
 
-// 🔑 BSCScan API Key (Etherscan API V2 — works for BSC + 60 chains)
+// 🔑 BSCScan API Key
 const BSCSCAN_API_KEY: string = "87BKX1SYMDVD86CP49C8IU2FA9VQNFM8EQ"
 
 // 🏦 Your receiving wallet address
-const RECEIVING_WALLET = "0xCD72FfF7F22eC409FCAcED1A06AEC227da6C1A56".toLowerCase()
+const RECEIVING_WALLET = "0xcd72fff7f22ec409fcaced1a06aec227da6c1a56"
 
 // 💰 USDT BEP20 Contract on BSC
-const USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955".toLowerCase()
+const USDT_CONTRACT = "0x55d398326f99059ff775485246999027b3197955"
 
-// 🔐 Transfer event signature (keccak256 of Transfer(address,address,uint256))
+// 🔐 Transfer event signature
 const TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
 
 // 💵 Minimum USDT required
@@ -37,8 +37,8 @@ export interface VerifyResult {
 }
 
 /**
- * 🔍 AUTO-DETECT: Poll for incoming USDT transfers of 12 USDT
- * Matches any recent unclaimed 12 USDT transfer to our wallet
+ * 🔍 AUTO-DETECT: Poll for incoming USDT transfers >= 12 USDT
+ * Uses original BSCScan API (proven reliable for BSC)
  */
 export async function detectPayment(
   minAmount: number,
@@ -47,8 +47,8 @@ export async function detectPayment(
 
   try {
 
-    // 📡 Get recent BEP20 token transfers TO our wallet
-    const url = `https://api.etherscan.io/v2/api?chainid=56&module=account&action=tokentx&contractaddress=${USDT_CONTRACT}&address=${RECEIVING_WALLET}&page=1&offset=20&sort=desc&apikey=${BSCSCAN_API_KEY}`
+    // 📡 Original BSCScan API — most reliable for BSC
+    const url = `https://api.bscscan.com/api?module=account&action=tokentx&contractaddress=${USDT_CONTRACT}&address=${RECEIVING_WALLET}&page=1&offset=20&sort=desc&apikey=${BSCSCAN_API_KEY}`
 
     const response = await fetch(url)
     const data = await response.json()
@@ -71,7 +71,7 @@ export async function detectPayment(
 
       // Parse amount
       const amountWei = BigInt(tx.value || "0")
-      const amountUsdt = Number(amountWei) / Math.pow(10, USDT_DECIMALS)
+      const amountUsdt = Number(amountWei) / Math.pow(10, Number(tx.tokenDecimal || USDT_DECIMALS))
 
       // Match: amount must be >= 12 USDT
       if (amountUsdt >= minAmount) {
@@ -108,7 +108,8 @@ export async function verifyTransaction(txHash: string): Promise<VerifyResult> {
 
   try {
 
-    const url = `https://api.etherscan.io/v2/api?chainid=56&module=proxy&action=eth_getTransactionReceipt&txhash=${txHash}&apikey=${BSCSCAN_API_KEY}`
+    // Original BSCScan API
+    const url = `https://api.bscscan.com/api?module=proxy&action=eth_getTransactionReceipt&txhash=${txHash}&apikey=${BSCSCAN_API_KEY}`
 
     const response = await fetch(url)
     const data = await response.json()
@@ -164,34 +165,6 @@ export async function verifyTransaction(txHash: string): Promise<VerifyResult> {
     console.error("BSCScan verification error:", err)
     return { verified: false, error: "Network error. Please try again." }
   }
-
-}
-
-/**
- * 🎲 Generate a unique payment amount for a user
- * Base amount (12) + unique decimal suffix (0.001 to 0.999)
- */
-export function generateUniqueAmount(existingAmounts: number[]): number {
-  
-  let attempts = 0
-  
-  while (attempts < 100) {
-    // Generate random suffix: 0.001 to 0.999
-    const suffix = Math.floor(Math.random() * 999) + 1 // 1 to 999
-    const amount = 12 + suffix / 1000 // 12.001 to 12.999
-    const rounded = Math.round(amount * 1000) / 1000
-
-    // Check it's not already in use
-    if (!existingAmounts.includes(rounded)) {
-      return rounded
-    }
-
-    attempts++
-  }
-
-  // Fallback: use timestamp-based suffix
-  const fallback = 12 + (Date.now() % 999 + 1) / 1000
-  return Math.round(fallback * 1000) / 1000
 
 }
 
