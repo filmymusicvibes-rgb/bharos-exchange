@@ -4,7 +4,7 @@ import { getStorage } from "firebase/storage"
 import { getAuth } from "firebase/auth"
 
 const firebaseConfig = {
-    apiKey: "xxxxx",
+    apiKey: "AIzaSyASVspxoe6yT0JLm2ggYZmuJgJNHXBCYfY",
     authDomain: "bharos-exchange-app.firebaseapp.com",
     projectId: "bharos-exchange-app",
     storageBucket: "bharos-exchange-app.firebasestorage.app",
