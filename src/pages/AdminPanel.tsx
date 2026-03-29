@@ -7,11 +7,11 @@ import {
   doc,
   updateDoc,
   getDoc,
-  addDoc,
   increment
 } from "firebase/firestore"
 
 import AdminStats from "./AdminStats"
+import { logTransaction, runFullActivation } from "../lib/commission"
 
 export default function AdminPanel() {
 
@@ -140,207 +140,9 @@ export default function AdminPanel() {
     setTripUsers(list)
   }
 
-  // TRANSACTION LOGGER
+  // Commission logic is now in shared module: src/lib/commission.ts
 
-  const logTransaction = async (
-    userId: string,
-    amount: number,
-    currency: string,
-    description: string
-  ) => {
-
-    await addDoc(collection(db, "transactions"), {
-
-      userId: userId,
-      amount: Number(amount),
-      currency: currency,
-      description: description,
-      createdAt: new Date()
-
-    })
-
-  }
-
-  // MLM COMMISSION ENGINE (OPTIMIZED — uses increment() for atomic updates)
-
-  const distributeReferral = async (userData: any, allUsers: any[]) => {
-
-    const rewards = [
-      2, 0.8, 0.75, 0.65, 0.55, 0.50,
-      0.45, 0.40, 0.35, 0.30, 0.25, 1
-    ]
-
-    let currentRef = userData.referredBy
-
-    for (let i = 0; i < 12; i++) {
-
-      if (!currentRef || currentRef === "none") break
-
-      // Find upline from cached allUsers instead of DB fetch
-      const uplineUser = allUsers.find(
-        (u: any) => u.referralCode === currentRef
-      )
-
-      if (!uplineUser || !uplineUser.email) break
-
-      const userEmail = uplineUser.email
-      const reward = rewards[i]
-
-      // 🔥 Atomic increment — no need to fetch current balance first
-      await updateDoc(doc(db, "users", userEmail), {
-        usdtBalance: increment(reward)
-      })
-
-      await logTransaction(
-        userEmail,
-        reward,
-        "USDT",
-        `Level ${i + 1} referral commission`
-      )
-
-      currentRef = uplineUser.referredBy
-
-    }
-
-  }
-
-  // SPECIAL REWARDS ENGINE (OPTIMIZED — uses cached allUsers + increment())
-
-  const checkSpecialRewards = async (userEmail: string, userData: any, allUsers: any[]) => {
-
-    // 🔥 REAL Level 1 members (from cached allUsers — no DB fetch!)
-    const level1Users = allUsers.filter(
-      u => u.referredBy === userData.referralCode && u.status === "active"
-    )
-    const level1Count = level1Users.length
-
-    // 🔥 REAL Level 2 members
-    const level1Codes = level1Users.map(u => u.referralCode)
-    const level2Users = allUsers.filter(
-      u => level1Codes.includes(u.referredBy) && u.status === "active"
-    )
-    const level2Count = level2Users.length
-
-    // 🔥 REAL Level 3 members
-    const level2Codes = level2Users.map(u => u.referralCode)
-    const level3Users = allUsers.filter(
-      u => level2Codes.includes(u.referredBy) && u.status === "active"
-    )
-    const level3Count = level3Users.length
-
-    // 🔥 REAL Level 4 members
-    const level3Codes = level3Users.map(u => u.referralCode)
-    const level4Users = allUsers.filter(
-      u => level3Codes.includes(u.referredBy) && u.status === "active"
-    )
-    const level4Count = level4Users.length
-
-    // 🔥 REAL Total Team (all 4 levels)
-    const totalTeam = level1Count + level2Count + level3Count + level4Count
-
-    // ============================
-    // 🎁 REWARD 1: DIRECT 10 ($20)
-    // ============================
-
-    // Single fetch for reward flag checks
-    const freshSnap = await getDoc(doc(db, "users", userEmail))
-    const freshUser: any = freshSnap.data()
-
-    if (level1Count >= 10 && !freshUser?.directRewardPaid) {
-
-      // 🔥 Atomic increment — no need to re-fetch balance
-      await updateDoc(doc(db, "users", userEmail), {
-        usdtBalance: increment(20),
-        directRewardPaid: true
-      })
-
-      await logTransaction(
-        userEmail,
-        20,
-        "USDT",
-        "Direct 10 referral reward"
-      )
-
-      console.log(`✅ Direct reward $20 credited to ${userEmail}`)
-    }
-
-    // ========================================
-    // 🎁 REWARD 2: MATRIX 3+9+27 ($30)
-    // ========================================
-
-    if (
-      level1Count >= 3 &&
-      level2Count >= 9 &&
-      level3Count >= 27 &&
-      !freshUser?.matrixRewardPaid
-    ) {
-
-      // 🔥 Atomic increment — no re-fetch needed
-      await updateDoc(doc(db, "users", userEmail), {
-        usdtBalance: increment(30),
-        matrixRewardPaid: true
-      })
-
-      await logTransaction(
-        userEmail,
-        30,
-        "USDT",
-        "Matrix reward (3+9+27)"
-      )
-
-      console.log(`✅ Matrix reward $30 credited to ${userEmail}`)
-    }
-
-    // =============================================
-    // 🎁 REWARD 3: TRIP ACHIEVEMENT (100 team)
-    // =============================================
-
-    if ((level4Count >= 81 || totalTeam >= 100) && !freshUser?.tripAchieved) {
-
-      await updateDoc(doc(db, "users", userEmail), {
-        tripAchieved: true,
-        tripNotified: false
-      })
-
-      await logTransaction(
-        userEmail,
-        0,
-        "SYSTEM",
-        `Trip Achieved — Team: ${totalTeam} (L1:${level1Count} L2:${level2Count} L3:${level3Count} L4:${level4Count})`
-      )
-
-      console.log(`✅ Trip achieved for ${userEmail} — Team: ${totalTeam}`)
-    }
-
-  }
-
-  // 🔥 CHECK UPLINE REWARDS — walks UP the chain (OPTIMIZED — reuses cached allUsers)
-
-  const checkUplineRewards = async (activatedUser: any, allUsers: any[]) => {
-
-    let currentRef = activatedUser.referredBy
-
-    // Walk UP the referral chain using cached data
-    while (currentRef && currentRef !== "none") {
-
-      // Find upline from cached allUsers instead of DB fetches
-      const uplineUser = allUsers.find(
-        (u: any) => u.referralCode === currentRef
-      )
-
-      if (!uplineUser || !uplineUser.email) break
-
-      // 🎁 Check all 3 rewards for this upline user (passes cached allUsers)
-      await checkSpecialRewards(uplineUser.email, uplineUser, allUsers)
-
-      // Move UP to next upline
-      currentRef = uplineUser.referredBy
-
-    }
-
-  }
-
-  // APPROVE DEPOSIT (OPTIMIZED — fast activation + background commission)
+  // APPROVE DEPOSIT (OPTIMIZED — uses shared commission engine)
 
   const approveDeposit = async (depositId: string, userEmail: string) => {
 
@@ -366,7 +168,7 @@ export default function AdminPanel() {
         return
       }
 
-      // ⚡ STEP 1: Immediate activation (fast — only 3 writes)
+      // ⚡ STEP 1: Immediate activation
       await updateDoc(doc(db, "deposits", depositId), {
         status: "approved"
       })
@@ -384,23 +186,11 @@ export default function AdminPanel() {
         "Membership activation reward"
       )
 
-      // ⚡ Immediate UI update — user sees "approved" right away
+      // ⚡ Immediate UI update
       loadDeposits()
 
-      // ⚡ STEP 2: Commission & rewards in background (doesn't block UI)
-      // Fetch all users ONCE and reuse across all functions
-      const allUsersSnap = await getDocs(collection(db, "users"))
-      const allUsers = allUsersSnap.docs.map(d => d.data())
-
-      // Refetch activated user with updated data
-      const updatedSnap = await getDoc(userRef)
-      const updatedUser: any = updatedSnap.data()
-
-      // 🔥 MAIN COMMISSION SYSTEM (12 LEVELS) — uses cached allUsers
-      await distributeReferral(updatedUser, allUsers)
-
-      // 🎁 REWARDS SYSTEM — uses cached allUsers (no more repeated DB fetches!)
-      await checkUplineRewards(updatedUser, allUsers)
+      // ⚡ STEP 2: Commission & rewards via shared engine
+      await runFullActivation(userEmail)
 
       console.log(`✅ Activation + commissions complete for ${userEmail}`)
 
@@ -599,7 +389,7 @@ export default function AdminPanel() {
 
               <p>User: {d.userId}</p>
               <p>Amount: {d.amount} USDT</p>
-              <p>TXID: {d.txHash}</p>
+              <p className="text-sm break-all">TXID: {d.txHash}</p>
 
               {d.screenshot && (
                 <button
@@ -610,7 +400,16 @@ export default function AdminPanel() {
                 </button>
               )}
 
-              <p>Status: {d.status}</p>
+              {/* 🔗 Blockchain Verification Badge */}
+              {d.verifiedBy === "blockchain" ? (
+                <p className="mt-2">
+                  <span className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-semibold">
+                    🔗 Blockchain Verified
+                  </span>
+                </p>
+              ) : (
+                <p>Status: {d.status}</p>
+              )}
 
               {d.status === "pending" && (
                 <button
@@ -620,6 +419,10 @@ export default function AdminPanel() {
                 >
                   {processingId === d.id ? "⏳ Processing..." : "✅ Approve"}
                 </button>
+              )}
+
+              {(d.status === "verified" || d.status === "approved") && d.verifiedBy === "blockchain" && (
+                <p className="text-green-400 text-sm mt-2">✅ Auto-activated</p>
               )}
 
             </div>

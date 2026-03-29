@@ -1,19 +1,31 @@
-import { useState, useEffect } from "react"
-import { db, storage } from "../lib/firebase"
-import { collection, addDoc, getDocs, query, where, doc, getDoc, updateDoc } from "firebase/firestore"
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
+import { useState, useEffect, useRef } from "react"
+import { db } from "../lib/firebase"
+import { collection, addDoc, getDocs, query, where, doc, getDoc, updateDoc, increment } from "firebase/firestore"
 import { navigate } from "../lib/router"
+import { detectPayment, verifyTransaction, generateUniqueAmount, isApiKeyConfigured } from "../lib/bscscan"
+import { logTransaction, runFullActivation } from "../lib/commission"
 import qrBharos from "../assets/qr-bharos.jpeg"
+
+type PaymentStep = "send" | "waiting" | "verifying" | "activating" | "done" | "fallback"
 
 function ActivateMembership() {
 
-  const [txid, setTxid] = useState("")
-  const [amount, setAmount] = useState("12")
-  const [screenshot, setScreenshot] = useState<File | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [step, setStep] = useState<PaymentStep>("send")
+  const [uniqueAmount, setUniqueAmount] = useState(12)
+  const [pollCount, setPollCount] = useState(0)
+  const [errorMsg, setErrorMsg] = useState("")
+  const [verifiedAmount, setVerifiedAmount] = useState(0)
 
+  // Fallback TXID mode
+  const [txid, setTxid] = useState("")
+  const [fallbackLoading, setFallbackLoading] = useState(false)
+
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const maxPolls = 60 // 60 polls × 10 sec = 10 minutes
+
+  // 🔒 Check status on load + generate unique amount
   useEffect(() => {
-    const checkStatus = async () => {
+    const init = async () => {
       const email = localStorage.getItem("bharos_user")
       if (!email) return
 
@@ -23,111 +35,178 @@ function ActivateMembership() {
       if (userSnap.exists()) {
         const data: any = userSnap.data()
 
-        // 🚫 already active
         if (data.status === "active") {
           navigate("/dashboard")
+          return
         }
 
-        // 🔎 check real pending deposit instead of user status
-        const q = query(
-          collection(db, "deposits"),
-          where("userId", "==", email),
-          where("status", "==", "pending")
-        )
-
-        const snap = await getDocs(q)
-
-        if (!snap.empty) {
-          alert("⚡ Your activation is already in process.")
-          navigate("/dashboard")
-        }
-      }
-    }
-
-    checkStatus()
-  }, [])
-
-  const submitDeposit = async () => {
-
-    if (loading) return
-
-    const email = localStorage.getItem("bharos_user")
-
-    if (!email) {
-      alert("User not logged in")
-      return
-    }
-
-    if (!txid) {
-      alert("Please enter TXID")
-      return
-    }
-
-    if (!txid.startsWith("0x") || txid.length < 10) {
-      alert("Enter valid TXID")
-      return
-    }
-
-    if (screenshot) {
-      // 🛑 FILE VALIDATION
-      if (!screenshot.type.startsWith("image/")) {
-        alert("Only image files allowed")
-        return
-      }
-
-      if (screenshot.size > 2 * 1024 * 1024) {
-        alert("Image too large (max 2MB)")
-        return
-      }
-    }
-
-    setLoading(true)
-
-    try {
-      let screenshotURL = ""
-
-      if (screenshot) {
-        try {
-          const fileName = Date.now() + "_" + screenshot.name
-          const storageRef = ref(storage, "screenshots/" + fileName)
-
-          await uploadBytes(storageRef, screenshot)
-
-          screenshotURL = await getDownloadURL(storageRef)
-
-        } catch (error) {
-          console.error(error)
-          alert("Upload failed. Check internet / rules.")
-          setLoading(false)
+        // Check if user already has a pending deposit with unique amount
+        if (data.pendingAmount) {
+          setUniqueAmount(data.pendingAmount)
           return
         }
       }
 
-      // 💾 SAVE
+      // Generate unique amount
+      const depositsSnap = await getDocs(
+        query(collection(db, "deposits"), where("status", "==", "pending"))
+      )
+      const usedAmounts = depositsSnap.docs.map((d: any) => d.data().amount || 0)
+      const amount = generateUniqueAmount(usedAmounts)
+      setUniqueAmount(amount)
+
+      // Save to user document for persistence
+      await updateDoc(doc(db, "users", email), {
+        pendingAmount: amount
+      })
+    }
+
+    init()
+
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current)
+    }
+  }, [])
+
+  // 🔍 Start auto-detection polling
+  const startPolling = async () => {
+
+    const email = localStorage.getItem("bharos_user")
+    if (!email) return
+
+    setStep("waiting")
+    setPollCount(0)
+    setErrorMsg("")
+
+    // Get used TXID hashes to avoid duplicates
+    const depositsSnap = await getDocs(collection(db, "deposits"))
+    const usedHashes = depositsSnap.docs
+      .map((d: any) => d.data().txHash?.toLowerCase())
+      .filter(Boolean)
+
+    // Start polling every 10 seconds
+    pollRef.current = setInterval(async () => {
+
+      setPollCount(prev => {
+        const newCount = prev + 1
+
+        // Timeout after max polls → show fallback
+        if (newCount >= maxPolls) {
+          if (pollRef.current) clearInterval(pollRef.current)
+          setStep("fallback")
+          return newCount
+        }
+
+        return newCount
+      })
+
+      // 📡 Check BSCScan for matching payment
+      const result = await detectPayment(uniqueAmount, usedHashes)
+
+      if (result.verified) {
+        // 🛑 Stop polling
+        if (pollRef.current) clearInterval(pollRef.current)
+
+        // 🔥 Payment detected! Start activation
+        await activateUser(email, result.amount!, result.txHash!, result.from!)
+      }
+
+    }, 10000) // Every 10 seconds
+
+  }
+
+  // 🔗 Fallback: Manual TXID verification
+  const manualVerify = async () => {
+
+    const email = localStorage.getItem("bharos_user")
+    if (!email) return
+
+    if (!txid || !txid.startsWith("0x") || txid.length < 10) {
+      setErrorMsg("Enter valid TXID (starts with 0x)")
+      return
+    }
+
+    // Check duplicate
+    const dupSnap = await getDocs(
+      query(collection(db, "deposits"), where("txHash", "==", txid))
+    )
+    if (!dupSnap.empty) {
+      setErrorMsg("This TXID is already used.")
+      return
+    }
+
+    setFallbackLoading(true)
+    setErrorMsg("")
+
+    const result = await verifyTransaction(txid)
+
+    if (!result.verified) {
+      setErrorMsg(result.error || "Verification failed")
+      setFallbackLoading(false)
+      return
+    }
+
+    await activateUser(email, result.amount!, txid, result.from!)
+  }
+
+  // ✅ ACTIVATE USER (shared by both auto-detect and manual)
+  const activateUser = async (
+    email: string,
+    amount: number,
+    txHash: string,
+    fromAddress: string
+  ) => {
+
+    setStep("activating")
+    setVerifiedAmount(amount)
+
+    try {
+
+      // Save deposit
       await addDoc(collection(db, "deposits"), {
         userId: email,
-        txHash: txid,
-        amount: Number(amount),
-        screenshot: screenshotURL,
-        status: "pending",
+        txHash: txHash,
+        amount: amount,
+        status: "verified",
+        verifiedBy: "blockchain",
+        fromAddress: fromAddress,
+        toAddress: "0xCD72FfF7F22eC409FCAcED1A06AEC227da6C1A56",
         createdAt: new Date()
       })
 
-      // 🔄 UPDATE USER STATUS
-      await updateDoc(doc(db, "users", email), {
-        status: "pending"
+      // Activate user
+      const userRef = doc(db, "users", email)
+      await updateDoc(userRef, {
+        status: "active",
+        brsBalance: increment(150),
+        activatedAt: new Date(),
+        pendingAmount: null // Clear pending amount
       })
 
-      alert("✅ Payment submitted")
+      await logTransaction(email, 150, "BRS", "Membership activation reward")
 
-      navigate("/dashboard")
+      // Run commission engine
+      await runFullActivation(email)
+
+      setStep("done")
+
+      setTimeout(() => {
+        navigate("/dashboard")
+      }, 3000)
 
     } catch (err) {
       console.error(err)
-      alert("❌ Upload failed. Try again.")
-    } finally {
-      setLoading(false)
+      setErrorMsg("Activation failed. Please contact support.")
+      setStep("fallback")
     }
+  }
+
+  // ⏱️ Format elapsed time
+  const formatTime = (polls: number) => {
+    const seconds = polls * 10
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
   return (
@@ -135,112 +214,252 @@ function ActivateMembership() {
     <div className="min-h-screen bg-[#0B0919] text-white flex items-center justify-center p-4">
       <div className="w-full max-w-xl bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-[0_0_40px_rgba(0,212,255,0.1)]">
 
-      <h1 className="text-4xl font-bold mb-10">
-        Activate Membership
-      </h1>
+        <h1 className="text-3xl sm:text-4xl font-bold mb-8">
+          Activate Membership
+        </h1>
 
-      {/* SEND USDT */}
+        {/* ✅ SUCCESS STATE */}
+        {step === "done" && (
+          <div className="bg-green-500/10 border border-green-400/30 rounded-2xl p-8 text-center animate-pulse">
+            <div className="text-6xl mb-4">🎉</div>
+            <h2 className="text-2xl font-bold text-green-400 mb-2">
+              Payment Detected & Verified!
+            </h2>
+            <p className="text-green-300">
+              ${verifiedAmount.toFixed(3)} USDT verified on blockchain
+            </p>
+            <p className="text-green-300 mt-1">
+              150 BRS credited to your wallet
+            </p>
+            <p className="text-sm text-gray-400 mt-4">
+              Redirecting to dashboard...
+            </p>
+          </div>
+        )}
 
-      <div className="bg-[#1a1a2e] p-8 rounded-xl mb-8">
+        {/* ⏳ ACTIVATING STATE */}
+        {step === "activating" && (
+          <div className="bg-cyan-500/10 border border-cyan-400/30 rounded-2xl p-8 text-center">
+            <div className="text-5xl mb-4 animate-spin">⚡</div>
+            <h2 className="text-xl font-bold text-cyan-400 mb-2">
+              Payment Verified! Activating...
+            </h2>
+            <p className="text-gray-400">
+              Setting up your account & distributing rewards...
+            </p>
+          </div>
+        )}
 
-        <h2 className="text-xl mb-6">1️⃣ Send USDT</h2>
+        {/* 📤 SEND STEP */}
+        {(step === "send" || step === "waiting") && (
+          <>
 
-        <p className="mb-2 text-gray-400">Amount</p>
-        <p className="text-2xl text-yellow-400 mb-4">12 USDT</p>
+            {/* PAYMENT DETAILS */}
+            <div className="bg-[#1a1a2e] p-6 sm:p-8 rounded-xl mb-6">
 
-        <p className="mb-2 text-gray-400">Network</p>
-        <p className="mb-4 text-yellow-400">BNB Smart Chain (BEP20)</p>
+              <h2 className="text-lg sm:text-xl mb-6 flex items-center gap-2">
+                <span className="bg-cyan-500 text-black w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold">1</span>
+                Send USDT
+              </h2>
 
-        <p className="mb-2 text-gray-400">Wallet Address</p>
+              {/* 💰 Unique Amount — Highlighted */}
+              <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-400/40 rounded-xl p-4 mb-6">
+                <p className="text-sm text-yellow-300 mb-1">Send Exactly</p>
+                <p className="text-3xl sm:text-4xl font-bold text-yellow-400">
+                  {uniqueAmount.toFixed(3)} USDT
+                </p>
+                <p className="text-xs text-yellow-300/70 mt-1">
+                  ⚠️ Amount must match exactly for auto-detection
+                </p>
+              </div>
 
-        <div className="flex gap-3 mb-6">
+              <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
+                <div>
+                  <p className="text-gray-400">Network</p>
+                  <p className="text-yellow-400 font-semibold">BNB Smart Chain (BEP20)</p>
+                </div>
+                <div>
+                  <p className="text-gray-400">Token</p>
+                  <p className="text-green-400 font-semibold">USDT</p>
+                </div>
+              </div>
 
-          <input
-            value="0xCD72FfF7F22eC409FCAcED1A06AEC227da6C1A56"
-            readOnly
-            className="w-full p-3 bg-[#0B0919] rounded"
-          />
+              <p className="mb-2 text-gray-400 text-sm">Deposit Address</p>
 
-          <button
-            onClick={async () => {
-              try {
-                await navigator.clipboard.writeText(
-                  "0xCD72FfF7F22eC409FCAcED1A06AEC227da6C1A56"
-                )
-                alert("Address copied!")
-              } catch {
-                alert("Copy failed")
-              }
-            }}
-            className="bg-cyan-500 px-4 rounded hover:bg-cyan-400 transition"
-          >
-            Copy
-          </button>
+              <div className="flex gap-2 mb-6">
+                <input
+                  value="0xCD72FfF7F22eC409FCAcED1A06AEC227da6C1A56"
+                  readOnly
+                  className="w-full p-3 bg-[#0B0919] rounded text-xs sm:text-sm"
+                />
+                <button
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(
+                        "0xCD72FfF7F22eC409FCAcED1A06AEC227da6C1A56"
+                      )
+                      alert("Address copied!")
+                    } catch {
+                      alert("Copy failed")
+                    }
+                  }}
+                  className="bg-cyan-500 px-4 rounded hover:bg-cyan-400 transition whitespace-nowrap text-sm font-semibold"
+                >
+                  Copy
+                </button>
+              </div>
 
-        </div>
+              <div className="flex justify-center">
+                <img
+                  src={qrBharos}
+                  alt="Bharos Payment QR Code"
+                  className="rounded-lg"
+                  width={180}
+                  height={180}
+                />
+              </div>
 
-        <div className="flex justify-center">
+            </div>
 
-          <img
-            src={qrBharos}
-            alt="Bharos Payment QR Code"
-            className="rounded"
-            width={200}
-            height={200}
-          />
+            {/* 🔍 AUTO-DETECT STEP */}
+            <div className="bg-[#1a1a2e] p-6 sm:p-8 rounded-xl mb-6">
 
-        </div>
+              <h2 className="text-lg sm:text-xl mb-6 flex items-center gap-2">
+                <span className="bg-cyan-500 text-black w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold">2</span>
+                {step === "waiting" ? "Detecting Payment..." : "Confirm Payment"}
+              </h2>
+
+              {/* WAITING STATE — Auto-polling */}
+              {step === "waiting" && (
+                <div className="text-center space-y-4">
+
+                  {/* Animated scanner */}
+                  <div className="relative mx-auto w-20 h-20">
+                    <div className="absolute inset-0 rounded-full border-4 border-cyan-500/30"></div>
+                    <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-cyan-400 animate-spin"></div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-2xl">🔍</span>
+                    </div>
+                  </div>
+
+                  <p className="text-cyan-400 font-semibold text-lg">
+                    Scanning Blockchain...
+                  </p>
+
+                  <p className="text-gray-400 text-sm">
+                    Looking for {uniqueAmount.toFixed(3)} USDT transfer
+                  </p>
+
+                  {/* Progress bar */}
+                  <div className="w-full bg-gray-700 rounded-full h-2">
+                    <div
+                      className="bg-gradient-to-r from-cyan-500 to-blue-500 h-2 rounded-full transition-all duration-1000"
+                      style={{ width: `${Math.min((pollCount / maxPolls) * 100, 100)}%` }}
+                    ></div>
+                  </div>
+
+                  <p className="text-gray-500 text-xs">
+                    Elapsed: {formatTime(pollCount)} • Checking every 10 seconds
+                  </p>
+
+                  <button
+                    onClick={() => {
+                      if (pollRef.current) clearInterval(pollRef.current)
+                      setStep("send")
+                    }}
+                    className="text-gray-400 text-sm hover:text-white transition underline"
+                  >
+                    Cancel
+                  </button>
+
+                </div>
+              )}
+
+              {/* SEND STATE — Ready to detect */}
+              {step === "send" && (
+                <>
+                  <p className="text-gray-400 text-sm mb-4">
+                    After sending <span className="text-yellow-400 font-bold">{uniqueAmount.toFixed(3)} USDT</span>, click below to start auto-detection.
+                  </p>
+
+                  <button
+                    onClick={startPolling}
+                    disabled={!isApiKeyConfigured()}
+                    className="w-full p-4 rounded-xl font-bold text-white text-lg bg-gradient-to-r from-cyan-500 to-blue-500 hover:scale-[1.02] transition-all duration-300 shadow-lg shadow-cyan-500/30 disabled:opacity-50 disabled:hover:scale-100"
+                  >
+                    ✅ I Have Sent Payment
+                  </button>
+
+                  <p className="text-center text-gray-500 text-xs mt-3">
+                    Your payment will be automatically detected on blockchain
+                  </p>
+                </>
+              )}
+
+            </div>
+
+            {/* ℹ️ INFO */}
+            <div className="bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/30 rounded-xl p-4 text-sm text-cyan-300 space-y-2">
+              <p>🔗 <b>Auto-Detection</b> — Payment is automatically detected on BSC blockchain</p>
+              <p>⚡ <b>Instant Activation</b> — No waiting for admin approval</p>
+              <p>🔐 <b>Network:</b> BNB Smart Chain (BEP20) only</p>
+              <p>💰 <b>Send exact amount</b> — {uniqueAmount.toFixed(3)} USDT for auto-matching</p>
+            </div>
+
+          </>
+        )}
+
+        {/* 🔗 FALLBACK — Manual TXID entry */}
+        {step === "fallback" && (
+          <div className="bg-[#1a1a2e] p-6 sm:p-8 rounded-xl">
+
+            <h2 className="text-xl mb-2 text-yellow-400">
+              ⚠️ Auto-detection timed out
+            </h2>
+            <p className="text-gray-400 text-sm mb-6">
+              Don't worry! You can manually enter your Transaction Hash (TXID) instead.
+            </p>
+
+            <p className="mb-2 text-gray-400 text-sm">Transaction Hash (TXID)</p>
+            <input
+              value={txid}
+              onChange={(e) => {
+                setTxid(e.target.value)
+                setErrorMsg("")
+              }}
+              placeholder="0x..."
+              disabled={fallbackLoading}
+              className="w-full p-3 bg-[#0B0919] rounded mb-4 disabled:opacity-50"
+            />
+
+            {errorMsg && (
+              <div className="bg-red-500/10 border border-red-400/30 rounded-lg p-3 mb-4">
+                <p className="text-red-400 text-sm">❌ {errorMsg}</p>
+              </div>
+            )}
+
+            <button
+              onClick={manualVerify}
+              disabled={fallbackLoading}
+              className="w-full p-3 rounded-xl font-bold text-white bg-gradient-to-r from-yellow-500 to-orange-500 hover:scale-[1.02] transition-all duration-300 shadow-lg disabled:opacity-50"
+            >
+              {fallbackLoading ? "🔍 Verifying..." : "🔗 Verify with TXID"}
+            </button>
+
+            <button
+              onClick={() => {
+                setStep("send")
+                setErrorMsg("")
+              }}
+              className="w-full mt-3 p-2 text-gray-400 text-sm hover:text-white transition"
+            >
+              ← Try auto-detection again
+            </button>
+
+          </div>
+        )}
 
       </div>
-
-      {/* SUBMIT PROOF */}
-
-      <div className="bg-[#1a1a2e] p-8 rounded-xl mb-8">
-
-        <h2 className="text-xl mb-6">2️⃣ Submit Deposit Proof</h2>
-
-        <p className="mb-2 text-gray-400">Transaction Hash (TXID)</p>
-
-        <input
-          value={txid}
-          onChange={(e) => setTxid(e.target.value)}
-          placeholder="0x..."
-          className="w-full p-3 bg-[#0B0919] rounded mb-4"
-        />
-
-        <p className="mb-2 text-gray-400">Amount Sent (USDT)</p>
-
-        <input
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          className="w-full p-3 bg-[#0B0919] rounded mb-4"
-        />
-
-        <p className="mb-2 text-gray-400">Payment Proof (Optional)</p>
-        <p className="text-yellow-400 text-sm mb-4">
-          ⚠️ TXID is mandatory. Screenshot is only for reference.
-        </p>
-
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) =>
-            setScreenshot(e.target.files ? e.target.files[0] : null)
-          }
-          className="mb-6"
-        />
-
-        <button
-          onClick={submitDeposit}
-          disabled={loading}
-          className="w-full p-3 rounded-xl font-bold text-white bg-gradient-to-r from-cyan-500 to-blue-500 hover:scale-105 transition-all duration-300 shadow-lg"
-        >
-          {loading ? "Verifying Payment..." : "Submit Deposit"}
-        </button>
-
-      </div>
-      </div>
-
     </div>
   )
 }
