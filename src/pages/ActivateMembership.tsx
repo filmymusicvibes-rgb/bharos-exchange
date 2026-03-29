@@ -2,29 +2,24 @@ import { useState, useEffect, useRef } from "react"
 import { db } from "../lib/firebase"
 import { collection, addDoc, getDocs, doc, getDoc, updateDoc, increment } from "firebase/firestore"
 import { navigate } from "../lib/router"
-import { detectPayment, verifyTransaction } from "../lib/bscscan"
+import { detectPayment } from "../lib/bscscan"
 import { logTransaction, runFullActivation } from "../lib/commission"
 import qrBharos from "../assets/qr-bharos.jpeg"
 
-type PaymentStep = "send" | "waiting" | "activating" | "done" | "fallback"
+type PaymentStep = "send" | "waiting" | "activating" | "done" | "failed"
 
 function ActivateMembership() {
 
   const [step, setStep] = useState<PaymentStep>("send")
   const [pollCount, setPollCount] = useState(0)
-  const [errorMsg, setErrorMsg] = useState("")
   const [verifiedAmount, setVerifiedAmount] = useState(0)
 
-  // Fallback
-  const [txid, setTxid] = useState("")
-  const [fallbackLoading, setFallbackLoading] = useState(false)
-
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const maxPolls = 90 // 90 × 10 sec = 15 minutes
+  const maxPolls = 30 // 30 × 10 sec = 5 minutes
 
   const PAYMENT_AMOUNT = 12
 
-  // 🔒 Check status on load + auto-resume
+  // 🔒 Check status on load
   useEffect(() => {
     const init = async () => {
       const email = localStorage.getItem("bharos_user")
@@ -32,7 +27,6 @@ function ActivateMembership() {
 
       const userRef = doc(db, "users", email)
       const userSnap = await getDoc(userRef)
-
       if (!userSnap.exists()) return
 
       const data: any = userSnap.data()
@@ -45,28 +39,33 @@ function ActivateMembership() {
       // 🔄 Auto-resume if left page during verification
       if (data.status === "awaiting_verification") {
         startPolling()
-        return
       }
     }
 
     init()
-
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current)
-    }
+    return () => { if (pollRef.current) clearInterval(pollRef.current) }
   }, [])
+
+  // 🔒 Reset user status back to inactive
+  const resetUserStatus = async () => {
+    const email = localStorage.getItem("bharos_user")
+    if (!email) return
+    try {
+      await updateDoc(doc(db, "users", email), { status: "inactive" })
+    } catch (err) {
+      console.error("Reset status error:", err)
+    }
+  }
 
   // 🔍 Start auto-detection
   const startPolling = async () => {
-
     const email = localStorage.getItem("bharos_user")
     if (!email) return
 
     setStep("waiting")
     setPollCount(0)
-    setErrorMsg("")
 
-    // Save state so it survives page close
+    // Save state
     try {
       const userRef = doc(db, "users", email)
       const snap = await getDoc(userRef)
@@ -91,76 +90,50 @@ function ActivateMembership() {
 
     if (pollRef.current) clearInterval(pollRef.current)
 
-    // Immediate check first
+    // Immediate check
     const immediateResult = await detectPayment(PAYMENT_AMOUNT, usedHashes)
     if (immediateResult.verified) {
       await activateUser(email, immediateResult.amount!, immediateResult.txHash!, immediateResult.from!)
       return
     }
 
-    // Then poll every 10 seconds
+    // Poll every 10 seconds
     pollRef.current = setInterval(async () => {
 
       setPollCount(prev => {
         const newCount = prev + 1
         if (newCount >= maxPolls) {
           if (pollRef.current) clearInterval(pollRef.current)
-          setStep("fallback")
+          resetUserStatus()
+          setStep("failed")
           return newCount
         }
         return newCount
       })
 
       const result = await detectPayment(PAYMENT_AMOUNT, usedHashes)
-
       if (result.verified) {
         if (pollRef.current) clearInterval(pollRef.current)
         await activateUser(email, result.amount!, result.txHash!, result.from!)
       }
-
     }, 10000)
   }
 
-  // 🔗 Fallback: Manual TXID
-  const manualVerify = async () => {
-
-    const email = localStorage.getItem("bharos_user")
-    if (!email) return
-
-    const trimmed = txid.trim()
-
-    if (!trimmed || !trimmed.startsWith("0x") || trimmed.length !== 66) {
-      setErrorMsg("Enter valid TXID (66 characters, starts with 0x)")
-      return
-    }
-
-    setFallbackLoading(true)
-    setErrorMsg("")
-
-    const result = await verifyTransaction(trimmed)
-
-    if (!result.verified) {
-      setErrorMsg(result.error || "Verification failed")
-      setFallbackLoading(false)
-      return
-    }
-
-    await activateUser(email, result.amount!, trimmed, result.from!)
+  // ❌ Cancel scanning
+  const cancelScanning = async () => {
+    if (pollRef.current) clearInterval(pollRef.current)
+    await resetUserStatus()
+    setStep("send")
   }
 
   // ✅ ACTIVATE
   const activateUser = async (
-    email: string,
-    amount: number,
-    txHash: string,
-    fromAddress: string
+    email: string, amount: number, txHash: string, fromAddress: string
   ) => {
-
     setStep("activating")
     setVerifiedAmount(amount)
 
     try {
-
       await addDoc(collection(db, "deposits"), {
         userId: email,
         txHash: txHash,
@@ -183,11 +156,10 @@ function ActivateMembership() {
 
       setStep("done")
       setTimeout(() => navigate("/dashboard"), 3000)
-
     } catch (err) {
       console.error(err)
-      setErrorMsg("Activation failed. Contact support.")
-      setStep("fallback")
+      await resetUserStatus()
+      setStep("failed")
     }
   }
 
@@ -199,13 +171,10 @@ function ActivateMembership() {
   }
 
   return (
-
     <div className="min-h-screen bg-[#0B0919] text-white flex items-center justify-center p-4">
       <div className="w-full max-w-xl bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-[0_0_40px_rgba(0,212,255,0.1)]">
 
-        <h1 className="text-3xl sm:text-4xl font-bold mb-8">
-          Activate Membership
-        </h1>
+        <h1 className="text-3xl sm:text-4xl font-bold mb-8">Activate Membership</h1>
 
         {/* ✅ SUCCESS */}
         {step === "done" && (
@@ -224,6 +193,36 @@ function ActivateMembership() {
             <div className="text-5xl mb-4 animate-spin">⚡</div>
             <h2 className="text-xl font-bold text-cyan-400 mb-2">Payment Verified! Activating...</h2>
             <p className="text-gray-400">Setting up your account & distributing rewards...</p>
+          </div>
+        )}
+
+        {/* ❌ FAILED */}
+        {step === "failed" && (
+          <div className="bg-red-500/10 border border-red-400/30 rounded-2xl p-6">
+            <div className="text-center mb-6">
+              <div className="text-5xl mb-3">❌</div>
+              <h2 className="text-xl font-bold text-red-400 mb-2">Payment Not Detected</h2>
+              <p className="text-gray-400 text-sm">
+                We could not find a valid payment of minimum 12 USDT to our wallet.
+              </p>
+            </div>
+
+            <div className="bg-yellow-500/10 border border-yellow-400/30 rounded-xl p-4 mb-6 text-sm">
+              <p className="text-yellow-400 font-bold mb-2">Possible reasons:</p>
+              <ul className="text-yellow-300 text-xs space-y-1.5">
+                <li>• Amount was less than 12 USDT</li>
+                <li>• Payment sent on wrong network (not BEP20)</li>
+                <li>• Transaction still processing — wait and try again</li>
+                <li>• Wrong wallet address</li>
+              </ul>
+            </div>
+
+            <button
+              onClick={() => setStep("send")}
+              className="w-full p-4 rounded-xl font-bold text-white text-lg bg-gradient-to-r from-cyan-500 to-blue-500 hover:scale-[1.02] transition-all duration-300 shadow-lg shadow-cyan-500/30"
+            >
+              🔄 Try Again
+            </button>
           </div>
         )}
 
@@ -322,7 +321,14 @@ function ActivateMembership() {
                     ></div>
                   </div>
 
-                  <p className="text-gray-500 text-xs">Elapsed: {formatTime(pollCount)}</p>
+                  <p className="text-gray-500 text-xs">Elapsed: {formatTime(pollCount)} / 5:00</p>
+
+                  <button
+                    onClick={cancelScanning}
+                    className="text-red-400 text-sm hover:text-red-300 transition underline"
+                  >
+                    Cancel
+                  </button>
                 </div>
               )}
 
@@ -356,43 +362,6 @@ function ActivateMembership() {
               <p className="text-orange-300 mt-2">💡 Payment verified instantly on blockchain — auto-detect</p>
             </div>
           </>
-        )}
-
-        {/* 🔗 FALLBACK */}
-        {step === "fallback" && (
-          <div className="bg-[#1a1a2e] p-6 sm:p-8 rounded-xl">
-            <h2 className="text-xl mb-2 text-yellow-400">⚠️ Auto-detection timed out</h2>
-            <p className="text-gray-400 text-sm mb-6">Enter your Transaction Hash (TXID) manually to verify.</p>
-
-            <input
-              value={txid}
-              onChange={(e) => { setTxid(e.target.value); setErrorMsg("") }}
-              placeholder="0x..."
-              disabled={fallbackLoading}
-              className="w-full p-3 bg-[#0B0919] rounded mb-4 disabled:opacity-50"
-            />
-
-            {errorMsg && (
-              <div className="bg-red-500/10 border border-red-400/30 rounded-lg p-3 mb-4">
-                <p className="text-red-400 text-sm">❌ {errorMsg}</p>
-              </div>
-            )}
-
-            <button
-              onClick={manualVerify}
-              disabled={fallbackLoading}
-              className="w-full p-3 rounded-xl font-bold text-white bg-gradient-to-r from-yellow-500 to-orange-500 hover:scale-[1.02] transition-all duration-300 shadow-lg disabled:opacity-50"
-            >
-              {fallbackLoading ? "🔍 Verifying..." : "🔗 Verify with TXID"}
-            </button>
-
-            <button
-              onClick={() => { setStep("send"); setErrorMsg("") }}
-              className="w-full mt-3 p-2 text-gray-400 text-sm hover:text-white transition"
-            >
-              ← Try auto-detection again
-            </button>
-          </div>
         )}
 
       </div>
