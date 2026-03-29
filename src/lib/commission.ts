@@ -55,21 +55,29 @@ export const distributeReferral = async (userData: any, allUsers: any[]) => {
 
     if (!uplineUser || !uplineUser.email) break
 
-    const userEmail = uplineUser.email
-    const reward = rewards[i]
+    // 🔒 ONLY distribute to ACTIVE users — skip inactive/pending
+    if (uplineUser.status === "active") {
 
-    // 🔥 Atomic increment
-    await updateDoc(doc(db, "users", userEmail), {
-      usdtBalance: increment(reward)
-    })
+      const userEmail = uplineUser.email
+      const reward = rewards[i]
 
-    await logTransaction(
-      userEmail,
-      reward,
-      "USDT",
-      `Level ${i + 1} referral commission`
-    )
+      // 🔥 Atomic increment
+      await updateDoc(doc(db, "users", userEmail), {
+        usdtBalance: increment(reward)
+      })
 
+      await logTransaction(
+        userEmail,
+        reward,
+        "USDT",
+        `Level ${i + 1} referral commission`
+      )
+
+    } else {
+      console.log(`⏭️ Skipped Level ${i + 1} commission — ${uplineUser.email} is not active (status: ${uplineUser.status})`)
+    }
+
+    // Continue walking up the chain regardless
     currentRef = uplineUser.referredBy
 
   }
