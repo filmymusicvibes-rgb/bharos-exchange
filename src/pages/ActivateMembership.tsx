@@ -1,30 +1,23 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { db } from "../lib/firebase"
 import { collection, addDoc, getDocs, query, where, doc, getDoc, updateDoc, increment } from "firebase/firestore"
 import { navigate } from "../lib/router"
-import { detectPayment, verifyTransaction, isApiKeyConfigured } from "../lib/bscscan"
+import { verifyTransaction } from "../lib/bscscan"
 import { logTransaction, runFullActivation } from "../lib/commission"
 import qrBharos from "../assets/qr-bharos.jpeg"
 
-type PaymentStep = "send" | "waiting" | "activating" | "done" | "fallback"
+type PaymentStep = "send" | "verify" | "activating" | "done"
 
 function ActivateMembership() {
 
   const [step, setStep] = useState<PaymentStep>("send")
-  const [pollCount, setPollCount] = useState(0)
-  const [errorMsg, setErrorMsg] = useState("")
-  const [verifiedAmount, setVerifiedAmount] = useState(0)
-
-  // Fallback TXID mode
   const [txid, setTxid] = useState("")
-  const [fallbackLoading, setFallbackLoading] = useState(false)
+  const [errorMsg, setErrorMsg] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [verifiedAmount, setVerifiedAmount] = useState(0)
+  const [showTxidGuide, setShowTxidGuide] = useState(false)
 
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const maxPolls = 90 // 90 × 10 sec = 15 minutes
-
-  const PAYMENT_AMOUNT = 12
-
-  // 🔒 Check status on load — ALSO resumes verification if user left page
+  // 🔒 Check status on load
   useEffect(() => {
     const init = async () => {
       const email = localStorage.getItem("bharos_user")
@@ -33,166 +26,65 @@ function ActivateMembership() {
       const userRef = doc(db, "users", email)
       const userSnap = await getDoc(userRef)
 
-      if (!userSnap.exists()) return
-
-      const data: any = userSnap.data()
-
-      // ✅ Already active → go to dashboard
-      if (data.status === "active") {
-        navigate("/dashboard")
-        return
-      }
-
-      // 🔄 RESUME: User left page during verification → auto-resume polling!
-      if (data.status === "awaiting_verification") {
-        setStep("waiting")
-        startPolling()
-        return
-      }
-
-      // Check pending deposit
-      const q = query(
-        collection(db, "deposits"),
-        where("userId", "==", email),
-        where("status", "==", "pending")
-      )
-      const snap = await getDocs(q)
-      if (!snap.empty) {
-        alert("⚡ Your activation is already in process.")
-        navigate("/dashboard")
+      if (userSnap.exists()) {
+        const data: any = userSnap.data()
+        if (data.status === "active") {
+          navigate("/dashboard")
+          return
+        }
       }
     }
 
     init()
-
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current)
-    }
   }, [])
 
-  // 🔍 Start auto-detection polling
-  const startPolling = async () => {
+  // 🔗 Verify TXID on blockchain
+  const handleVerify = async () => {
 
     const email = localStorage.getItem("bharos_user")
     if (!email) return
 
-    setStep("waiting")
-    setPollCount(0)
-    setErrorMsg("")
+    const trimmedTxid = txid.trim()
 
-    // 💾 SAVE STATE TO FIRESTORE — survives page close/back!
-    try {
-      const userRef = doc(db, "users", email)
-      const snap = await getDoc(userRef)
-      if (snap.exists()) {
-        const data: any = snap.data()
-        if (data.status !== "awaiting_verification") {
-          await updateDoc(userRef, {
-            status: "awaiting_verification",
-            verificationStartedAt: new Date()
-          })
-        }
-      }
-    } catch (err) {
-      console.error("Save state error:", err)
-    }
-
-    // Get used TXID hashes to avoid duplicates
-    const depositsSnap = await getDocs(collection(db, "deposits"))
-    const usedHashes = depositsSnap.docs
-      .map((d: any) => d.data().txHash?.toLowerCase())
-      .filter(Boolean)
-
-    // 🛑 Clear any existing polling
-    if (pollRef.current) clearInterval(pollRef.current)
-
-    // Start polling every 10 seconds
-    pollRef.current = setInterval(async () => {
-
-      setPollCount(prev => {
-        const newCount = prev + 1
-
-        if (newCount >= maxPolls) {
-          if (pollRef.current) clearInterval(pollRef.current)
-          setStep("fallback")
-          return newCount
-        }
-
-        return newCount
-      })
-
-      // 📡 Check BSCScan for matching payment
-      const result = await detectPayment(PAYMENT_AMOUNT, usedHashes)
-
-      if (result.verified) {
-        if (pollRef.current) clearInterval(pollRef.current)
-        await activateUser(email, result.amount!, result.txHash!, result.from!)
-      }
-
-    }, 10000)
-
-    // Also check immediately (don't wait 10 seconds for first check)
-    const immediateResult = await detectPayment(PAYMENT_AMOUNT, usedHashes)
-    if (immediateResult.verified) {
-      if (pollRef.current) clearInterval(pollRef.current)
-      await activateUser(email, immediateResult.amount!, immediateResult.txHash!, immediateResult.from!)
-    }
-  }
-
-  // 🔗 Fallback: Manual TXID verification
-  const manualVerify = async () => {
-
-    const email = localStorage.getItem("bharos_user")
-    if (!email) return
-
-    if (!txid || !txid.startsWith("0x") || txid.length < 10) {
-      setErrorMsg("Enter valid TXID (starts with 0x)")
+    if (!trimmedTxid || !trimmedTxid.startsWith("0x") || trimmedTxid.length !== 66) {
+      setErrorMsg("Enter a valid Transaction Hash (TXID). It should be 66 characters starting with 0x")
       return
     }
 
+    // Check duplicate
     const dupSnap = await getDocs(
-      query(collection(db, "deposits"), where("txHash", "==", txid))
+      query(collection(db, "deposits"), where("txHash", "==", trimmedTxid))
     )
     if (!dupSnap.empty) {
-      setErrorMsg("This TXID is already used.")
+      setErrorMsg("This TXID is already used for another activation.")
       return
     }
 
-    setFallbackLoading(true)
+    setLoading(true)
     setErrorMsg("")
 
-    const result = await verifyTransaction(txid)
+    const result = await verifyTransaction(trimmedTxid)
 
     if (!result.verified) {
-      setErrorMsg(result.error || "Verification failed")
-      setFallbackLoading(false)
+      setErrorMsg(result.error || "Verification failed. Please try again.")
+      setLoading(false)
       return
     }
 
-    await activateUser(email, result.amount!, txid, result.from!)
-  }
-
-  // ✅ ACTIVATE USER
-  const activateUser = async (
-    email: string,
-    amount: number,
-    txHash: string,
-    fromAddress: string
-  ) => {
-
+    // ✅ VERIFIED — Activate!
     setStep("activating")
-    setVerifiedAmount(amount)
+    setVerifiedAmount(result.amount!)
 
     try {
 
       await addDoc(collection(db, "deposits"), {
         userId: email,
-        txHash: txHash,
-        amount: amount,
+        txHash: trimmedTxid,
+        amount: result.amount,
         status: "verified",
-        verifiedBy: "blockchain",
-        fromAddress: fromAddress,
-        toAddress: "0xCD72FfF7F22eC409FCAcED1A06AEC227da6C1A56",
+        verifiedBy: "blockchain-rpc",
+        fromAddress: result.from,
+        toAddress: result.to,
         createdAt: new Date()
       })
 
@@ -215,16 +107,9 @@ function ActivateMembership() {
     } catch (err) {
       console.error(err)
       setErrorMsg("Activation failed. Please contact support.")
-      setStep("fallback")
+      setLoading(false)
+      setStep("verify")
     }
-  }
-
-  // ⏱️ Format elapsed time
-  const formatTime = (polls: number) => {
-    const seconds = polls * 10
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
   return (
@@ -238,7 +123,7 @@ function ActivateMembership() {
 
         {/* ✅ SUCCESS STATE */}
         {step === "done" && (
-          <div className="bg-green-500/10 border border-green-400/30 rounded-2xl p-8 text-center animate-pulse">
+          <div className="bg-green-500/10 border border-green-400/30 rounded-2xl p-8 text-center">
             <div className="text-6xl mb-4">🎉</div>
             <h2 className="text-2xl font-bold text-green-400 mb-2">
               Payment Verified!
@@ -263,16 +148,16 @@ function ActivateMembership() {
               Payment Verified! Activating...
             </h2>
             <p className="text-gray-400">
-              Setting up your account...
+              Setting up your account & distributing rewards...
             </p>
           </div>
         )}
 
-        {/* 📤 SEND & DETECT STEPS */}
-        {(step === "send" || step === "waiting") && (
+        {/* 📤 SEND & VERIFY STEPS */}
+        {(step === "send" || step === "verify") && (
           <>
 
-            {/* ⚠️ IMPORTANT WARNING — TOP */}
+            {/* ⚠️ IMPORTANT WARNING */}
             <div className="bg-red-500/10 border border-red-500/40 rounded-xl p-4 mb-6">
               <p className="text-red-400 font-bold text-sm mb-2">⚠️ Important — Read Before Sending</p>
               <ul className="text-red-300 text-xs space-y-1.5">
@@ -283,7 +168,7 @@ function ActivateMembership() {
               </ul>
             </div>
 
-            {/* PAYMENT DETAILS */}
+            {/* STEP 1: PAYMENT DETAILS */}
             <div className="bg-[#1a1a2e] p-6 sm:p-8 rounded-xl mb-6">
 
               <h2 className="text-lg sm:text-xl mb-6 flex items-center gap-2">
@@ -291,7 +176,6 @@ function ActivateMembership() {
                 Send USDT
               </h2>
 
-              {/* 💰 Amount */}
               <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-400/40 rounded-xl p-4 mb-6">
                 <p className="text-sm text-yellow-300 mb-1">Send Exactly</p>
                 <p className="text-3xl sm:text-4xl font-bold text-yellow-400">
@@ -347,74 +231,81 @@ function ActivateMembership() {
 
             </div>
 
-            {/* 🔍 AUTO-DETECT STEP */}
+            {/* STEP 2: VERIFY TXID */}
             <div className="bg-[#1a1a2e] p-6 sm:p-8 rounded-xl mb-6">
 
-              <h2 className="text-lg sm:text-xl mb-6 flex items-center gap-2">
+              <h2 className="text-lg sm:text-xl mb-4 flex items-center gap-2">
                 <span className="bg-cyan-500 text-black w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold">2</span>
-                {step === "waiting" ? "Detecting Payment..." : "Confirm Payment"}
+                Verify Payment
               </h2>
 
-              {/* WAITING STATE */}
-              {step === "waiting" && (
-                <div className="text-center space-y-4">
+              <p className="text-gray-400 text-sm mb-4">
+                After sending 12 USDT, paste your <b className="text-cyan-400">Transaction Hash (TXID)</b> below to verify instantly.
+              </p>
 
-                  <div className="relative mx-auto w-20 h-20">
-                    <div className="absolute inset-0 rounded-full border-4 border-cyan-500/30"></div>
-                    <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-cyan-400 animate-spin"></div>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-2xl">🔍</span>
-                    </div>
-                  </div>
+              {/* TXID Input */}
+              <input
+                value={txid}
+                onChange={(e) => {
+                  setTxid(e.target.value)
+                  setErrorMsg("")
+                }}
+                placeholder="0x..."
+                disabled={loading}
+                className="w-full p-3 bg-[#0B0919] border border-white/10 rounded-lg mb-3 text-sm disabled:opacity-50 focus:border-cyan-500 focus:outline-none transition"
+              />
 
-                  <p className="text-cyan-400 font-semibold text-lg">
-                    Scanning Blockchain...
-                  </p>
-
-                  <p className="text-gray-400 text-sm">
-                    Looking for your 12 USDT payment
-                  </p>
-
-                  {/* Safe to leave notice */}
-                  <div className="bg-green-500/10 border border-green-400/30 rounded-lg p-3">
-                    <p className="text-green-400 text-xs">
-                      ✅ Safe to close this page — verification will resume when you return
-                    </p>
-                  </div>
-
-                  <div className="w-full bg-gray-700 rounded-full h-2">
-                    <div
-                      className="bg-gradient-to-r from-cyan-500 to-blue-500 h-2 rounded-full transition-all duration-1000"
-                      style={{ width: `${Math.min((pollCount / maxPolls) * 100, 100)}%` }}
-                    ></div>
-                  </div>
-
-                  <p className="text-gray-500 text-xs">
-                    Elapsed: {formatTime(pollCount)}
-                  </p>
-
+              {/* Error Message */}
+              {errorMsg && (
+                <div className="bg-red-500/10 border border-red-400/30 rounded-lg p-3 mb-3">
+                  <p className="text-red-400 text-sm">❌ {errorMsg}</p>
                 </div>
               )}
 
-              {/* SEND STATE */}
-              {step === "send" && (
-                <>
-                  <p className="text-gray-400 text-sm mb-4">
-                    After sending <span className="text-yellow-400 font-bold">12 USDT</span>, click below. Your payment will be automatically verified on blockchain.
-                  </p>
+              {/* Verify Button */}
+              <button
+                onClick={handleVerify}
+                disabled={loading || !txid.trim()}
+                className="w-full p-4 rounded-xl font-bold text-white text-lg bg-gradient-to-r from-cyan-500 to-blue-500 hover:scale-[1.02] transition-all duration-300 shadow-lg shadow-cyan-500/30 disabled:opacity-50 disabled:hover:scale-100"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                    Verifying on Blockchain...
+                  </span>
+                ) : (
+                  "🔗 Verify & Activate"
+                )}
+              </button>
 
-                  <button
-                    onClick={startPolling}
-                    disabled={!isApiKeyConfigured()}
-                    className="w-full p-4 rounded-xl font-bold text-white text-lg bg-gradient-to-r from-cyan-500 to-blue-500 hover:scale-[1.02] transition-all duration-300 shadow-lg shadow-cyan-500/30 disabled:opacity-50 disabled:hover:scale-100"
-                  >
-                    ✅ I Have Sent 12 USDT
-                  </button>
+              <p className="text-center text-gray-500 text-xs mt-3">
+                Verified directly on BSC blockchain — instant & secure
+              </p>
 
-                  <p className="text-center text-gray-500 text-xs mt-3">
-                    Payment is automatically verified on BSC blockchain
-                  </p>
-                </>
+              {/* TXID GUIDE TOGGLE */}
+              <button
+                onClick={() => setShowTxidGuide(!showTxidGuide)}
+                className="w-full mt-4 text-cyan-400 text-sm hover:text-cyan-300 transition"
+              >
+                {showTxidGuide ? "▲ Hide" : "▼ How to find TXID in Trust Wallet?"}
+              </button>
+
+              {/* TXID GUIDE */}
+              {showTxidGuide && (
+                <div className="mt-3 bg-cyan-500/5 border border-cyan-500/20 rounded-xl p-4 text-sm space-y-3">
+                  <p className="text-cyan-400 font-bold">📱 Trust Wallet lo TXID kaavadam:</p>
+                  <ol className="text-gray-300 space-y-2 list-decimal list-inside">
+                    <li>Trust Wallet open cheyyi</li>
+                    <li><b>USDT</b> token tap cheyyi</li>
+                    <li>Nuvvu send chesina <b>transaction</b> tap cheyyi (recent transactions lo)</li>
+                    <li><b>"More Details"</b> tap cheyyi</li>
+                    <li><b>"Transaction Hash"</b> kanipistundi — adi copy cheyyi!</li>
+                    <li>Ikkada paste cheyyi → <b>Verify & Activate</b> click!</li>
+                  </ol>
+                  <div className="bg-yellow-500/10 border border-yellow-400/30 rounded-lg p-3 mt-2">
+                    <p className="text-yellow-300 text-xs">💡 <b>Tip:</b> Transaction Hash 0x tho start avthundi and 66 characters untundi</p>
+                  </div>
+                </div>
               )}
 
             </div>
@@ -425,60 +316,10 @@ function ActivateMembership() {
               <p className="text-red-300">• Send <b>exactly 12 USDT</b> — wrong amount will <b>NOT</b> be verified</p>
               <p className="text-red-300">• Use <b>BNB Smart Chain (BEP20)</b> — wrong network = <b>permanent loss</b></p>
               <p className="text-red-300">• Wrong address = <b>permanent loss of funds</b></p>
-              <p className="text-orange-300 mt-2">💡 Payment verified instantly on blockchain</p>
+              <p className="text-orange-300 mt-2">💡 Verification is instant — verified directly on blockchain</p>
             </div>
 
           </>
-        )}
-
-        {/* 🔗 FALLBACK — Manual TXID */}
-        {step === "fallback" && (
-          <div className="bg-[#1a1a2e] p-6 sm:p-8 rounded-xl">
-
-            <h2 className="text-xl mb-2 text-yellow-400">
-              ⚠️ Auto-detection timed out
-            </h2>
-            <p className="text-gray-400 text-sm mb-6">
-              Enter your Transaction Hash (TXID) manually to verify.
-            </p>
-
-            <p className="mb-2 text-gray-400 text-sm">Transaction Hash (TXID)</p>
-            <input
-              value={txid}
-              onChange={(e) => {
-                setTxid(e.target.value)
-                setErrorMsg("")
-              }}
-              placeholder="0x..."
-              disabled={fallbackLoading}
-              className="w-full p-3 bg-[#0B0919] rounded mb-4 disabled:opacity-50"
-            />
-
-            {errorMsg && (
-              <div className="bg-red-500/10 border border-red-400/30 rounded-lg p-3 mb-4">
-                <p className="text-red-400 text-sm">❌ {errorMsg}</p>
-              </div>
-            )}
-
-            <button
-              onClick={manualVerify}
-              disabled={fallbackLoading}
-              className="w-full p-3 rounded-xl font-bold text-white bg-gradient-to-r from-yellow-500 to-orange-500 hover:scale-[1.02] transition-all duration-300 shadow-lg disabled:opacity-50"
-            >
-              {fallbackLoading ? "🔍 Verifying..." : "🔗 Verify with TXID"}
-            </button>
-
-            <button
-              onClick={() => {
-                setStep("send")
-                setErrorMsg("")
-              }}
-              className="w-full mt-3 p-2 text-gray-400 text-sm hover:text-white transition"
-            >
-              ← Try auto-detection again
-            </button>
-
-          </div>
         )}
 
       </div>
