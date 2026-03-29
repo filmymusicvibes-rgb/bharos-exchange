@@ -234,9 +234,10 @@ function ActivateMembership() {
             <div className="bg-red-500/10 border border-red-500/40 rounded-xl p-4 mb-6">
               <p className="text-red-400 font-bold text-sm mb-2">⚠️ Important — Read Before Sending</p>
               <ul className="text-red-300 text-xs space-y-1.5">
-                <li>• Send <b>exactly 12 USDT</b> — not more, not less</li>
+                <li>• Membership fee: <b>12 USDT</b> (network/platform fee extra)</li>
+                <li>• Our wallet must receive at least <b>12 USDT</b> — sending less will <b>NOT</b> be verified</li>
                 <li>• Use <b>BNB Smart Chain (BEP20)</b> network only</li>
-                <li>• Sending wrong amount or wrong network = <b>permanent loss of assets</b></li>
+                <li>• Sending on wrong network = <b>permanent loss of assets</b></li>
                 <li>• Double-check the wallet address before sending</li>
               </ul>
             </div>
@@ -249,8 +250,9 @@ function ActivateMembership() {
               </h2>
 
               <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-400/40 rounded-xl p-4 mb-6">
-                <p className="text-sm text-yellow-300 mb-1">Send Exactly</p>
+                <p className="text-sm text-yellow-300 mb-1">Membership Fee</p>
                 <p className="text-3xl sm:text-4xl font-bold text-yellow-400">12 USDT</p>
+                <p className="text-xs text-gray-400 mt-1">+ Network fee (if applicable from your exchange)</p>
               </div>
 
               <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
@@ -307,7 +309,7 @@ function ActivateMembership() {
                   </div>
 
                   <p className="text-cyan-400 font-semibold text-lg">Scanning Blockchain...</p>
-                  <p className="text-gray-400 text-sm">Looking for your 12 USDT payment</p>
+                  <p className="text-gray-400 text-sm">Looking for your payment (minimum 12 USDT)</p>
 
                   <div className="bg-green-500/10 border border-green-400/30 rounded-lg p-3">
                     <p className="text-green-400 text-xs">✅ Safe to close — verification resumes when you return</p>
@@ -327,14 +329,14 @@ function ActivateMembership() {
               {step === "send" && (
                 <>
                   <p className="text-gray-400 text-sm mb-4">
-                    After sending <span className="text-yellow-400 font-bold">12 USDT</span>, click below. Payment will be <b className="text-cyan-400">automatically detected</b> on blockchain.
+                    After sending <span className="text-yellow-400 font-bold">12 USDT</span> (+ network fee), click below. Payment will be <b className="text-cyan-400">automatically detected</b> on blockchain.
                   </p>
 
                   <button
                     onClick={startPolling}
                     className="w-full p-4 rounded-xl font-bold text-white text-lg bg-gradient-to-r from-cyan-500 to-blue-500 hover:scale-[1.02] transition-all duration-300 shadow-lg shadow-cyan-500/30"
                   >
-                    ✅ I Have Sent 12 USDT
+                    ✅ I Have Sent Payment
                   </button>
 
                   <p className="text-center text-gray-500 text-xs mt-3">
@@ -347,10 +349,11 @@ function ActivateMembership() {
             {/* ℹ️ WARNINGS */}
             <div className="bg-gradient-to-r from-red-500/10 to-orange-500/10 border border-red-500/30 rounded-xl p-4 text-sm space-y-2">
               <p className="text-red-400 font-bold mb-1">❗ Warning</p>
-              <p className="text-red-300">• Send <b>exactly 12 USDT</b> — wrong amount will <b>NOT</b> be verified</p>
+              <p className="text-red-300">• Our wallet must receive minimum <b>12 USDT</b> — less than 12 will <b>NOT</b> be verified</p>
+              <p className="text-red-300">• If your exchange charges fee, send extra (e.g., 13 USDT if 1 USDT fee)</p>
               <p className="text-red-300">• Use <b>BNB Smart Chain (BEP20)</b> — wrong network = <b>permanent loss</b></p>
               <p className="text-red-300">• Wrong address = <b>permanent loss of funds</b></p>
-              <p className="text-orange-300 mt-2">💡 Payment verified instantly on blockchain</p>
+              <p className="text-orange-300 mt-2">💡 Payment verified instantly on blockchain — auto-detect</p>
             </div>
           </>
         )}
