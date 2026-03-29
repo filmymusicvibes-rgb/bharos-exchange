@@ -37,11 +37,11 @@ export interface VerifyResult {
 }
 
 /**
- * 🔍 AUTO-DETECT: Poll for incoming USDT transfers matching a unique amount
- * This is the BC.GAME style — no TXID needed!
+ * 🔍 AUTO-DETECT: Poll for incoming USDT transfers of 12 USDT
+ * Matches any recent unclaimed 12 USDT transfer to our wallet
  */
 export async function detectPayment(
-  uniqueAmount: number,
+  minAmount: number,
   usedTxHashes: string[]
 ): Promise<VerifyResult> {
 
@@ -57,7 +57,7 @@ export async function detectPayment(
       return { verified: false, error: "Waiting for payment..." }
     }
 
-    // 🔍 Find matching transaction
+    // 🔍 Find matching transaction (newest first)
     for (const tx of data.result) {
 
       // Only incoming transfers TO our wallet
@@ -73,9 +73,8 @@ export async function detectPayment(
       const amountWei = BigInt(tx.value || "0")
       const amountUsdt = Number(amountWei) / Math.pow(10, USDT_DECIMALS)
 
-      // Match the unique amount (allow 0.0005 tolerance for rounding)
-      const diff = Math.abs(amountUsdt - uniqueAmount)
-      if (diff < 0.001) {
+      // Match: amount must be >= 12 USDT
+      if (amountUsdt >= minAmount) {
 
         // ✅ MATCH FOUND!
         return {

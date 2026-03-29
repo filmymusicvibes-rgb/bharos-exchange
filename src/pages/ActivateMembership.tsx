@@ -2,16 +2,15 @@ import { useState, useEffect, useRef } from "react"
 import { db } from "../lib/firebase"
 import { collection, addDoc, getDocs, query, where, doc, getDoc, updateDoc, increment } from "firebase/firestore"
 import { navigate } from "../lib/router"
-import { detectPayment, verifyTransaction, generateUniqueAmount, isApiKeyConfigured } from "../lib/bscscan"
+import { detectPayment, verifyTransaction, isApiKeyConfigured } from "../lib/bscscan"
 import { logTransaction, runFullActivation } from "../lib/commission"
 import qrBharos from "../assets/qr-bharos.jpeg"
 
-type PaymentStep = "send" | "waiting" | "verifying" | "activating" | "done" | "fallback"
+type PaymentStep = "send" | "waiting" | "activating" | "done" | "fallback"
 
 function ActivateMembership() {
 
   const [step, setStep] = useState<PaymentStep>("send")
-  const [uniqueAmount, setUniqueAmount] = useState(12)
   const [pollCount, setPollCount] = useState(0)
   const [errorMsg, setErrorMsg] = useState("")
   const [verifiedAmount, setVerifiedAmount] = useState(0)
@@ -23,7 +22,9 @@ function ActivateMembership() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const maxPolls = 60 // 60 polls × 10 sec = 10 minutes
 
-  // 🔒 Check status on load + generate unique amount
+  const PAYMENT_AMOUNT = 12
+
+  // 🔒 Check status on load
   useEffect(() => {
     const init = async () => {
       const email = localStorage.getItem("bharos_user")
@@ -40,25 +41,18 @@ function ActivateMembership() {
           return
         }
 
-        // Check if user already has a pending deposit with unique amount
-        if (data.pendingAmount) {
-          setUniqueAmount(data.pendingAmount)
-          return
+        // Check pending deposit
+        const q = query(
+          collection(db, "deposits"),
+          where("userId", "==", email),
+          where("status", "==", "pending")
+        )
+        const snap = await getDocs(q)
+        if (!snap.empty) {
+          alert("⚡ Your activation is already in process.")
+          navigate("/dashboard")
         }
       }
-
-      // Generate unique amount
-      const depositsSnap = await getDocs(
-        query(collection(db, "deposits"), where("status", "==", "pending"))
-      )
-      const usedAmounts = depositsSnap.docs.map((d: any) => d.data().amount || 0)
-      const amount = generateUniqueAmount(usedAmounts)
-      setUniqueAmount(amount)
-
-      // Save to user document for persistence
-      await updateDoc(doc(db, "users", email), {
-        pendingAmount: amount
-      })
     }
 
     init()
@@ -90,7 +84,6 @@ function ActivateMembership() {
       setPollCount(prev => {
         const newCount = prev + 1
 
-        // Timeout after max polls → show fallback
         if (newCount >= maxPolls) {
           if (pollRef.current) clearInterval(pollRef.current)
           setStep("fallback")
@@ -101,17 +94,14 @@ function ActivateMembership() {
       })
 
       // 📡 Check BSCScan for matching payment
-      const result = await detectPayment(uniqueAmount, usedHashes)
+      const result = await detectPayment(PAYMENT_AMOUNT, usedHashes)
 
       if (result.verified) {
-        // 🛑 Stop polling
         if (pollRef.current) clearInterval(pollRef.current)
-
-        // 🔥 Payment detected! Start activation
         await activateUser(email, result.amount!, result.txHash!, result.from!)
       }
 
-    }, 10000) // Every 10 seconds
+    }, 10000)
 
   }
 
@@ -126,7 +116,6 @@ function ActivateMembership() {
       return
     }
 
-    // Check duplicate
     const dupSnap = await getDocs(
       query(collection(db, "deposits"), where("txHash", "==", txid))
     )
@@ -149,7 +138,7 @@ function ActivateMembership() {
     await activateUser(email, result.amount!, txid, result.from!)
   }
 
-  // ✅ ACTIVATE USER (shared by both auto-detect and manual)
+  // ✅ ACTIVATE USER
   const activateUser = async (
     email: string,
     amount: number,
@@ -162,7 +151,6 @@ function ActivateMembership() {
 
     try {
 
-      // Save deposit
       await addDoc(collection(db, "deposits"), {
         userId: email,
         txHash: txHash,
@@ -174,18 +162,15 @@ function ActivateMembership() {
         createdAt: new Date()
       })
 
-      // Activate user
       const userRef = doc(db, "users", email)
       await updateDoc(userRef, {
         status: "active",
         brsBalance: increment(150),
         activatedAt: new Date(),
-        pendingAmount: null // Clear pending amount
+        pendingAmount: null
       })
 
       await logTransaction(email, 150, "BRS", "Membership activation reward")
-
-      // Run commission engine
       await runFullActivation(email)
 
       setStep("done")
@@ -223,10 +208,10 @@ function ActivateMembership() {
           <div className="bg-green-500/10 border border-green-400/30 rounded-2xl p-8 text-center animate-pulse">
             <div className="text-6xl mb-4">🎉</div>
             <h2 className="text-2xl font-bold text-green-400 mb-2">
-              Payment Detected & Verified!
+              Payment Verified!
             </h2>
             <p className="text-green-300">
-              ${verifiedAmount.toFixed(3)} USDT verified on blockchain
+              {verifiedAmount.toFixed(2)} USDT verified on blockchain
             </p>
             <p className="text-green-300 mt-1">
               150 BRS credited to your wallet
@@ -237,7 +222,7 @@ function ActivateMembership() {
           </div>
         )}
 
-        {/* ⏳ ACTIVATING STATE */}
+        {/* ⚡ ACTIVATING STATE */}
         {step === "activating" && (
           <div className="bg-cyan-500/10 border border-cyan-400/30 rounded-2xl p-8 text-center">
             <div className="text-5xl mb-4 animate-spin">⚡</div>
@@ -245,14 +230,25 @@ function ActivateMembership() {
               Payment Verified! Activating...
             </h2>
             <p className="text-gray-400">
-              Setting up your account & distributing rewards...
+              Setting up your account...
             </p>
           </div>
         )}
 
-        {/* 📤 SEND STEP */}
+        {/* 📤 SEND & DETECT STEPS */}
         {(step === "send" || step === "waiting") && (
           <>
+
+            {/* ⚠️ IMPORTANT WARNING — TOP */}
+            <div className="bg-red-500/10 border border-red-500/40 rounded-xl p-4 mb-6">
+              <p className="text-red-400 font-bold text-sm mb-2">⚠️ Important — Read Before Sending</p>
+              <ul className="text-red-300 text-xs space-y-1.5">
+                <li>• Send <b>exactly 12 USDT</b> — not more, not less</li>
+                <li>• Use <b>BNB Smart Chain (BEP20)</b> network only</li>
+                <li>• Sending wrong amount or wrong network will result in <b>permanent loss of assets</b></li>
+                <li>• Double-check the wallet address before sending</li>
+              </ul>
+            </div>
 
             {/* PAYMENT DETAILS */}
             <div className="bg-[#1a1a2e] p-6 sm:p-8 rounded-xl mb-6">
@@ -262,14 +258,11 @@ function ActivateMembership() {
                 Send USDT
               </h2>
 
-              {/* 💰 Unique Amount — Highlighted */}
+              {/* 💰 Amount */}
               <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-400/40 rounded-xl p-4 mb-6">
                 <p className="text-sm text-yellow-300 mb-1">Send Exactly</p>
                 <p className="text-3xl sm:text-4xl font-bold text-yellow-400">
-                  {uniqueAmount.toFixed(3)} USDT
-                </p>
-                <p className="text-xs text-yellow-300/70 mt-1">
-                  ⚠️ Amount must match exactly for auto-detection
+                  12 USDT
                 </p>
               </div>
 
@@ -280,7 +273,7 @@ function ActivateMembership() {
                 </div>
                 <div>
                   <p className="text-gray-400">Token</p>
-                  <p className="text-green-400 font-semibold">USDT</p>
+                  <p className="text-green-400 font-semibold">USDT (BEP20)</p>
                 </div>
               </div>
 
@@ -329,11 +322,10 @@ function ActivateMembership() {
                 {step === "waiting" ? "Detecting Payment..." : "Confirm Payment"}
               </h2>
 
-              {/* WAITING STATE — Auto-polling */}
+              {/* WAITING STATE */}
               {step === "waiting" && (
                 <div className="text-center space-y-4">
 
-                  {/* Animated scanner */}
                   <div className="relative mx-auto w-20 h-20">
                     <div className="absolute inset-0 rounded-full border-4 border-cyan-500/30"></div>
                     <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-cyan-400 animate-spin"></div>
@@ -347,10 +339,9 @@ function ActivateMembership() {
                   </p>
 
                   <p className="text-gray-400 text-sm">
-                    Looking for {uniqueAmount.toFixed(3)} USDT transfer
+                    Looking for your 12 USDT payment
                   </p>
 
-                  {/* Progress bar */}
                   <div className="w-full bg-gray-700 rounded-full h-2">
                     <div
                       className="bg-gradient-to-r from-cyan-500 to-blue-500 h-2 rounded-full transition-all duration-1000"
@@ -375,11 +366,11 @@ function ActivateMembership() {
                 </div>
               )}
 
-              {/* SEND STATE — Ready to detect */}
+              {/* SEND STATE */}
               {step === "send" && (
                 <>
                   <p className="text-gray-400 text-sm mb-4">
-                    After sending <span className="text-yellow-400 font-bold">{uniqueAmount.toFixed(3)} USDT</span>, click below to start auto-detection.
+                    After sending <span className="text-yellow-400 font-bold">12 USDT</span>, click below. Your payment will be automatically verified on blockchain.
                   </p>
 
                   <button
@@ -387,29 +378,30 @@ function ActivateMembership() {
                     disabled={!isApiKeyConfigured()}
                     className="w-full p-4 rounded-xl font-bold text-white text-lg bg-gradient-to-r from-cyan-500 to-blue-500 hover:scale-[1.02] transition-all duration-300 shadow-lg shadow-cyan-500/30 disabled:opacity-50 disabled:hover:scale-100"
                   >
-                    ✅ I Have Sent Payment
+                    ✅ I Have Sent 12 USDT
                   </button>
 
                   <p className="text-center text-gray-500 text-xs mt-3">
-                    Your payment will be automatically detected on blockchain
+                    Payment is automatically verified on BSC blockchain
                   </p>
                 </>
               )}
 
             </div>
 
-            {/* ℹ️ INFO */}
-            <div className="bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/30 rounded-xl p-4 text-sm text-cyan-300 space-y-2">
-              <p>🔗 <b>Auto-Detection</b> — Payment is automatically detected on BSC blockchain</p>
-              <p>⚡ <b>Instant Activation</b> — No waiting for admin approval</p>
-              <p>🔐 <b>Network:</b> BNB Smart Chain (BEP20) only</p>
-              <p>💰 <b>Send exact amount</b> — {uniqueAmount.toFixed(3)} USDT for auto-matching</p>
+            {/* ℹ️ WARNINGS */}
+            <div className="bg-gradient-to-r from-red-500/10 to-orange-500/10 border border-red-500/30 rounded-xl p-4 text-sm space-y-2">
+              <p className="text-red-400 font-bold mb-1">❗ Warning</p>
+              <p className="text-red-300">• Send <b>exactly 12 USDT</b> — wrong amount will <b>NOT</b> be verified</p>
+              <p className="text-red-300">• Use <b>BNB Smart Chain (BEP20)</b> — wrong network = <b>permanent loss</b></p>
+              <p className="text-red-300">• Wrong address = <b>permanent loss of funds</b></p>
+              <p className="text-orange-300 mt-2">💡 Payment verified instantly on blockchain — no manual steps needed</p>
             </div>
 
           </>
         )}
 
-        {/* 🔗 FALLBACK — Manual TXID entry */}
+        {/* 🔗 FALLBACK — Manual TXID */}
         {step === "fallback" && (
           <div className="bg-[#1a1a2e] p-6 sm:p-8 rounded-xl">
 
@@ -417,7 +409,7 @@ function ActivateMembership() {
               ⚠️ Auto-detection timed out
             </h2>
             <p className="text-gray-400 text-sm mb-6">
-              Don't worry! You can manually enter your Transaction Hash (TXID) instead.
+              Enter your Transaction Hash (TXID) manually to verify.
             </p>
 
             <p className="mb-2 text-gray-400 text-sm">Transaction Hash (TXID)</p>
