@@ -14,6 +14,7 @@ import {
   addDoc,
   increment
 } from "firebase/firestore"
+import { updateTokenPhase } from "./tokenPhase"
 
 // 📝 Transaction Logger
 
@@ -211,6 +212,14 @@ export const runFullActivation = async (userEmail: string) => {
 
     // 🎁 REWARDS SYSTEM
     await checkUplineRewards(userData, allUsers)
+
+    // 📈 TOKEN PHASE — auto-update based on total users
+    try {
+      const totalUsers = allUsers.filter(u => (u as any).status === "active").length
+      await updateTokenPhase(totalUsers)
+    } catch (phaseErr) {
+      console.warn("Token phase update skipped:", phaseErr)
+    }
 
     console.log(`✅ Full activation + commissions complete for ${userEmail}`)
 

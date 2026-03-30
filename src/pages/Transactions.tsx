@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { db } from "../lib/firebase"
-import { collection, getDocs } from "firebase/firestore"
+import { collection, getDocs, query, where } from "firebase/firestore"
 import { ArrowUpRight, ArrowDownLeft, CreditCard, Wallet, Clock, CheckCircle, XCircle } from "lucide-react"
 import Navbar from "@/components/Navbar"
 
@@ -23,54 +23,48 @@ export default function Transactions() {
         const list: any[] = []
 
         try {
-            // Fetch Transactions (BRS transfers)
-            const snapTx = await getDocs(collection(db, "transactions"))
+            // Fetch Transactions (BRS transfers) — filtered by user
+            const snapTx = await getDocs(query(collection(db, "transactions"), where("userId", "==", email)))
             snapTx.forEach((doc) => {
                 const data: any = doc.data()
-                if (data.userId === email) {
-                    const isSend = data.type === "send" || data.type === "BRS_SEND"
-                    const isReceive = data.type === "receive" || data.type === "BRS_RECEIVE"
+                const isSend = data.type === "send" || data.type === "BRS_SEND"
+                const isReceive = data.type === "receive" || data.type === "BRS_RECEIVE"
 
-                    if (isSend || isReceive) {
-                        list.push({
-                            ...data,
-                            displayType: isSend ? "BRS Sent" : "BRS Received",
-                            displayAmount: `${data.amount} BRS`,
-                            displayStatus: "success",
-                            txCategory: isSend ? "send" : "receive"
-                        })
-                    }
+                if (isSend || isReceive) {
+                    list.push({
+                        ...data,
+                        displayType: isSend ? "BRS Sent" : "BRS Received",
+                        displayAmount: `${data.amount} BRS`,
+                        displayStatus: "success",
+                        txCategory: isSend ? "send" : "receive"
+                    })
                 }
             })
 
-            // Fetch Withdrawals (USDT)
-            const snapW = await getDocs(collection(db, "withdrawals"))
+            // Fetch Withdrawals (USDT) — filtered by user
+            const snapW = await getDocs(query(collection(db, "withdrawals"), where("userId", "==", email)))
             snapW.forEach((doc) => {
                 const data: any = doc.data()
-                if (data.userId === email) {
-                    list.push({
-                        ...data,
-                        displayType: "USDT Withdraw",
-                        displayAmount: `$${Number(data.amount || 0).toFixed(2)}`,
-                        displayStatus: data.status,
-                        txCategory: "withdraw"
-                    })
-                }
+                list.push({
+                    ...data,
+                    displayType: "USDT Withdraw",
+                    displayAmount: `$${Number(data.amount || 0).toFixed(2)}`,
+                    displayStatus: data.status,
+                    txCategory: "withdraw"
+                })
             })
 
-            // Fetch Deposits (USDT)
-            const snapD = await getDocs(collection(db, "deposits"))
+            // Fetch Deposits (USDT) — filtered by user
+            const snapD = await getDocs(query(collection(db, "deposits"), where("userId", "==", email)))
             snapD.forEach((doc) => {
                 const data: any = doc.data()
-                if (data.userId === email) {
-                    list.push({
-                        ...data,
-                        displayType: "USDT Deposit",
-                        displayAmount: `$${Number(data.amount || 0).toFixed(2)}`,
-                        displayStatus: data.status,
-                        txCategory: "deposit"
-                    })
-                }
+                list.push({
+                    ...data,
+                    displayType: "USDT Deposit",
+                    displayAmount: `$${Number(data.amount || 0).toFixed(2)}`,
+                    displayStatus: data.status,
+                    txCategory: "deposit"
+                })
             })
 
             // Sort by createdAt descending

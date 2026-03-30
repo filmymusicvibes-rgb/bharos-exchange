@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { db } from "../lib/firebase"
-import { collection, getDocs } from "firebase/firestore"
+import { collection, getDocs, query, where } from "firebase/firestore"
 
 export default function WithdrawHistory() {
 
@@ -13,17 +13,14 @@ export default function WithdrawHistory() {
     const loadHistory = async () => {
 
         const email = localStorage.getItem("bharos_user")
+        if (!email) return
 
-        const snap = await getDocs(collection(db, "withdrawals"))
+        const snap = await getDocs(query(collection(db, "withdrawals"), where("userId", "==", email)))
 
         const list: any[] = []
 
         snap.forEach((doc) => {
-            const data: any = doc.data()
-
-            if (data.userId === email) {
-                list.push(data)
-            }
+            list.push(doc.data())
         })
 
         setWithdraws(list.reverse())
