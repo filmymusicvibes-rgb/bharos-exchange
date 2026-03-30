@@ -1,30 +1,32 @@
 import { useState, useEffect } from 'react'
-import { X } from 'lucide-react'
-
-// ✅ ADD YOUR POPUP IMAGES HERE
-// Import images from assets folder:
-// import popupImg from '../assets/popup.jpg'
+import { X, Rocket, Gift, Sparkles } from 'lucide-react'
 
 // Slides for NEW / INACTIVE users only
 const newUserSlides = [
   {
-    title: "🎉 Welcome to Bharos Exchange!",
+    icon: Sparkles,
+    iconColor: "text-cyan-400",
+    glowColor: "cyan",
+    title: "Welcome to Bharos Exchange!",
     message: "Activate your account today and earn referral commissions on 12 levels + special rewards!",
-    bgGradient: "from-cyan-500/20 to-blue-600/20"
   }
 ]
 
 // Slides for ALL users (active + inactive)
 const commonSlides = [
   {
-    title: "🚀 BRS Token Update",
+    icon: Rocket,
+    iconColor: "text-yellow-400",
+    glowColor: "yellow",
+    title: "BRS Token Update",
     message: "BRS token listing coming soon! Early members get exclusive benefits. Stay tuned for official announcements.",
-    bgGradient: "from-yellow-500/20 to-orange-600/20"
   },
   {
-    title: "💰 Referral Rewards Active!",
+    icon: Gift,
+    iconColor: "text-green-400",
+    glowColor: "green",
+    title: "Referral Rewards Active!",
     message: "Earn commissions on 12 levels! Direct Reward $20, Matrix Reward $30, and International Trip for top achievers!",
-    bgGradient: "from-green-500/20 to-emerald-600/20"
   }
 ]
 
@@ -32,16 +34,13 @@ export default function LoginPopup({ userStatus = "inactive" }: { userStatus?: s
   const [show, setShow] = useState(false)
   const [currentSlide, setCurrentSlide] = useState(0)
 
-  // Build slides based on user status
   const popupSlides = userStatus === "active" 
     ? commonSlides 
     : [...newUserSlides, ...commonSlides]
 
   useEffect(() => {
-    // Show popup once per session (per browser tab)
     const seen = sessionStorage.getItem("bharos_popup_seen")
     if (!seen) {
-      // Small delay so dashboard loads first
       const timer = setTimeout(() => setShow(true), 1000)
       return () => clearTimeout(timer)
     }
@@ -63,69 +62,87 @@ export default function LoginPopup({ userStatus = "inactive" }: { userStatus?: s
   if (!show) return null
 
   const slide = popupSlides[currentSlide]
+  const Icon = slide.icon
+
+  const glowMap: Record<string, string> = {
+    cyan: "from-cyan-500/20 to-blue-500/20",
+    yellow: "from-yellow-500/20 to-amber-500/20",
+    green: "from-green-500/20 to-emerald-500/20"
+  }
+  const borderGlowMap: Record<string, string> = {
+    cyan: "from-cyan-500/30 to-blue-500/30",
+    yellow: "from-yellow-500/30 to-amber-500/30",
+    green: "from-green-500/30 to-emerald-500/30"
+  }
 
   return (
     <div 
-      className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-5"
       onClick={handleClose}
     >
       <div 
         className="relative w-full max-w-sm animate-scale-in"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Glow border */}
+        <div className={`absolute -inset-[1px] bg-gradient-to-br ${borderGlowMap[slide.glowColor]} rounded-2xl blur-md`} />
+
         {/* Close button */}
         <button 
           onClick={handleClose}
-          className="absolute -top-3 -right-3 z-10 w-8 h-8 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-400 transition shadow-lg"
+          className="absolute -top-2 -right-2 z-20 w-7 h-7 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full flex items-center justify-center hover:bg-white/20 transition-all"
         >
-          <X className="w-5 h-5 text-white" />
+          <X className="w-3.5 h-3.5 text-gray-300" />
         </button>
 
-        {/* Card */}
-        <div className={`bg-gradient-to-br ${slide.bgGradient} bg-[#1a1a2e] border-2 border-yellow-500/50 rounded-2xl overflow-hidden shadow-2xl shadow-yellow-500/20`}>
+        {/* Glass Card */}
+        <div className="relative bg-[#0d1117]/95 backdrop-blur-2xl border border-white/10 rounded-2xl overflow-hidden">
           
-          {/* Image area (if image exists) */}
-          {(slide as any).image && (
-            <div className="w-full">
-              <img 
-                src={(slide as any).image} 
-                alt={slide.title}
-                className="w-full h-auto object-cover"
-              />
-            </div>
-          )}
+          {/* Top ambient glow */}
+          <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-[200px] h-[100px] bg-gradient-to-b ${glowMap[slide.glowColor]} blur-[60px] rounded-full`} />
 
-          {/* Text content */}
-          <div className="p-6 text-center">
-            <h3 className="text-2xl font-bold text-white mb-3">
+          {/* Content */}
+          <div className="relative p-7 text-center">
+            
+            {/* Icon */}
+            <div className="mb-4">
+              <div className={`w-12 h-12 mx-auto rounded-xl bg-white/[0.05] border border-white/10 flex items-center justify-center backdrop-blur-sm`}>
+                <Icon className={`w-6 h-6 ${slide.iconColor}`} />
+              </div>
+            </div>
+
+            {/* Title */}
+            <h3 className="text-xl font-bold text-white mb-3">
               {slide.title}
             </h3>
-            <p className="text-gray-300 text-base leading-relaxed mb-6">
+
+            {/* Message */}
+            <p className="text-sm text-gray-400 leading-relaxed mb-6">
               {slide.message}
             </p>
 
             {/* Slide dots */}
             {popupSlides.length > 1 && (
-              <div className="flex justify-center gap-2 mb-4">
+              <div className="flex justify-center gap-2 mb-5">
                 {popupSlides.map((_, i) => (
                   <div 
                     key={i}
-                    className={`h-2 rounded-full transition-all duration-300 ${
+                    className={`h-1.5 rounded-full transition-all duration-300 ${
                       i === currentSlide 
-                        ? 'w-8 bg-cyan-400' 
-                        : 'w-2 bg-gray-600'
+                        ? 'w-6 bg-gradient-to-r from-cyan-400 to-blue-400' 
+                        : 'w-1.5 bg-white/10'
                     }`}
                   />
                 ))}
               </div>
             )}
 
-            {/* Next / Got it button */}
+            {/* Button */}
             <button
               onClick={nextSlide}
-              className="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl font-bold text-white hover:scale-105 hover:shadow-xl hover:shadow-cyan-500/50 transition-all duration-300"
+              className="w-full py-3 rounded-xl font-semibold text-sm text-black bg-gradient-to-r from-cyan-400 to-blue-500 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-cyan-500/20"
             >
-              {currentSlide < popupSlides.length - 1 ? "Next →" : "Got it! ✅"}
+              {currentSlide < popupSlides.length - 1 ? "Next →" : "Got it!"}
             </button>
           </div>
         </div>
