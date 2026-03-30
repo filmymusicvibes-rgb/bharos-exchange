@@ -2,6 +2,7 @@ import { useState } from "react"
 import { db } from "../lib/firebase"
 import { doc, getDoc, updateDoc, addDoc, collection, getDocs } from "firebase/firestore"
 import { navigate } from "../lib/router"
+import { Send, Hash, Coins, ArrowLeft, AlertTriangle, Zap, Shield, Info } from "lucide-react"
 
 export default function TransferBRS() {
 
@@ -60,7 +61,6 @@ export default function TransferBRS() {
             usersSnap.forEach((doc) => {
                 const d: any = doc.data()
 
-                // 🔥 IMPORTANT: match correct field
                 if (d.referralCode === receiverInput) {
                     receiverUser = d
                 }
@@ -96,7 +96,6 @@ export default function TransferBRS() {
                 brsBalance: receiverBalance + transferAmount
             })
 
-            // ADD TRANSACTION LOGS
             await addDoc(collection(db, "transactions"), {
                 userId: senderEmail,
                 type: "BRS_SEND",
@@ -133,59 +132,112 @@ export default function TransferBRS() {
 
     return (
 
-        <div className="min-h-screen bg-[#0B0919] flex justify-center items-center px-4">
+        <div className="min-h-screen bg-[#050816] flex justify-center items-center px-4 relative overflow-hidden">
 
-            <div className="w-full max-w-[600px] space-y-6">
+            {/* AMBIENT */}
+            <div className="absolute top-[-15%] left-[-10%] w-[400px] h-[400px] bg-yellow-500/5 blur-[120px] rounded-full" />
+            <div className="absolute bottom-[-15%] right-[-10%] w-[400px] h-[400px] bg-cyan-500/5 blur-[120px] rounded-full" />
 
-                <h1 className="text-3xl sm:text-4xl text-center font-bold text-cyan-400">
-                    Send BRS
-                </h1>
+            {/* BACK */}
+            <button
+                onClick={() => navigate("/dashboard")}
+                className="absolute top-5 left-5 flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 bg-white/5 backdrop-blur-md text-gray-400 hover:text-white hover:border-cyan-500/30 transition-all z-10 text-sm"
+            >
+                <ArrowLeft className="w-4 h-4" />
+                Back
+            </button>
 
-                <div className="bg-[#1a1a2e] p-8 rounded-2xl border border-cyan-500/20 shadow-lg shadow-cyan-500/10">
+            <div className="w-full max-w-md relative z-10 space-y-5">
 
-                    <p className="text-gray-400 mb-2">
-                        Receiver Referral Code
-                    </p>
+                {/* HEADER */}
+                <div className="text-center">
+                    <div className="w-14 h-14 mx-auto bg-gradient-to-br from-yellow-500/15 to-amber-500/15 rounded-xl flex items-center justify-center border border-yellow-500/20 mb-3">
+                        <Send className="w-7 h-7 text-yellow-400" />
+                    </div>
+                    <h1 className="text-2xl font-bold bg-gradient-to-r from-yellow-400 to-amber-400 bg-clip-text text-transparent">
+                        Send BRS
+                    </h1>
+                    <p className="text-gray-500 text-sm mt-1">Transfer BRS to other Bharos users</p>
+                </div>
 
-                    <input
-                        value={userId}
-                        onChange={(e) => setUserId(e.target.value)}
-                        placeholder="e.g. BRS12345"
-                        className="w-full p-3 mb-2 bg-[#0B0919] text-white placeholder-gray-400 rounded-lg border border-cyan-500/20 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400 outline-none"
-                    />
+                {/* FORM CARD */}
+                <div className="relative">
+                    <div className="absolute -inset-[1px] bg-gradient-to-r from-yellow-500/20 via-cyan-500/15 to-blue-500/20 rounded-2xl blur-sm" />
+                    <div className="relative bg-[#0d1117]/90 backdrop-blur-xl border border-white/10 rounded-2xl p-7 space-y-5">
 
-                    <p className="text-xs text-gray-500 mb-4">
-                        Only registered Bharos users can receive BRS
-                    </p>
+                        {/* RECEIVER */}
+                        <div>
+                            <label className="text-xs text-gray-400 mb-1.5 block font-medium">Receiver Referral Code</label>
+                            <div className="relative">
+                                <Hash className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                                <input
+                                    value={userId}
+                                    onChange={(e) => setUserId(e.target.value)}
+                                    placeholder="e.g. REF123456"
+                                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:border-yellow-400/50 focus:bg-white/8 outline-none transition-all duration-300"
+                                />
+                            </div>
+                            <p className="text-[10px] text-gray-600 mt-1">Only registered Bharos users can receive BRS</p>
+                        </div>
 
-                    <p className="text-gray-400 mb-2">
-                        Amount (BRS)
-                    </p>
+                        {/* AMOUNT */}
+                        <div>
+                            <label className="text-xs text-gray-400 mb-1.5 block font-medium">Amount (BRS)</label>
+                            <div className="relative">
+                                <Coins className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                                <input
+                                    type="number"
+                                    value={amount}
+                                    onChange={(e) => setAmount(e.target.value)}
+                                    placeholder="Minimum 10 BRS"
+                                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:border-yellow-400/50 focus:bg-white/8 outline-none transition-all duration-300"
+                                />
+                            </div>
+                        </div>
 
-                    <input
-                        type="number"
-                        value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
-                        placeholder="Minimum 10 BRS"
-                        className="w-full p-3 mb-6 bg-[#0B0919] text-white placeholder-gray-400 rounded-lg border border-cyan-500/20 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400 outline-none"
-                    />
+                        {/* BUTTON */}
+                        <button
+                            onClick={sendBRS}
+                            disabled={loading}
+                            className="w-full py-3.5 rounded-xl font-semibold text-black bg-gradient-to-r from-yellow-400 via-amber-400 to-orange-400 transition-all duration-300 hover:shadow-[0_0_30px_rgba(250,204,21,0.3)] hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+                        >
+                            {loading ? (
+                                <span className="flex items-center gap-2">
+                                    <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                                    Sending...
+                                </span>
+                            ) : (
+                                <span className="flex items-center gap-2">
+                                    <Send className="w-4 h-4" />
+                                    Send BRS
+                                </span>
+                            )}
+                        </button>
 
-                    <button
-                        onClick={sendBRS}
-                        disabled={loading}
-                        className="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full font-bold transition-all duration-300 hover:shadow-[0_0_20px_rgba(34,211,238,0.7)] hover:scale-105 disabled:opacity-50"
-                    >
-                        {loading ? "Sending..." : "Send BRS"}
-                    </button>
-
+                    </div>
                 </div>
 
                 {/* INFO */}
-                <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/30 rounded-xl p-4 text-sm text-yellow-300 space-y-2">
-                    <p>⚠ Minimum transfer: <b>10 BRS</b></p>
-                    <p>⚡ Instant internal transfer</p>
-                    <p>🔐 Only Bharos users allowed</p>
-                    <p>❗ Wrong referral code may result in loss</p>
+                <div className="relative">
+                    <div className="absolute -inset-[1px] bg-gradient-to-r from-yellow-500/10 to-orange-500/10 rounded-xl blur-sm" />
+                    <div className="relative bg-[#0d1117]/90 backdrop-blur-xl border border-white/8 rounded-xl p-4 space-y-2 text-xs">
+                        <div className="flex items-center gap-2 text-yellow-400">
+                            <AlertTriangle className="w-3.5 h-3.5" />
+                            <span>Minimum transfer: <b>10 BRS</b></span>
+                        </div>
+                        <div className="flex items-center gap-2 text-cyan-400">
+                            <Zap className="w-3.5 h-3.5" />
+                            <span>Instant internal transfer</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-blue-400">
+                            <Shield className="w-3.5 h-3.5" />
+                            <span>Only Bharos users allowed</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-red-400">
+                            <Info className="w-3.5 h-3.5" />
+                            <span>Wrong referral code may result in loss</span>
+                        </div>
+                    </div>
                 </div>
 
             </div>

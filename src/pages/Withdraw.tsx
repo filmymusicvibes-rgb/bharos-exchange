@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { db } from "../lib/firebase"
 import { collection, addDoc, doc, getDoc, updateDoc } from "firebase/firestore"
 import { navigate } from "../lib/router"
+import { Wallet, DollarSign, ArrowLeft, AlertTriangle, Clock, Shield, Lock, Info } from "lucide-react"
 
 export default function Withdraw() {
 
@@ -22,7 +23,7 @@ export default function Withdraw() {
                 const data: any = snap.data()
                 if (data.walletAddress) {
                     setProfileWallet(data.walletAddress)
-                    setAddress(data.walletAddress) // Auto-fill
+                    setAddress(data.walletAddress)
                 }
             }
         }
@@ -35,7 +36,7 @@ export default function Withdraw() {
         setWalletError("")
 
         if (profileWallet && inputAddress && inputAddress.trim().toLowerCase() !== profileWallet.trim().toLowerCase()) {
-            setWalletError("⚠️ Address must match your profile BEP20 wallet address. Go to Profile to update.")
+            setWalletError("Address must match your profile BEP20 wallet address")
         }
     }
 
@@ -50,7 +51,6 @@ export default function Withdraw() {
 
         const withdrawAmount = Number(amount)
 
-        // 🔒 STRICT VALIDATION
         if (!withdrawAmount || isNaN(withdrawAmount)) {
             alert("Enter valid amount")
             return
@@ -71,13 +71,11 @@ export default function Withdraw() {
             return
         }
 
-        // 🔒 PROFILE WALLET MATCH CHECK
         if (profileWallet && address.trim().toLowerCase() !== profileWallet.trim().toLowerCase()) {
             alert("❌ Withdrawal address must match your profile BEP20 wallet address!\n\nGo to Profile → Update your BEP20 address first.")
             return
         }
 
-        // 🔒 NO WALLET IN PROFILE
         if (!profileWallet) {
             alert("⚠️ Please save your BEP20 wallet address in Profile first before withdrawing.")
             return
@@ -106,12 +104,10 @@ export default function Withdraw() {
 
             setLoading(true)
 
-            // 🔒 FREEZE FUNDS
             await updateDoc(userRef, {
                 usdtFrozen: frozen + withdrawAmount
             })
 
-            // 🔒 SAVE REQUEST
             await addDoc(collection(db, "withdrawals"), {
                 userId: email,
                 amount: withdrawAmount,
@@ -137,91 +133,145 @@ export default function Withdraw() {
 
     return (
 
-        <div className="min-h-screen bg-[#0B0919] text-white flex justify-center items-center px-4">
+        <div className="min-h-screen bg-[#050816] text-white flex justify-center items-center px-4 relative overflow-hidden">
 
-            <div className="w-full max-w-[600px] space-y-6">
+            {/* AMBIENT */}
+            <div className="absolute top-[-15%] right-[-10%] w-[400px] h-[400px] bg-green-500/5 blur-[120px] rounded-full" />
+            <div className="absolute bottom-[-15%] left-[-10%] w-[400px] h-[400px] bg-cyan-500/5 blur-[120px] rounded-full" />
 
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <h1 className="text-3xl sm:text-4xl text-center sm:text-left font-bold text-cyan-400">
+            {/* BACK */}
+            <button
+                onClick={() => navigate("/dashboard")}
+                className="absolute top-5 left-5 flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 bg-white/5 backdrop-blur-md text-gray-400 hover:text-white hover:border-cyan-500/30 transition-all z-10 text-sm"
+            >
+                <ArrowLeft className="w-4 h-4" />
+                Back
+            </button>
+
+            <div className="w-full max-w-md relative z-10 space-y-5">
+
+                {/* HEADER */}
+                <div className="text-center">
+                    <div className="w-14 h-14 mx-auto bg-gradient-to-br from-green-500/15 to-emerald-500/15 rounded-xl flex items-center justify-center border border-green-500/20 mb-3">
+                        <Wallet className="w-7 h-7 text-green-400" />
+                    </div>
+                    <h1 className="text-2xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
                         Withdraw USDT
                     </h1>
-                    <button 
-                        onClick={() => navigate("/withdraw-history")}
-                        className="w-full sm:w-auto px-6 py-2 bg-[#1a1a2e] border border-cyan-500/30 rounded-lg text-cyan-400 hover:bg-cyan-500/10 transition-colors font-semibold"
-                    >
-                        History
-                    </button>
+                    <p className="text-gray-500 text-sm mt-1">Withdraw to your BEP20 wallet</p>
                 </div>
 
-                <div className="bg-[#1a1a2e] p-8 rounded-2xl border border-cyan-500/20 shadow-lg shadow-cyan-500/10">
+                {/* FORM CARD */}
+                <div className="relative">
+                    <div className="absolute -inset-[1px] bg-gradient-to-r from-green-500/20 via-cyan-500/15 to-blue-500/20 rounded-2xl blur-sm" />
+                    <div className="relative bg-[#0d1117]/90 backdrop-blur-xl border border-white/10 rounded-2xl p-7 space-y-5">
 
-                    <p className="text-gray-400 mb-2">Withdraw Amount</p>
-                    <input
-                        type="number"
-                        value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
-                        placeholder="Minimum 5 USDT"
-                        className="w-full p-3 mb-6 bg-[#0B0919] text-white placeholder-gray-400 rounded-lg border border-cyan-500/20 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400 outline-none"
-                    />
-
-                    <p className="text-gray-400 mb-2">Wallet Address (BEP20)</p>
-
-                    {/* Show locked profile wallet info */}
-                    {profileWallet && (
-                        <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-2.5 mb-2 flex items-center gap-2">
-                            <span className="text-green-400 text-xs">🔒 Profile Wallet:</span>
-                            <span className="text-green-300 text-xs font-mono truncate">{profileWallet}</span>
+                        {/* AMOUNT */}
+                        <div>
+                            <label className="text-xs text-gray-400 mb-1.5 block font-medium">Withdraw Amount</label>
+                            <div className="relative">
+                                <DollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                                <input
+                                    type="number"
+                                    value={amount}
+                                    onChange={(e) => setAmount(e.target.value)}
+                                    placeholder="Minimum 5 USDT"
+                                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:border-green-400/50 focus:bg-white/8 outline-none transition-all duration-300"
+                                />
+                            </div>
                         </div>
-                    )}
 
-                    {!profileWallet && (
-                        <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-2.5 mb-2">
-                            <p className="text-yellow-300 text-xs">
-                                ⚠️ No wallet address in profile. <span onClick={() => navigate("/profile")} className="text-cyan-400 cursor-pointer underline">Set it now →</span>
-                            </p>
+                        {/* WALLET ADDRESS */}
+                        <div>
+                            <label className="text-xs text-gray-400 mb-1.5 block font-medium">Wallet Address (BEP20)</label>
+
+                            {/* Profile wallet locked info */}
+                            {profileWallet && (
+                                <div className="flex items-center gap-2 bg-green-500/5 border border-green-500/15 rounded-lg px-3 py-2 mb-2">
+                                    <Lock className="w-3.5 h-3.5 text-green-400" />
+                                    <span className="text-green-400 text-[10px] font-mono truncate">{profileWallet}</span>
+                                </div>
+                            )}
+
+                            {!profileWallet && (
+                                <div className="flex items-center gap-2 bg-yellow-500/5 border border-yellow-500/15 rounded-lg px-3 py-2 mb-2">
+                                    <AlertTriangle className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />
+                                    <p className="text-yellow-400 text-[10px]">
+                                        No wallet in profile.{" "}
+                                        <span onClick={() => navigate("/profile")} className="text-cyan-400 cursor-pointer underline">Set it now →</span>
+                                    </p>
+                                </div>
+                            )}
+
+                            <div className="relative">
+                                <Wallet className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                                <input
+                                    value={address}
+                                    onChange={(e) => validateAddress(e.target.value)}
+                                    placeholder="0x..."
+                                    className={`w-full pl-10 pr-4 py-3 rounded-xl bg-white/5 border text-white placeholder-gray-500 outline-none transition-all duration-300 ${
+                                        walletError
+                                            ? 'border-red-500/30 focus:border-red-400/50'
+                                            : 'border-white/10 focus:border-green-400/50 focus:bg-white/8'
+                                    }`}
+                                />
+                            </div>
+
+                            {walletError && (
+                                <p className="text-red-400 text-[10px] mt-1 flex items-center gap-1">
+                                    <AlertTriangle className="w-3 h-3" />
+                                    {walletError}
+                                </p>
+                            )}
                         </div>
-                    )}
 
-                    <input
-                        value={address}
-                        onChange={(e) => validateAddress(e.target.value)}
-                        placeholder="0x..."
-                        className={`w-full p-3 mb-1 bg-[#0B0919] text-white placeholder-gray-400 rounded-lg border outline-none ${
-                            walletError
-                                ? 'border-red-500/50 focus:border-red-400 focus:ring-2 focus:ring-red-400'
-                                : 'border-cyan-500/20 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400'
-                        }`}
-                    />
+                        {/* BUTTON */}
+                        <button
+                            onClick={submitWithdraw}
+                            disabled={loading || !!walletError}
+                            className="w-full py-3.5 rounded-xl font-semibold text-black bg-gradient-to-r from-green-400 via-emerald-400 to-cyan-400 transition-all duration-300 hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+                        >
+                            {loading ? (
+                                <span className="flex items-center gap-2">
+                                    <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                                    Submitting...
+                                </span>
+                            ) : (
+                                <span className="flex items-center gap-2">
+                                    <Wallet className="w-4 h-4" />
+                                    Request Withdrawal
+                                </span>
+                            )}
+                        </button>
 
-                    {walletError && (
-                        <p className="text-red-400 text-xs mb-4 animate-pulse">{walletError}</p>
-                    )}
-
-                    {!walletError && <div className="mb-6" />}
-
-                    <button
-                        onClick={submitWithdraw}
-                        disabled={loading || !!walletError}
-                        className="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full font-bold transition-all duration-300 hover:shadow-[0_0_20px_rgba(34,211,238,0.7)] hover:scale-105 disabled:opacity-50"
-                    >
-                        {loading ? "Submitting..." : "Request Withdrawal"}
-                    </button>
-
+                    </div>
                 </div>
 
-                {/* INFO BOX */}
-                <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/30 rounded-xl p-4 text-sm text-yellow-300 space-y-2">
-
-                    <p>⚠️ Minimum withdrawal: <b>5 USDT</b></p>
-
-                    <p>⏳ Processing time: <b>Within 24 hours</b></p>
-
-                    <p>🔐 Network: <b>BEP20 (BSC)</b></p>
-
-                    <p>🔒 Withdrawal address must match your <b>Profile wallet</b></p>
-
-                    <p>❗ Wrong address may result in permanent loss</p>
-
+                {/* INFO */}
+                <div className="relative">
+                    <div className="absolute -inset-[1px] bg-gradient-to-r from-yellow-500/10 to-orange-500/10 rounded-xl blur-sm" />
+                    <div className="relative bg-[#0d1117]/90 backdrop-blur-xl border border-white/8 rounded-xl p-4 space-y-2 text-xs">
+                        <div className="flex items-center gap-2 text-yellow-400">
+                            <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                            <span>Minimum withdrawal: <b>5 USDT</b></span>
+                        </div>
+                        <div className="flex items-center gap-2 text-cyan-400">
+                            <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+                            <span>Processing time: <b>Within 24 hours</b></span>
+                        </div>
+                        <div className="flex items-center gap-2 text-blue-400">
+                            <Shield className="w-3.5 h-3.5 flex-shrink-0" />
+                            <span>Network: <b>BEP20 (BSC)</b></span>
+                        </div>
+                        <div className="flex items-center gap-2 text-green-400">
+                            <Lock className="w-3.5 h-3.5 flex-shrink-0" />
+                            <span>Address must match your <b>Profile wallet</b></span>
+                        </div>
+                        <div className="flex items-center gap-2 text-red-400">
+                            <Info className="w-3.5 h-3.5 flex-shrink-0" />
+                            <span>Wrong address may result in permanent loss</span>
+                        </div>
+                    </div>
                 </div>
 
             </div>
