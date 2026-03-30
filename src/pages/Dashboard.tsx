@@ -335,9 +335,9 @@ export default function Dashboard() {
                   <p className="text-xs text-green-400 font-semibold">${(brs * 0.005).toFixed(2)}</p>
                 </div>
 
-                <div className="flex items-center gap-2 bg-white/[0.03] rounded-lg px-3 py-2 border border-white/5 mb-5">
-                  <img src={trustLogo} className="w-4 h-4" />
-                  <span className="text-[10px] text-gray-500">Phase 3: Transfer to Trust Wallet</span>
+                <div className="glass-shield flex items-center gap-2 rounded-lg px-3 py-2.5 mb-5">
+                  <img src={trustLogo} className="w-4 h-4 relative z-10" />
+                  <span className="text-[10px] text-cyan-300/70 relative z-10">Phase 3: Transfer to Trust Wallet</span>
                 </div>
 
                 <div className="flex gap-3">
@@ -385,9 +385,9 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 bg-white/[0.03] rounded-lg px-3 py-2 border border-white/5 mb-5">
-                  <img src={usdtLogo} className="w-4 h-4" />
-                  <span className="text-[10px] text-gray-500">Phase 3: Deposits Live Soon</span>
+                <div className="glass-shield flex items-center gap-2 rounded-lg px-3 py-2.5 mb-5">
+                  <img src={usdtLogo} className="w-4 h-4 relative z-10" />
+                  <span className="text-[10px] text-cyan-300/70 relative z-10">Phase 3: Deposits Live Soon</span>
                 </div>
 
                 <div className="flex gap-3">
