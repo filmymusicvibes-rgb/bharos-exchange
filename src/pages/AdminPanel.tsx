@@ -531,23 +531,70 @@ export default function AdminPanel() {
           {tripUsers.map((u) => (
             <div
               key={u.email || Math.random()}
-              className="bg-[#1a1a2e] p-4 mb-3 rounded"
+              className="bg-[#1a1a2e] p-6 mb-4 rounded-xl border border-purple-500/20"
             >
-              <p className="font-bold">{u.userName}</p>
-              <p className="text-gray-300">{u.email}</p>
+              <div className="flex flex-wrap items-center gap-3 mb-3">
+                <span className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-bold border border-green-500/30">
+                  ✈️ Trip Qualified
+                </span>
+              </div>
 
-              <button
-                onClick={async () => {
-                  await updateDoc(doc(db, "users", u.email), {
-                    tripNotified: true
-                  })
-                  alert("User marked as contacted ✅")
-                  await loadTripUsers()
-                }}
-                className="bg-purple-500 hover:bg-purple-400 px-4 py-1 mt-3 rounded transition-all font-bold text-white tracking-wide"
-              >
-                Mark Contacted
-              </button>
+              <div className="space-y-2 mb-4">
+                <p className="text-white">
+                  <span className="text-gray-400 text-sm">👤 Username:</span>{' '}
+                  <span className="font-bold text-lg">{u.userName || 'N/A'}</span>
+                </p>
+                <p className="text-white">
+                  <span className="text-gray-400 text-sm">📝 Full Name:</span>{' '}
+                  <span className="font-bold text-lg text-cyan-300">{u.fullName || 'Not Set'}</span>
+                </p>
+                <p className="text-white">
+                  <span className="text-gray-400 text-sm">📧 Email:</span>{' '}
+                  <span className="font-medium">{u.email}</span>
+                </p>
+                <p className="text-white">
+                  <span className="text-gray-400 text-sm">📱 Phone:</span>{' '}
+                  <span className="font-medium text-yellow-300">{u.phone || 'Not Set'}</span>
+                </p>
+              </div>
+
+              {/* Copy Email Button */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(u.email)
+                    alert('Email copied: ' + u.email)
+                  }}
+                  className="bg-cyan-500 hover:bg-cyan-400 text-black px-4 py-2 rounded-lg font-bold text-sm transition-all hover:scale-105"
+                >
+                  📋 Copy Email
+                </button>
+
+                {u.phone && (
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(u.phone)
+                      alert('Phone copied: ' + u.phone)
+                    }}
+                    className="bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-bold text-sm transition-all hover:scale-105"
+                  >
+                    📱 Copy Phone
+                  </button>
+                )}
+
+                <button
+                  onClick={async () => {
+                    await updateDoc(doc(db, "users", u.email), {
+                      tripNotified: true
+                    })
+                    alert("User marked as contacted ✅")
+                    await loadTripUsers()
+                  }}
+                  className="bg-purple-500 hover:bg-purple-400 px-4 py-2 rounded-lg transition-all font-bold text-white text-sm hover:scale-105"
+                >
+                  ✅ Mark Contacted
+                </button>
+              </div>
             </div>
           ))}
         </>

@@ -114,7 +114,7 @@ export default function Leaderboard() {
 
                                 <span className={`font-bold text-${section.color}-400`}>
                                     {section.type === "ref" && `${item.count} referrals`}
-                                    {section.type === "earn" && `$${item.usdtBalance || 0}`}
+                                    {section.type === "earn" && `$${Number(item.usdtBalance || 0).toFixed(2)}`}
                                     {section.type === "brs" && `${item.brsBalance || 0} BRS`}
                                 </span>
 
