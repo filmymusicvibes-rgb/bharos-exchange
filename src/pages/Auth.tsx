@@ -231,7 +231,17 @@ export default function Auth() {
           return
         }
 
-        // ✅ Check email verified
+        // ✅ Check if user exists in Firestore (old users who registered before email verification)
+        const existingUser = await getDoc(doc(db, "users", cleanEmail))
+
+        if (existingUser.exists()) {
+          // Old user exists in Firestore — allow login directly (bypass email verification)
+          localStorage.setItem("bharos_user", cleanEmail)
+          window.location.href = "/dashboard"
+          return
+        }
+
+        // New user (registered with email verification flow) — must verify email
         if (!userCredential.user.emailVerified) {
           await sendEmailVerification(userCredential.user)
           setStep("verify-email")
@@ -240,7 +250,7 @@ export default function Auth() {
           return
         }
 
-        // ✅ Verified — login
+        // ✅ Verified new user — login
         localStorage.setItem("bharos_user", cleanEmail)
         window.location.href = "/dashboard"
         return
