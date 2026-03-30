@@ -506,17 +506,16 @@ export default function Dashboard() {
 
           {/* ════════ SECTION 1: QUICK STATS ════════ */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-            <button onClick={() => navigate("/network")} className="relative group">
-              <div className="absolute -inset-[1px] bg-gradient-to-br from-cyan-500/15 to-blue-500/10 rounded-xl blur-sm group-hover:blur-md transition-all" />
-              <div className="relative bg-[#0d1117]/90 backdrop-blur-xl border border-white/10 rounded-xl p-4 text-left hover:border-cyan-500/30 transition-all">
+            <div className="relative group">
+              <div className="absolute -inset-[1px] bg-gradient-to-br from-cyan-500/15 to-blue-500/10 rounded-xl blur-sm" />
+              <div className="relative bg-[#0d1117]/90 backdrop-blur-xl border border-white/10 rounded-xl p-4 text-left">
                 <div className="w-8 h-8 bg-cyan-500/10 rounded-lg flex items-center justify-center border border-cyan-500/20 mb-2">
                   <Users className="w-4 h-4 text-cyan-400" />
                 </div>
                 <p className="text-lg font-bold text-white">{teamSize}</p>
                 <p className="text-[10px] text-gray-500">Team Size</p>
-                <ChevronRight className="w-3 h-3 text-gray-600 absolute top-4 right-3" />
               </div>
-            </button>
+            </div>
 
             <button onClick={() => navigate("/leaderboard")} className="relative group">
               <div className="absolute -inset-[1px] bg-gradient-to-br from-yellow-500/15 to-amber-500/10 rounded-xl blur-sm group-hover:blur-md transition-all" />
