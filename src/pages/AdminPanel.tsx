@@ -125,15 +125,34 @@ export default function AdminPanel() {
 
   const loadTripUsers = async () => {
 
-    const snap = await getDocs(collection(db, "users"))
-
     const list: any[] = []
 
-    snap.forEach((d: any) => {
-      const data = d.data()
+    // 1. Load submitted trip contact forms (these have accurate details)
+    const subSnap = await getDocs(collection(db, "tripSubmissions"))
+    const submittedEmails: string[] = []
 
-      if (data.tripAchieved && !data.tripNotified) {
-        list.push(data)
+    subSnap.forEach((d: any) => {
+      const data = d.data()
+      submittedEmails.push(data.email)
+      list.push({
+        ...data,
+        source: 'submitted',
+        id: d.id
+      })
+    })
+
+    // 2. Also load trip achievers from users who haven't submitted form yet
+    const usersSnap = await getDocs(collection(db, "users"))
+    usersSnap.forEach((d: any) => {
+      const data = d.data()
+      if (data.tripAchieved && !submittedEmails.includes(data.email)) {
+        list.push({
+          email: data.email,
+          fullName: data.fullName || data.userName || 'N/A',
+          phone: data.phone || 'Not Set',
+          source: 'auto',
+          id: d.id
+        })
       }
     })
 
@@ -537,6 +556,15 @@ export default function AdminPanel() {
                 <span className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-bold border border-green-500/30">
                   ✈️ Trip Qualified
                 </span>
+                {u.source === 'submitted' ? (
+                  <span className="bg-cyan-500/20 text-cyan-400 px-3 py-1 rounded-full text-xs font-bold border border-cyan-500/30">
+                    📝 Form Submitted
+                  </span>
+                ) : (
+                  <span className="bg-yellow-500/20 text-yellow-400 px-3 py-1 rounded-full text-xs font-bold border border-yellow-500/30">
+                    ⏳ Pending Form
+                  </span>
+                )}
               </div>
 
               <div className="space-y-2 mb-4">

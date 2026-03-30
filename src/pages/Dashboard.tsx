@@ -21,6 +21,11 @@ export default function Dashboard() {
   const [days, setDays] = useState(0)
   const [rewardClaimed, setRewardClaimed] = useState(false)
   const [tripAchieved, setTripAchieved] = useState(false)
+  const [tripContactSubmitted, setTripContactSubmitted] = useState(false)
+  const [tripFormLoading, setTripFormLoading] = useState(false)
+  const [tripFullName, setTripFullName] = useState("")
+  const [tripPhone, setTripPhone] = useState("")
+  const [showTripForm, setShowTripForm] = useState(false)
   
   const email = localStorage.getItem("bharos_user")
 
@@ -62,6 +67,7 @@ export default function Dashboard() {
 
         // ✅ TRIP STATUS
         setTripAchieved(data.tripAchieved || false)
+        setTripContactSubmitted(data.tripContactSubmitted || false)
 
         // ✅ BALANCES (SAFE)
         setUsdt(Number(data.usdtBalance || 0))
@@ -168,10 +174,92 @@ export default function Dashboard() {
             Welcome, <span className="text-cyan-400">{email?.split("@")[0]}</span>
           </h2>
 
-          {tripAchieved && (
-            <div className="bg-green-500/20 p-4 rounded mt-4 mb-6 border border-green-500/50 shadow-[0_0_15px_rgba(34,197,94,0.2)]">
-              <p className="font-bold text-green-400 text-lg">🎉 You are eligible for an International Trip!</p>
-              <p className="text-sm text-gray-300 mt-1">Our team will contact you soon.</p>
+          {/* 🏆 TRIP ACHIEVED - CONTACT FORM */}
+          {tripAchieved && !tripContactSubmitted && (
+            <div className="bg-gradient-to-br from-green-500/15 to-emerald-500/10 p-6 rounded-2xl mt-4 mb-6 border border-green-500/40 shadow-[0_0_25px_rgba(34,197,94,0.15)]">
+              <div className="text-center mb-4">
+                <div className="text-5xl mb-2">🎉✈️</div>
+                <h3 className="text-xl font-bold text-green-400">Congratulations! Trip Unlocked!</h3>
+                <p className="text-sm text-gray-300 mt-1">You are eligible for an International Trip! Fill your details below so we can contact you.</p>
+              </div>
+
+              {!showTripForm ? (
+                <button
+                  onClick={() => setShowTripForm(true)}
+                  className="w-full py-3 rounded-xl font-bold text-black bg-gradient-to-r from-green-400 to-emerald-500 hover:scale-[1.02] transition-all shadow-lg shadow-green-500/30 text-lg"
+                >
+                  📝 Fill Your Details Now
+                </button>
+              ) : (
+                <div className="space-y-3 mt-2">
+                  <div>
+                    <label className="text-xs text-gray-400">Full Name *</label>
+                    <input
+                      value={tripFullName}
+                      onChange={(e) => setTripFullName(e.target.value)}
+                      placeholder="Enter your full name"
+                      className="w-full p-3 rounded-lg bg-[#0B0919] border border-green-500/30 text-white focus:border-green-400 focus:ring-2 focus:ring-green-400 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400">Email</label>
+                    <input
+                      value={email || ""}
+                      disabled
+                      className="w-full p-3 rounded-lg bg-[#0B0919]/60 border border-gray-500/20 text-gray-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400">Phone Number *</label>
+                    <input
+                      value={tripPhone}
+                      onChange={(e) => setTripPhone(e.target.value)}
+                      placeholder="Enter your phone number"
+                      className="w-full p-3 rounded-lg bg-[#0B0919] border border-green-500/30 text-white focus:border-green-400 focus:ring-2 focus:ring-green-400 outline-none"
+                    />
+                  </div>
+                  <button
+                    onClick={async () => {
+                      if (!tripFullName.trim()) { alert("Please enter your full name"); return }
+                      if (!tripPhone.trim()) { alert("Please enter your phone number"); return }
+                      if (!email) return
+
+                      setTripFormLoading(true)
+                      try {
+                        await addDoc(collection(db, "tripSubmissions"), {
+                          email: email,
+                          fullName: tripFullName.trim(),
+                          phone: tripPhone.trim(),
+                          submittedAt: new Date()
+                        })
+                        await updateDoc(doc(db, "users", email), {
+                          tripContactSubmitted: true,
+                          tripFullName: tripFullName.trim(),
+                          tripPhone: tripPhone.trim()
+                        })
+                        setTripContactSubmitted(true)
+                        alert("✅ Details submitted! Our team will contact you soon.")
+                      } catch (err) {
+                        console.error(err)
+                        alert("Submit failed. Please try again.")
+                      }
+                      setTripFormLoading(false)
+                    }}
+                    disabled={tripFormLoading}
+                    className="w-full py-3 rounded-xl font-bold text-black bg-gradient-to-r from-green-400 to-emerald-500 hover:scale-[1.02] transition-all shadow-lg shadow-green-500/30 disabled:opacity-50"
+                  >
+                    {tripFormLoading ? "Submitting..." : "✅ Submit Details"}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ✅ TRIP DETAILS ALREADY SUBMITTED */}
+          {tripAchieved && tripContactSubmitted && (
+            <div className="bg-green-500/10 p-4 rounded-xl mt-4 mb-6 border border-green-500/30">
+              <p className="font-bold text-green-400">✅ Trip Details Submitted!</p>
+              <p className="text-sm text-gray-400 mt-1">Our team will contact you soon. Thank you!</p>
             </div>
           )}
 
