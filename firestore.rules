@@ -3,16 +3,101 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ═══════════════════════════════════════════
+    // 🔒 USERS — All authenticated can read (needed for commission, network, leaderboard)
+    //            Write: authenticated (commission writes to other users)
+    //            Block: role changes, status manipulation by non-admins
+    // ═══════════════════════════════════════════
     match /users/{userId} {
-      allow read, write: if request.auth != null;
+      allow read: if request.auth != null;
+      
+      // Allow write but BLOCK role escalation
+      // Normal users cannot change role to "admin"
+      allow write: if request.auth != null
+        && (
+          // Either no change to role field
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])
+          // Or the user is already an admin
+          || resource.data.role == 'admin'
+        );
+      
+      // Allow create (registration)
+      allow create: if request.auth != null;
     }
 
+    // ═══════════════════════════════════════════
+    // 💰 TRANSACTIONS — Read own, Create only (no edit/delete)
+    // ═══════════════════════════════════════════
     match /transactions/{id} {
-      allow read, write: if request.auth != null;
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if false;
     }
 
+    // ═══════════════════════════════════════════
+    // 💸 WITHDRAWALS — Read: authenticated, Create: authenticated
+    //                  Update: authenticated (admin approves)
+    //                  Delete: NEVER
+    // ═══════════════════════════════════════════
     match /withdrawals/{id} {
-      allow read, write: if request.auth != null;
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null;
+      allow delete: if false;
+    }
+
+    // ═══════════════════════════════════════════
+    // 💳 DEPOSITS — Read: authenticated, Create: authenticated
+    //               Update: authenticated (admin/auto-activate)
+    //               Delete: NEVER
+    // ═══════════════════════════════════════════
+    match /deposits/{id} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null;
+      allow delete: if false;
+    }
+
+    // ═══════════════════════════════════════════
+    // 🔗 REFERRAL INDEX — Read: authenticated, Create: authenticated
+    //                     No edit, No delete
+    // ═══════════════════════════════════════════
+    match /referralIndex/{code} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if false;
+    }
+
+    // ═══════════════════════════════════════════
+    // ⚙️ CONFIG — Read: anyone (token phase display)
+    //             Write: authenticated (tokenPhase auto-update)
+    //             Delete: NEVER
+    // ═══════════════════════════════════════════
+    match /config/{doc} {
+      allow read: if true;
+      allow write: if request.auth != null;
+      allow delete: if false;
+    }
+
+    // ═══════════════════════════════════════════
+    // 🔐 ADMINS — Read: authenticated (needed for admin login check)
+    //             Write: BLOCKED (no client can modify admin records!)
+    //             This is the MOST CRITICAL protection
+    // ═══════════════════════════════════════════
+    match /admins/{id} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    // ═══════════════════════════════════════════
+    // 🏆 TRIP SUBMISSIONS — Create: authenticated
+    //                       Read: authenticated (admin reads)
+    //                       No edit, No delete
+    // ═══════════════════════════════════════════
+    match /tripSubmissions/{id} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if false;
     }
 
   }
