@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { Eye, EyeOff, Mail, Lock, User, Phone, Link2, Shield } from "lucide-react"
+import { Eye, EyeOff, Mail, Lock, User, Phone, Link2, Shield, Check, Circle } from "lucide-react"
 import coin from "../assets/brs.png"
 import { db, auth } from "../lib/firebase"
 import { doc, setDoc, collection, query, where, getDocs, getDoc } from "firebase/firestore"
@@ -366,9 +366,14 @@ export default function Auth() {
             <button
               onClick={checkVerification}
               disabled={loading}
-              className="w-full py-3.5 rounded-xl font-semibold text-white bg-gradient-to-r from-cyan-500 to-blue-600 transition-all duration-300 hover:shadow-[0_0_30px_rgba(34,211,238,0.4)] hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+              className="w-full py-3.5 rounded-xl font-semibold text-sm text-black bg-gradient-to-r from-cyan-400 to-blue-500 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 shadow-lg shadow-cyan-500/20"
             >
-              {loading ? "Checking..." : "✅ I Have Verified — Continue"}
+              {loading ? (
+                <span className="flex items-center justify-center gap-2 text-black">
+                  <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                  Checking...
+                </span>
+              ) : "I Have Verified — Continue"}
             </button>
 
             <button
@@ -520,14 +525,21 @@ export default function Auth() {
 
             {/* 🔐 PASSWORD STRENGTH */}
             {mode === "signup" && password.length > 0 && (
-              <div className="bg-white/5 border border-white/8 rounded-xl p-3 space-y-1.5">
-                <p className="text-xs text-gray-400 mb-1 font-semibold">Password Requirements:</p>
+              <div className="bg-white/[0.03] border border-white/8 rounded-xl p-4 space-y-2">
+                <p className="text-[10px] text-gray-400 mb-1.5 font-semibold uppercase tracking-wider">Password Requirements:</p>
                 {passwordRules.map(rule => (
-                  <div key={rule.id} className="flex items-center gap-2">
-                    <span className={`text-sm transition-all duration-300 ${rule.test(password) ? "text-green-400" : "text-gray-600"}`}>
-                      {rule.test(password) ? "✅" : "⬜"}
-                    </span>
-                    <span className={`text-xs transition-all duration-300 ${rule.test(password) ? "text-green-400" : "text-gray-500"}`}>
+                  <div key={rule.id} className="flex items-center gap-2.5">
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center transition-all duration-300 ${
+                      rule.test(password) 
+                        ? 'bg-green-400/20 border border-green-400/40' 
+                        : 'bg-white/5 border border-white/10'
+                    }`}>
+                      {rule.test(password) 
+                        ? <Check className="w-2.5 h-2.5 text-green-400" />
+                        : <Circle className="w-2 h-2 text-gray-600" />
+                      }
+                    </div>
+                    <span className={`text-xs transition-all duration-300 ${rule.test(password) ? 'text-green-400' : 'text-gray-500'}`}>
                       {rule.label}
                     </span>
                   </div>
@@ -539,11 +551,11 @@ export default function Auth() {
             <button
               type="submit"
               disabled={loading || (mode === "signup" && !allPasswordRulesPass)}
-              className="w-full py-3.5 rounded-xl font-semibold text-white bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500 transition-all duration-300 hover:shadow-[0_0_30px_rgba(34,211,238,0.4)] hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100 disabled:hover:shadow-none"
+              className="w-full py-3.5 rounded-xl font-semibold text-sm text-black bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:hover:scale-100 shadow-lg shadow-cyan-500/20"
             >
               {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span className="flex items-center justify-center gap-2 text-black">
+                  <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
                   Processing...
                 </span>
               ) : mode === "signin" ? "Sign In" : "Create Account"}
