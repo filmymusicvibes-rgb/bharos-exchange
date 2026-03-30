@@ -340,12 +340,19 @@ export default function Dashboard() {
                   <span className="text-[10px] text-gray-500">Phase 3: Transfer to Trust Wallet</span>
                 </div>
 
-                <button
-                  onClick={() => navigate("/transfer")}
-                  className="w-full py-3 rounded-xl font-semibold text-black bg-gradient-to-r from-yellow-400 to-amber-500 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-yellow-500/20"
-                >
-                  Send BRS
-                </button>
+                <div className="flex gap-3">
+                  <button
+                    className="flex-1 py-3 rounded-xl font-medium text-sm text-gray-400 border border-white/10 bg-white/[0.03] hover:bg-white/8 hover:text-white transition-all"
+                  >
+                    Buy BRS
+                  </button>
+                  <button
+                    onClick={() => navigate("/transfer")}
+                    className="flex-1 py-3 rounded-xl font-semibold text-black bg-gradient-to-r from-yellow-400 to-amber-500 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-yellow-500/20"
+                  >
+                    Send BRS
+                  </button>
+                </div>
 
               </div>
             </div>
