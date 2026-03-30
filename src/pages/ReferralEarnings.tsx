@@ -1,24 +1,9 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { lumi } from '@/lib/lumi'
-import {Users, Mail, Phone, Calendar, CheckCircle, XCircle} from 'lucide-react'
-
-interface DirectReferral {
-  _id: string
-  username: string
-  email: string
-  referral_code: string
-  mobile_number?: string
-  created_at: string
-  status: string
-}
-
-interface LevelSummary {
-  level: number
-  members: number
-  commission: number
-  totalEarnings: number
-}
+import { db } from "../lib/firebase"
+import { collection, getDocs } from "firebase/firestore"
+import { navigate } from "../lib/router"
+import { Users, DollarSign, TrendingUp, Award } from 'lucide-react'
+import Navbar from "@/components/Navbar"
 
 const COMMISSION_STRUCTURE = [
   { level: 1, commission: 2 },
@@ -36,233 +21,157 @@ const COMMISSION_STRUCTURE = [
 ]
 
 export default function ReferralEarnings() {
-  const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState<'active' | 'royalty'>('active')
+
   const [loading, setLoading] = useState(true)
-  const [directReferrals, setDirectReferrals] = useState<DirectReferral[]>([])
-  const [levelSummary, setLevelSummary] = useState<LevelSummary[]>([])
+  const [levelData, setLevelData] = useState<{ level: number; members: number; commission: number; total: number }[]>([])
+  const [totalEarnings, setTotalEarnings] = useState(0)
+  const [totalMembers, setTotalMembers] = useState(0)
 
   useEffect(() => {
-    const loadData = async () => {
+    const load = async () => {
+      const email = localStorage.getItem("bharos_user")
+      if (!email) return navigate("/auth")
+
       try {
-        const user = lumi.auth.user
-        if (!user) {
-          navigate('/auth')
-          return
-        }
+        const snap = await getDocs(collection(db, "users"))
+        const allUsers: any[] = []
+        snap.forEach(d => allUsers.push(d.data()))
 
-        const response = await fetch('/functions/getUserReferralNetwork', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id: user.userId }),
-        })
+        const myUser = allUsers.find(u => u.email === email)
+        if (!myUser) return
 
-        if (response.ok) {
-          const data = await response.json()
-          
-          // Direct referrals (Level 1)
-          setDirectReferrals(data.data?.level1Users || [])
+        // Walk down the referral tree level by level
+        let currentLevelCodes = [myUser.referralCode]
+        const results: { level: number; members: number; commission: number; total: number }[] = []
+        let grandTotal = 0
+        let grandMembers = 0
 
-          // Levels 2-12 summary
-          const summary = COMMISSION_STRUCTURE.slice(1).map(({ level, commission }) => {
-            const members = data.data?.membersByLevel?.[level] || 0
-            return {
-              level,
-              members,
-              commission,
-              totalEarnings: members * commission,
-            }
+        for (let i = 0; i < 12; i++) {
+          const levelUsers = allUsers.filter(
+            u => currentLevelCodes.includes(u.referredBy) && u.status === "active"
+          )
+
+          const commission = COMMISSION_STRUCTURE[i].commission
+          const total = levelUsers.length * commission
+
+          results.push({
+            level: i + 1,
+            members: levelUsers.length,
+            commission,
+            total
           })
-          setLevelSummary(summary)
+
+          grandTotal += total
+          grandMembers += levelUsers.length
+          currentLevelCodes = levelUsers.map(u => u.referralCode)
+
+          if (currentLevelCodes.length === 0) break
         }
-      } catch (error) {
-        console.error('Error loading referral earnings:', error)
-      } finally {
-        setLoading(false)
+
+        setLevelData(results)
+        setTotalEarnings(grandTotal)
+        setTotalMembers(grandMembers)
+      } catch (err) {
+        console.error("Error loading earnings:", err)
       }
+
+      setLoading(false)
     }
 
-    loadData()
-  }, [navigate])
-
-  const handleLogout = () => {
-    lumi.auth.signOut()
-    navigate('/')
-  }
+    load()
+  }, [])
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0B0919] flex items-center justify-center">
-        <div className="text-[#00d4ff] text-xl">Loading...</div>
+      <div className="min-h-screen bg-[#050816] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-gray-500 text-sm">Loading Earnings...</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#0B0919]">
-      {/* Navigation */}
-      <nav className="border-b border-[#00d4ff]/20 bg-[#1a1a2e]/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-8">
-              <span className="text-2xl font-bold text-[#ffd700]">BHAROS</span>
-              <div className="hidden md:flex space-x-6">
-                <button onClick={() => navigate('/dashboard')} className="text-gray-300 hover:text-[#00d4ff] transition-colors">Dashboard</button>
-                <button onClick={() => navigate('/referral-network')} className="text-gray-300 hover:text-[#00d4ff] transition-colors">Referral Network</button>
-                <button onClick={() => navigate('/referral-earnings')} className="text-[#00d4ff] font-semibold">Referral Earnings</button>
+    <div className="min-h-screen bg-[#050816] text-white relative overflow-hidden">
+
+      <div className="absolute top-[-15%] right-[-10%] w-[400px] h-[400px] bg-green-500/5 blur-[120px] rounded-full" />
+      <div className="absolute bottom-[-15%] left-[-10%] w-[400px] h-[400px] bg-cyan-500/5 blur-[120px] rounded-full" />
+
+      <Navbar />
+
+      <div className="relative z-10 p-6 max-w-3xl mx-auto">
+
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2.5 rounded-xl bg-green-500/10 border border-green-500/20">
+            <TrendingUp className="w-6 h-6 text-green-400" />
+          </div>
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-green-400 to-cyan-400 bg-clip-text text-transparent">
+            Referral Earnings
+          </h1>
+        </div>
+
+        {/* SUMMARY CARDS */}
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <div className="relative">
+            <div className="absolute -inset-[1px] bg-gradient-to-r from-green-500/15 to-cyan-500/15 rounded-xl blur-sm" />
+            <div className="relative bg-[#0d1117]/90 backdrop-blur-xl border border-white/10 rounded-xl p-4 text-center">
+              <DollarSign className="w-5 h-5 text-green-400 mx-auto mb-1" />
+              <p className="text-[10px] text-gray-500 uppercase tracking-wider">Total Earnings</p>
+              <p className="text-xl font-bold text-green-400">${totalEarnings.toFixed(2)}</p>
+            </div>
+          </div>
+          <div className="relative">
+            <div className="absolute -inset-[1px] bg-gradient-to-r from-cyan-500/15 to-blue-500/15 rounded-xl blur-sm" />
+            <div className="relative bg-[#0d1117]/90 backdrop-blur-xl border border-white/10 rounded-xl p-4 text-center">
+              <Users className="w-5 h-5 text-cyan-400 mx-auto mb-1" />
+              <p className="text-[10px] text-gray-500 uppercase tracking-wider">Total Team</p>
+              <p className="text-xl font-bold text-cyan-400">{totalMembers}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* LEVEL TABLE */}
+        <div className="relative">
+          <div className="absolute -inset-[1px] bg-gradient-to-r from-green-500/10 to-cyan-500/10 rounded-xl blur-sm" />
+          <div className="relative bg-[#0d1117]/90 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden">
+
+            <div className="grid grid-cols-4 gap-2 px-4 py-3 bg-white/[0.03] border-b border-white/5 text-[10px] uppercase tracking-wider text-gray-500 font-semibold">
+              <span>Level</span>
+              <span className="text-center">Members</span>
+              <span className="text-center">Rate</span>
+              <span className="text-right">Earnings</span>
+            </div>
+
+            {levelData.map(row => (
+              <div key={row.level} className="grid grid-cols-4 gap-2 px-4 py-3 border-b border-white/[0.03] hover:bg-white/[0.02] transition-all">
+                <span className="text-sm flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/20 flex items-center justify-center text-[10px] font-bold text-cyan-400">
+                    {row.level}
+                  </span>
+                  <span className="text-gray-300 text-xs">Level {row.level}</span>
+                </span>
+                <span className="text-center text-sm text-white">{row.members}</span>
+                <span className="text-center text-sm text-yellow-400">${row.commission}</span>
+                <span className={`text-right text-sm font-semibold ${row.total > 0 ? 'text-green-400' : 'text-gray-600'}`}>
+                  ${row.total.toFixed(2)}
+                </span>
               </div>
-            </div>
-            <button onClick={handleLogout} className="text-gray-300 hover:text-red-400 transition-colors">Logout</button>
-          </div>
-        </div>
-      </nav>
+            ))}
 
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-[#00d4ff] mb-2">Referral & Earnings</h1>
-          <p className="text-gray-400">View your referral network details and commission earnings</p>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex space-x-4 mb-8 border-b border-[#00d4ff]/20">
-          <button
-            onClick={() => setActiveTab('active')}
-            className={`px-6 py-3 font-semibold transition-all ${
-              activeTab === 'active'
-                ? 'text-[#00d4ff] border-b-2 border-[#00d4ff]'
-                : 'text-gray-400 hover:text-gray-300'
-            }`}
-          >
-            Active
-          </button>
-          <button
-            onClick={() => setActiveTab('royalty')}
-            className={`px-6 py-3 font-semibold transition-all ${
-              activeTab === 'royalty'
-                ? 'text-[#00d4ff] border-b-2 border-[#00d4ff]'
-                : 'text-gray-400 hover:text-gray-300'
-            }`}
-          >
-            Royalty
-          </button>
-        </div>
-
-        {activeTab === 'active' && (
-          <div className="space-y-8">
-            {/* Level 1: Direct Referrals */}
-            <div>
-              <h2 className="text-2xl font-bold text-[#ffd700] mb-4">Level 1 - Direct Referrals</h2>
-              {directReferrals.length === 0 ? (
-                <div className="bg-[#16213e] rounded-lg p-8 border border-[#00d4ff]/20 text-center">
-                  <Users className="w-12 h-12 text-gray-500 mx-auto mb-4" />
-                  <p className="text-gray-400">No direct referrals yet</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {directReferrals.map((member) => (
-                    <div
-                      key={member._id}
-                      className="bg-[#16213e] rounded-lg p-6 border border-[#00d4ff]/30 shadow-lg shadow-[#00d4ff]/10 hover:border-[#00d4ff]/50 transition-all"
-                    >
-                      <div className="flex justify-between items-start mb-4">
-                        <div>
-                          <p className="text-sm text-gray-400">Ref Code</p>
-                          <p className="text-lg font-bold text-[#ffd700]">{member.referral_code}</p>
-                        </div>
-                        <div>
-                          {member.status === 'active' ? (
-                            <span className="flex items-center space-x-1 px-3 py-1 bg-green-500/20 border border-green-500 rounded-full text-green-400 text-sm">
-                              <CheckCircle className="w-4 h-4" />
-                              <span>Active</span>
-                            </span>
-                          ) : (
-                            <span className="flex items-center space-x-1 px-3 py-1 bg-red-500/20 border border-red-500 rounded-full text-red-400 text-sm">
-                              <XCircle className="w-4 h-4" />
-                              <span>Inactive</span>
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="space-y-3">
-                        <div className="flex items-center space-x-2">
-                          <Users className="w-4 h-4 text-[#00d4ff]" />
-                          <span className="text-gray-300">{member.username}</span>
-                        </div>
-
-                        <div className="flex items-center space-x-2">
-                          <Mail className="w-4 h-4 text-[#00d4ff]" />
-                          <span className="text-gray-300 text-sm">{member.email}</span>
-                        </div>
-
-                        {member.mobile_number && (
-                          <div className="flex items-center space-x-2">
-                            <Phone className="w-4 h-4 text-[#00d4ff]" />
-                            <span className="text-gray-300 text-sm">{member.mobile_number}</span>
-                          </div>
-                        )}
-
-                        <div className="flex items-center space-x-2">
-                          <Calendar className="w-4 h-4 text-[#00d4ff]" />
-                          <span className="text-gray-300 text-sm">
-                            {new Date(member.created_at).toLocaleDateString()}
-                          </span>
-                        </div>
-
-                        <div className="pt-2 border-t border-[#00d4ff]/10">
-                          <span className="text-xs text-gray-400">Level: </span>
-                          <span className="text-sm font-semibold text-[#00d4ff]">L1</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+            {/* TOTAL ROW */}
+            <div className="grid grid-cols-4 gap-2 px-4 py-3 bg-white/[0.03] border-t border-white/10">
+              <span className="text-xs font-bold text-white flex items-center gap-1">
+                <Award className="w-3.5 h-3.5 text-yellow-400" /> Total
+              </span>
+              <span className="text-center text-sm font-bold text-white">{totalMembers}</span>
+              <span className="text-center text-sm text-gray-500">—</span>
+              <span className="text-right text-sm font-bold text-green-400">${totalEarnings.toFixed(2)}</span>
             </div>
 
-            {/* Levels 2-12: Summary */}
-            <div>
-              <h2 className="text-2xl font-bold text-[#ffd700] mb-4">Levels 2-12 Summary</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {levelSummary.map((level) => (
-                  <div
-                    key={level.level}
-                    className="bg-[#16213e] rounded-lg p-6 border border-[#00d4ff]/20 hover:border-[#00d4ff]/40 transition-all shadow-lg shadow-[#00d4ff]/5"
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-bold text-white">Level {level.level}</h3>
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#00d4ff] to-[#0ff] flex items-center justify-center">
-                        <span className="text-sm font-bold text-[#0B0919]">{level.level}</span>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-400 text-sm">Members</span>
-                        <div className="flex items-center space-x-1">
-                          <Users className="w-4 h-4 text-[#00d4ff]" />
-                          <span className="text-white font-semibold">{level.members}</span>
-                        </div>
-                      </div>
-
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-400 text-sm">Earnings</span>
-                        <span className="text-[#ffd700] font-semibold">${level.totalEarnings.toFixed(2)}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
-        )}
+        </div>
 
-        {activeTab === 'royalty' && (
-          <div className="bg-[#16213e] rounded-lg p-8 border border-[#00d4ff]/20 text-center">
-            <p className="text-gray-400">Royalty earnings feature coming soon</p>
-          </div>
-        )}
       </div>
     </div>
   )
