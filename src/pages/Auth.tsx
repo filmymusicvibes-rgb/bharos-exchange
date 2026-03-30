@@ -218,7 +218,37 @@ export default function Auth() {
         try {
           userCredential = await signInWithEmailAndPassword(auth, cleanEmail, password)
         } catch (authErr: any) {
+
+          // 🔄 Firebase Auth failed — check if old user exists in Firestore (migration)
           if (authErr.code === "auth/user-not-found" || authErr.code === "auth/invalid-credential") {
+            
+            // Check Firestore for old user
+            const oldUser = await getDoc(doc(db, "users", cleanEmail))
+            
+            if (oldUser.exists()) {
+              // ✅ Old user found in Firestore — migrate to Firebase Auth
+              try {
+                const newCred = await createUserWithEmailAndPassword(auth, cleanEmail, password)
+                void newCred // migration - we just need the account created
+                // Migration successful — log them in directly
+                localStorage.setItem("bharos_user", cleanEmail)
+                window.location.href = "/dashboard"
+                return
+              } catch (migrateErr: any) {
+                if (migrateErr.code === "auth/email-already-in-use") {
+                  // Firebase Auth account exists but wrong password
+                  setError("Incorrect password. Please try again.")
+                } else if (migrateErr.code === "auth/weak-password") {
+                  setError("Please use a stronger password (min 6 characters)")
+                } else {
+                  setError("Login failed. Please try again.")
+                }
+                setLoading(false)
+                return
+              }
+            }
+
+            // User doesn't exist in Firestore either
             setError("Invalid email or password")
           } else if (authErr.code === "auth/wrong-password") {
             setError("Incorrect password")
@@ -231,11 +261,11 @@ export default function Auth() {
           return
         }
 
-        // ✅ Check if user exists in Firestore (old users who registered before email verification)
+        // ✅ Firebase Auth sign-in succeeded — check Firestore
         const existingUser = await getDoc(doc(db, "users", cleanEmail))
 
         if (existingUser.exists()) {
-          // Old user exists in Firestore — allow login directly (bypass email verification)
+          // User exists in Firestore — login directly (bypass email verification)
           localStorage.setItem("bharos_user", cleanEmail)
           window.location.href = "/dashboard"
           return
