@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { db } from "../lib/firebase"
-import { collection, addDoc, doc, getDoc, updateDoc } from "firebase/firestore"
+import { collection, addDoc, doc, getDoc, updateDoc, increment } from "firebase/firestore"
 import { navigate } from "../lib/router"
 import { Wallet, DollarSign, ArrowLeft, AlertTriangle, Clock, Shield, Lock, Info } from "lucide-react"
 
@@ -104,8 +104,9 @@ export default function Withdraw() {
 
             setLoading(true)
 
+            // 🔥 Atomic freeze (prevents race condition)
             await updateDoc(userRef, {
-                usdtFrozen: frozen + withdrawAmount
+                usdtFrozen: increment(withdrawAmount)
             })
 
             await addDoc(collection(db, "withdrawals"), {

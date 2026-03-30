@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { db } from "../lib/firebase"
-import { doc, getDoc, updateDoc, addDoc, collection, getDocs } from "firebase/firestore"
+import { doc, getDoc, updateDoc, addDoc, collection, getDocs, increment } from "firebase/firestore"
 import { navigate } from "../lib/router"
 import { Send, Hash, Coins, ArrowLeft, AlertTriangle, Zap, Shield, Info } from "lucide-react"
 
@@ -86,14 +86,13 @@ export default function TransferBRS() {
                 return
             }
 
-            const receiverBalance = receiverUser.brsBalance || 0
-
+            // 🔥 Atomic balance updates (prevents race conditions)
             await updateDoc(senderRef, {
-                brsBalance: senderBalance - transferAmount
+                brsBalance: increment(-transferAmount)
             })
 
             await updateDoc(doc(db, "users", receiverEmail), {
-                brsBalance: receiverBalance + transferAmount
+                brsBalance: increment(transferAmount)
             })
 
             await addDoc(collection(db, "transactions"), {
