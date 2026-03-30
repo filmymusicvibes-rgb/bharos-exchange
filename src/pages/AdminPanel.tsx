@@ -437,24 +437,62 @@ export default function AdminPanel() {
           </h1>
 
           {withdraws.map((w) => (
-            <div key={w.id} className="bg-[#1a1a2e] p-6 mb-4 rounded-xl">
+            <div key={w.id} className="bg-[#1a1a2e] p-6 mb-4 rounded-xl border border-cyan-500/10">
 
-              <p>User: {w.userId}</p>
-              <p>Amount: {w.amount} USDT</p>
-              <p>Wallet: {w.address}</p>
-              <p>Status: {w.status}</p>
+              <div className="flex flex-wrap items-center gap-3 mb-3">
+                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                  w.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' :
+                  w.status === 'approved' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
+                  'bg-red-500/20 text-red-400 border border-red-500/30'
+                }`}>
+                  {w.status === 'pending' ? '⏳ Pending' : w.status === 'approved' ? '✅ Approved' : '❌ Rejected'}
+                </span>
+                <span className="text-cyan-400 text-2xl font-bold">{w.amount} USDT</span>
+              </div>
+
+              <p className="text-gray-400 text-sm mb-1">👤 User: <span className="text-white">{w.userId}</span></p>
+
+              {/* 🔑 WALLET ADDRESS - PROMINENT DISPLAY */}
+              <div className="mt-3 bg-[#0B0919] border border-cyan-500/30 rounded-xl p-4">
+                <p className="text-xs text-gray-400 mb-2">📋 Wallet Address (BEP20):</p>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 text-cyan-300 text-sm font-mono break-all bg-black/30 p-2 rounded-lg border border-cyan-500/20 select-all">
+                    {w.address}
+                  </code>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(w.address)
+                      const btn = document.getElementById(`copy-btn-${w.id}`)
+                      if (btn) {
+                        btn.textContent = '✅ Copied!'
+                        btn.classList.add('bg-green-500')
+                        btn.classList.remove('bg-cyan-500')
+                        setTimeout(() => {
+                          btn.textContent = '📋 Copy'
+                          btn.classList.remove('bg-green-500')
+                          btn.classList.add('bg-cyan-500')
+                        }, 2000)
+                      }
+                    }}
+                    id={`copy-btn-${w.id}`}
+                    className="bg-cyan-500 hover:bg-cyan-400 text-black px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition-all duration-300 hover:scale-105 active:scale-95"
+                  >
+                    📋 Copy
+                  </button>
+                </div>
+              </div>
 
               {w.status === "pending" && (
-                <div className="flex gap-4 mt-3">
+                <div className="flex gap-4 mt-4">
 
                   <button
                     disabled={processingId === w.id}
                     onClick={() =>
                       approveWithdraw(w.id, w.userId, w.amount)
                     }
-                    className="bg-green-500 px-4 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="bg-green-500 hover:bg-green-400 px-6 py-2 rounded font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                   >
-                    Approve
+                    {processingId === w.id ? '⏳...' : '✅ Approve'}
                   </button>
 
                   <button
@@ -462,9 +500,9 @@ export default function AdminPanel() {
                     onClick={() =>
                       rejectWithdraw(w.id, w.userId, w.amount)
                     }
-                    className="bg-red-500 px-4 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="bg-red-500 hover:bg-red-400 px-6 py-2 rounded font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                   >
-                    Reject
+                    ❌ Reject
                   </button>
 
                 </div>
