@@ -197,6 +197,7 @@ export default function Auth() {
           usdtBalance: 0,
           brsBalance: 0,
           usdtFrozen: 0,
+          emailVerificationRequired: true,
           createdAt: new Date()
         })
 
@@ -265,7 +266,18 @@ export default function Auth() {
         const existingUser = await getDoc(doc(db, "users", cleanEmail))
 
         if (existingUser.exists()) {
-          // User exists in Firestore — login directly (bypass email verification)
+          const userData = existingUser.data()
+
+          // New user (has emailVerificationRequired flag) — must verify email first
+          if (userData.emailVerificationRequired && !userCredential.user.emailVerified) {
+            await sendEmailVerification(userCredential.user)
+            setStep("verify-email")
+            setResendTimer(60)
+            setLoading(false)
+            return
+          }
+
+          // Old user (no flag) OR verified new user — login directly
           localStorage.setItem("bharos_user", cleanEmail)
           window.location.href = "/dashboard"
           return
