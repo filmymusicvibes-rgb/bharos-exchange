@@ -16,6 +16,9 @@ import Leaderboard from "./pages/Leaderboard"
 import TransferBRS from "./pages/TransferBRS"
 import Profile from "./pages/Profile"
 import AdminLogin from "./pages/AdminLogin"
+import Support from "./pages/Support"
+import FAQs from "./pages/FAQs"
+import TermsOfService from "./pages/TermsOfService"
 
 export default function App() {
 
@@ -50,6 +53,9 @@ export default function App() {
   if (path === "/admin") Page = <AdminPanel />
   if (path === "/admin-login") Page = <AdminLogin />
   if (path === "/profile") Page = <Profile />
+  if (path === "/support") Page = <Support />
+  if (path === "/faqs") Page = <FAQs />
+  if (path === "/terms-of-service") Page = <TermsOfService />
 
   return (
     <div className="bg-[#0B0919] min-h-screen overflow-x-hidden">

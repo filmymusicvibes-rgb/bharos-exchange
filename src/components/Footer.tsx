@@ -1,5 +1,6 @@
 import {Twitter, Github, Send} from 'lucide-react'
 import brsLogo from "../assets/brs.png"
+import { navigate } from "@/lib/router"
 
 function Footer() {
   const currentYear = new Date().getFullYear()
@@ -44,9 +45,9 @@ function Footer() {
             <ul className="space-y-3">
               <FooterLink text="Whitepaper" href="#" />
               <FooterLink text="Documentation" href="#" />
-              <FooterLink text="Support" href="#" />
-              <FooterLink text="FAQs" href="#" />
-              <FooterLink text="Terms of Service" href="#" />
+              <FooterLink text="Support" href="/support" isRoute />
+              <FooterLink text="FAQs" href="/faqs" isRoute />
+              <FooterLink text="Terms of Service" href="/terms-of-service" isRoute />
             </ul>
           </div>
         </div>
@@ -73,12 +74,13 @@ function SocialIcon({ icon }: { icon: React.ReactNode }) {
   )
 }
 
-function FooterLink({ text, href }: { text: string; href: string }) {
+function FooterLink({ text, href, isRoute }: { text: string; href: string; isRoute?: boolean }) {
   return (
     <li>
       <a
         href={href}
-        className="text-gray-400 hover:text-cyan-400 transition-colors duration-200 text-sm"
+        onClick={isRoute ? (e) => { e.preventDefault(); navigate(href); window.scrollTo(0, 0) } : undefined}
+        className="text-gray-400 hover:text-cyan-400 transition-colors duration-200 text-sm cursor-pointer"
       >
         {text}
       </a>
