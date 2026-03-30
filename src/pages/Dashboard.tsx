@@ -170,8 +170,8 @@ export default function Dashboard() {
       <div className="relative z-10 px-4 max-w-5xl mx-auto">
 
         {/* SCROLL NEWS */}
-        <div className="overflow-hidden mt-3 rounded-xl border border-white/10 bg-white/[0.03] backdrop-blur-sm">
-          <div className="whitespace-nowrap animate-marquee font-medium px-4 py-2.5 text-sm bg-gradient-to-r from-orange-400 via-yellow-400 to-red-400 bg-clip-text text-transparent">
+        <div className="glass-shield overflow-hidden mt-3 rounded-xl">
+          <div className="whitespace-nowrap animate-marquee font-medium px-4 py-2.5 text-sm bg-gradient-to-r from-orange-400 via-yellow-400 to-red-400 bg-clip-text text-transparent relative z-10">
             🚀 Phase 2 Coming Soon  |  💰 Bigger Rewards  |  🔥 New Features  |  📱 Exchange App Soon
           </div>
         </div>
@@ -409,19 +409,16 @@ export default function Dashboard() {
 
           </div>
 
-          {/* PROGRESS */}
-          <div className="relative mb-5">
-            <div className="absolute -inset-[1px] bg-gradient-to-r from-cyan-500/10 to-blue-500/10 rounded-xl blur-sm" />
-            <div className="relative bg-[#0d1117]/90 backdrop-blur-xl border border-white/10 rounded-xl p-5">
-              <div className="flex justify-between items-center mb-2">
-                <p className="text-sm text-gray-400">{rewardClaimed ? "🎉 Reward Claimed" : "Upcoming Reward"}</p>
-                <p className="text-xs text-gray-500">
+          <div className="glass-shield rounded-xl mb-5 p-5">
+              <div className="flex justify-between items-center mb-2 relative z-10">
+                <p className="text-sm text-gray-300">{rewardClaimed ? "🎉 Reward Claimed" : "Upcoming Reward"}</p>
+                <p className="text-xs text-cyan-300/70">
                   {rewardClaimed ? "✅ +150 BRS Credited!" : `${days}/30 days`}
                 </p>
               </div>
-              <div className="w-full bg-white/5 h-2 rounded-full overflow-hidden border border-white/5">
+              <div className="w-full bg-white/5 h-2.5 rounded-full overflow-hidden border border-white/8 relative z-10">
                 <div
-                  className={`h-2 rounded-full transition-all duration-700 ${rewardClaimed
+                  className={`h-2.5 rounded-full transition-all duration-700 ${rewardClaimed
                     ? "bg-gradient-to-r from-green-400 to-emerald-400"
                     : "bg-gradient-to-r from-cyan-400 to-blue-400"
                   }`}
@@ -429,9 +426,8 @@ export default function Dashboard() {
                 />
               </div>
               {!rewardClaimed && (
-                <p className="text-[10px] text-gray-600 mt-1.5">Complete 30 days for +150 BRS bonus</p>
+                <p className="text-[10px] text-gray-500 mt-1.5 relative z-10">Complete 30 days for +150 BRS bonus</p>
               )}
-            </div>
           </div>
 
           {/* REFERRAL */}
