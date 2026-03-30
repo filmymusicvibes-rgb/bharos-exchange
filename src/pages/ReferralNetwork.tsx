@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { navigate } from "@/lib/router"
 import { db } from "../lib/firebase"
 import { collection, getDocs, doc, getDoc } from "firebase/firestore"
-import { Users, DollarSign } from "lucide-react"
+import { Users, DollarSign, User, Mail, Hash, Calendar } from "lucide-react"
 import Navbar from "@/components/Navbar"
 
 interface LevelData {
@@ -282,9 +282,9 @@ export default function ReferralNetwork() {
           </div>
         </div>
 
-        {/* DIRECT REFERRALS FINAL */}
+        {/* DIRECT REFERRALS */}
         <div>
-          <h2 className="text-xl text-cyan-400 mb-4">Direct Referrals 👇</h2>
+          <h2 className="text-xl text-cyan-400 mb-4 font-semibold">Direct Referrals</h2>
 
           <div className={`grid gap-4 ${directList.length === 1
             ? "grid-cols-1"
@@ -296,23 +296,35 @@ export default function ReferralNetwork() {
             ) : (
               directList.map((u, i) => (
                 <div key={i}
-                  className={`p-5 rounded-2xl border backdrop-blur-md shadow-lg flex justify-between items-center
+                  className={`p-5 rounded-2xl border backdrop-blur-xl shadow-lg flex justify-between items-center transition-all duration-300 hover:scale-[1.02]
                   ${u.status === "active"
-                      ? "border-green-400/30 bg-green-500/10"
-                      : "border-red-400/30 bg-red-500/10"
+                      ? "border-green-400/20 bg-green-500/5 hover:border-green-400/40 hover:shadow-green-500/10"
+                      : "border-red-400/20 bg-red-500/5 hover:border-red-400/40 hover:shadow-red-500/10"
                     }`}>
 
-                  <div>
-                    <p>👤 {u.userName || "User"}</p>
-                    <p>📧 {u.email}</p>
-                    <p>🆔 {u.referralCode}</p>
-                    <p>📅 {u.createdAt?.toDate?.().toLocaleDateString() || "N/A"}</p>
+                  <div className="space-y-1.5">
+                    <p className="flex items-center gap-2 text-white font-medium">
+                      <User className="w-3.5 h-3.5 text-cyan-400" />
+                      {u.userName || "User"}
+                    </p>
+                    <p className="flex items-center gap-2 text-gray-400 text-sm">
+                      <Mail className="w-3.5 h-3.5 text-gray-500" />
+                      {u.email}
+                    </p>
+                    <p className="flex items-center gap-2 text-gray-400 text-sm">
+                      <Hash className="w-3.5 h-3.5 text-gray-500" />
+                      {u.referralCode}
+                    </p>
+                    <p className="flex items-center gap-2 text-gray-400 text-sm">
+                      <Calendar className="w-3.5 h-3.5 text-gray-500" />
+                      {u.createdAt?.toDate?.().toLocaleDateString() || "N/A"}
+                    </p>
                   </div>
 
-                  <div className={`px-4 py-1 rounded-full text-sm font-bold
+                  <div className={`px-3 py-1 rounded-full text-xs font-bold border
                     ${u.status === "active"
-                      ? "bg-green-500/20 text-green-400"
-                      : "bg-red-500/20 text-red-400"
+                      ? "bg-green-500/15 text-green-400 border-green-500/30"
+                      : "bg-red-500/15 text-red-400 border-red-500/30"
                     }`}>
                     {u.status === "active" ? "active" : "inactive"}
                   </div>
