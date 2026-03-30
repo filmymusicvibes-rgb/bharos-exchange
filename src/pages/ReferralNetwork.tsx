@@ -314,7 +314,7 @@ export default function ReferralNetwork() {
                       ? "bg-green-500/20 text-green-400"
                       : "bg-red-500/20 text-red-400"
                     }`}>
-                    {u.status}
+                    {u.status === "active" ? "active" : "inactive"}
                   </div>
 
                 </div>
