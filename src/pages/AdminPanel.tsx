@@ -242,7 +242,10 @@ export default function AdminPanel() {
         return
       }
 
+      const balance = user.usdtBalance || 0
+
       await updateDoc(userRef, {
+        usdtBalance: Math.max(0, balance - amount),
         usdtFrozen: Math.max(0, frozen - amount)
       })
 
