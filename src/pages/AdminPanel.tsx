@@ -35,7 +35,8 @@ export default function AdminPanel() {
       const email = getUser()
 
       if (!email) {
-        alert("Please login")
+        alert("Please login first")
+        setLoading(false)
         navigate("/auth", true)
         return
       }
@@ -54,17 +55,17 @@ export default function AdminPanel() {
             try { await loadBrsWithdraws() } catch(e) { console.warn('loadBrsWithdraws:', e) }
             try { await loadTripUsers() } catch(e) { console.warn('loadTripUsers:', e) }
           } else {
-            alert("Access denied")
+            alert("Access denied — role: " + (data.role || "none"))
             navigate("/dashboard", true)
           }
         } else {
-          alert("User not found")
+          alert("User doc not found for: " + email)
           navigate("/auth", true)
         }
 
-      } catch (err) {
-        console.error(err)
-        alert("Error checking admin")
+      } catch (err: any) {
+        console.error("Admin check error:", err)
+        alert("Admin Error: " + (err?.message || err) + "\n\nTry: Login via /auth first, then go to /admin")
       }
 
       setLoading(false)
