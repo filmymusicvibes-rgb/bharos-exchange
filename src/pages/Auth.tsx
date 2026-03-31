@@ -1,6 +1,6 @@
 import { getUser, setUser, removeUser } from "../lib/session"
 import { useState, useEffect } from "react"
-import { Eye, EyeOff, Mail, Lock, User, Phone, Link2, Shield, Check, Circle } from "lucide-react"
+import { Eye, EyeOff, Mail, Lock, User, Phone, Link2, Shield, Check, Circle, MailCheck, Send, ArrowRight, AlertCircle, ChevronLeft } from "lucide-react"
 import coin from "../assets/brs.png"
 import { db, auth } from "../lib/firebase"
 import { navigate } from "../lib/router"
@@ -654,7 +654,7 @@ export default function Auth() {
             {/* Error */}
             {error && (
               <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-center gap-2">
-                <span className="text-red-400 text-sm">❌</span>
+                <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
                 <p className="text-red-400 text-sm">{error}</p>
               </div>
             )}
@@ -662,22 +662,26 @@ export default function Auth() {
             {/* Success */}
             {resetSent ? (
               <div className="space-y-4">
-                <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4 text-center">
-                  <div className="text-3xl mb-2">📧✅</div>
+                <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-5 text-center">
+                  <div className="w-14 h-14 mx-auto bg-green-500/15 rounded-full flex items-center justify-center border border-green-500/30 mb-3">
+                    <MailCheck className="w-7 h-7 text-green-400" />
+                  </div>
                   <p className="text-green-400 font-semibold text-sm">Password Reset Email Sent!</p>
                   <p className="text-gray-400 text-xs mt-2">Check your inbox & spam folder for the reset link</p>
                   <p className="text-cyan-400 text-sm font-medium mt-2">{forgotEmail}</p>
                 </div>
 
-                <div className="bg-amber-500/10 border border-amber-400/20 rounded-xl p-3">
-                  <p className="text-amber-300 text-xs text-center">📌 Click the link in the email → Set new password → Sign in</p>
+                <div className="bg-amber-500/10 border border-amber-400/20 rounded-xl p-3 flex items-center gap-2 justify-center">
+                  <ArrowRight className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <p className="text-amber-300 text-xs">Click the link in email → Set new password → Sign in</p>
                 </div>
 
                 <button
                   onClick={() => { setMode("signin"); setError(""); setResetSent(false) }}
-                  className="w-full py-3.5 rounded-xl font-semibold text-sm text-black bg-gradient-to-r from-cyan-400 to-blue-500 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-cyan-500/20"
+                  className="w-full py-3.5 rounded-xl font-semibold text-sm text-black bg-gradient-to-r from-cyan-400 to-blue-500 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2"
                 >
-                  ← Back to Sign In
+                  <ChevronLeft className="w-4 h-4" />
+                  Back to Sign In
                 </button>
               </div>
             ) : (
@@ -736,7 +740,12 @@ export default function Auth() {
                       <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
                       Sending...
                     </span>
-                  ) : "📧 Send Reset Link"}
+                  ) : (
+                    <span className="flex items-center justify-center gap-2">
+                      <Send className="w-4 h-4" />
+                      Send Reset Link
+                    </span>
+                  )}
                 </button>
 
                 {/* Back to Sign In */}
