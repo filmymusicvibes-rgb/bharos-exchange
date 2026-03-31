@@ -99,6 +99,18 @@ service cloud.firestore {
       allow create: if request.auth != null;
       allow update, delete: if false;
     }
+    // ═══════════════════════════════════════════
+    // 🪙 BRS WITHDRAWALS — Create: authenticated (user submits)
+    //                       Read: authenticated (admin reads)
+    //                       Update: authenticated (admin approves)
+    //                       Delete: NEVER
+    // ═══════════════════════════════════════════
+    match /brs_withdrawals/{id} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null;
+      allow delete: if false;
+    }
 
   }
 }
