@@ -1,7 +1,8 @@
 import { getUser, setUser, removeUser } from "../lib/session"
 import { useState } from "react"
-import { db } from "../lib/firebase"
+import { db, auth } from "../lib/firebase"
 import { doc, getDoc } from "firebase/firestore"
+import { signInWithEmailAndPassword } from "firebase/auth"
 
 export default function AdminLogin() {
 
@@ -42,8 +43,16 @@ export default function AdminLogin() {
         return
       }
 
-      // ✅ Admin verified — login
-      setUser(adminData.userEmail || cleanEmail)
+      // ✅ Admin verified — also authenticate with Firebase Auth
+      const userEmail = adminData.userEmail || cleanEmail
+      try {
+        await signInWithEmailAndPassword(auth, userEmail, password)
+      } catch (authErr) {
+        // If Firebase Auth fails, try with admin password anyway
+        console.warn("Firebase Auth login failed, continuing with session:", authErr)
+      }
+
+      setUser(userEmail)
       window.location.href = "/admin"
 
     } catch (err: any) {
