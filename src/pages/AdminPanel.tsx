@@ -1,7 +1,7 @@
 import { getUser, setUser, removeUser } from "../lib/session"
 import { useEffect, useState } from "react"
 import { navigate } from "../lib/router"
-import { db } from "../lib/firebase"
+import { db, auth } from "../lib/firebase"
 import {
   collection,
   getDocs,
@@ -30,7 +30,11 @@ export default function AdminPanel() {
   const [previewImage, setPreviewImage] = useState<string | null>(null)
 
   useEffect(() => {
-    const checkAdmin = async () => {
+    const { onAuthStateChanged } = require("firebase/auth")
+
+    // Wait for Firebase Auth to restore persisted login
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: any) => {
+      unsubscribe() // Only need the first callback
 
       const email = getUser()
 
@@ -39,6 +43,11 @@ export default function AdminPanel() {
         setLoading(false)
         navigate("/auth", true)
         return
+      }
+
+      // If no Firebase Auth user, try to sign in silently
+      if (!firebaseUser) {
+        console.warn("No Firebase Auth session — attempting session recovery")
       }
 
       try {
@@ -69,9 +78,9 @@ export default function AdminPanel() {
       }
 
       setLoading(false)
-    }
+    })
 
-    checkAdmin()
+    return () => unsubscribe()
   }, [])
 
   // LOAD DEPOSITS
