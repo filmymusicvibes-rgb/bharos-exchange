@@ -32,7 +32,6 @@ export default function AdminPanel() {
   useEffect(() => {
     const checkAdmin = async () => {
       const email = getUser()
-
       if (!email) {
         setLoading(false)
         navigate("/auth", true)
@@ -40,34 +39,25 @@ export default function AdminPanel() {
       }
 
       try {
-        // Wait a moment for Firebase Auth to restore
-        await new Promise(r => setTimeout(r, 1500))
-
         const userRef = doc(db, "users", email)
         const snap = await getDoc(userRef)
 
         if (snap.exists()) {
           const data: any = snap.data()
-
           if (data.role === "admin") {
             setAuthorized(true)
-            try { await loadDeposits() } catch(e) { console.warn(e) }
-            try { await loadWithdraws() } catch(e) { console.warn(e) }
-            try { await loadBrsWithdraws() } catch(e) { console.warn(e) }
-            try { await loadTripUsers() } catch(e) { console.warn(e) }
+            await loadDeposits()
+            await loadWithdraws()
+            await loadTripUsers()
           } else {
-            alert("Access denied")
             navigate("/dashboard", true)
           }
         } else {
-          alert("User not found")
           navigate("/auth", true)
         }
-      } catch (err: any) {
+      } catch (err) {
         console.error(err)
-        alert("Error: " + err?.message + "\n\nPlease login via /auth first, then visit /admin")
       }
-
       setLoading(false)
     }
 
@@ -465,7 +455,7 @@ export default function AdminPanel() {
         </button>
 
         <button
-          onClick={() => setActiveTab("brsWithdraws")}
+          onClick={() => { setActiveTab("brsWithdraws"); loadBrsWithdraws() }}
           className={`px-4 py-2 rounded ${
             activeTab === "brsWithdraws"
               ? "bg-amber-500 text-black font-bold"
