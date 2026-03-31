@@ -30,30 +30,22 @@ export default function AdminPanel() {
   const [previewImage, setPreviewImage] = useState<string | null>(null)
 
   useEffect(() => {
-    const checkAdmin = async () => {
-      const email = getUser()
-      const isAdmin = localStorage.getItem("bharos_admin")
+    const email = getUser()
+    const isAdmin = localStorage.getItem("bharos_admin")
 
-      if (!email || isAdmin !== "true") {
-        setLoading(false)
-        navigate("/admin-login", true)
-        return
-      }
-
-      setAuthorized(true)
-
-      try {
-        await loadDeposits()
-        await loadWithdraws()
-        await loadTripUsers()
-      } catch (err) {
-        console.error("Load error:", err)
-      }
-
+    if (!email || isAdmin !== "true") {
       setLoading(false)
+      navigate("/admin-login", true)
+      return
     }
 
-    checkAdmin()
+    setAuthorized(true)
+    setLoading(false)
+
+    // Load data in background — don't block page render
+    loadDeposits().catch(e => console.warn("deposits:", e))
+    loadWithdraws().catch(e => console.warn("withdraws:", e))
+    loadTripUsers().catch(e => console.warn("trips:", e))
   }, [])
 
   // LOAD DEPOSITS
