@@ -8,7 +8,8 @@ import {
   doc,
   updateDoc,
   getDoc,
-  increment
+  increment,
+  serverTimestamp
 } from "firebase/firestore"
 
 import AdminStats from "./AdminStats"
@@ -16,10 +17,11 @@ import { logTransaction, runFullActivation } from "../lib/commission"
 
 export default function AdminPanel() {
 
-  const [activeTab, setActiveTab] = useState<"deposits" | "withdraws" | "trips">("deposits")
+  const [activeTab, setActiveTab] = useState<"deposits" | "withdraws" | "trips" | "brsWithdraws">("deposits")
 
   const [deposits, setDeposits] = useState<any[]>([])
   const [withdraws, setWithdraws] = useState<any[]>([])
+  const [brsWithdraws, setBrsWithdraws] = useState<any[]>([])
   const [tripUsers, setTripUsers] = useState<any[]>([])
   const [processingId, setProcessingId] = useState<string | null>(null)
 
@@ -49,6 +51,7 @@ export default function AdminPanel() {
             setAuthorized(true)
             await loadDeposits()
             await loadWithdraws()
+            await loadBrsWithdraws()
             await loadTripUsers()
           } else {
             alert("Access denied")
@@ -135,6 +138,52 @@ export default function AdminPanel() {
 
     setWithdraws(list)
 
+  }
+
+  // LOAD BRS WITHDRAWALS
+
+  const loadBrsWithdraws = async () => {
+    const snap = await getDocs(collection(db, "brs_withdrawals"))
+    const list: any[] = []
+    snap.forEach((d) => {
+      list.push({ id: d.id, ...d.data() })
+    })
+    const getTime = (t: any) => t?.seconds ? t.seconds * 1000 : 0
+    list.sort((a, b) => {
+      if (a.status === "pending" && b.status !== "pending") return -1
+      if (a.status !== "pending" && b.status === "pending") return 1
+      return getTime(b.createdAt) - getTime(a.createdAt)
+    })
+    setBrsWithdraws(list)
+  }
+
+  // APPROVE BRS WITHDRAWAL
+
+  const approveBrsWithdraw = async (id: string, userId: string, amount: number) => {
+    const brsTxHash = prompt("Enter BRS transfer TX hash (from BscScan):")
+    if (!brsTxHash) return
+    setProcessingId(id)
+    try {
+      // Update withdrawal status
+      await updateDoc(doc(db, "brs_withdrawals", id), {
+        status: "approved",
+        brsTxHash,
+        approvedAt: serverTimestamp()
+      })
+      // Deduct BRS from user balance
+      const userRef = doc(db, "users", userId)
+      const userSnap = await getDoc(userRef)
+      if (userSnap.exists()) {
+        const userData: any = userSnap.data()
+        const newBalance = (userData.brsBalance || 0) - amount
+        await updateDoc(userRef, { brsBalance: Math.max(0, newBalance) })
+      }
+      await loadBrsWithdraws()
+      alert(`✅ BRS withdrawal approved! ${amount} BRS sent.`)
+    } catch (err: any) {
+      alert("Error: " + err.message)
+    }
+    setProcessingId(null)
   }
 
   // LOAD TRIP USERS
@@ -414,6 +463,17 @@ export default function AdminPanel() {
           🌍 Trip Achievers
         </button>
 
+        <button
+          onClick={() => setActiveTab("brsWithdraws")}
+          className={`px-4 py-2 rounded ${
+            activeTab === "brsWithdraws"
+              ? "bg-amber-500 text-black font-bold"
+              : "bg-gray-700"
+          }`}
+        >
+          🪙 BRS Withdrawals
+        </button>
+
       </div>
 
       {activeTab === "deposits" && (
@@ -645,6 +705,58 @@ export default function AdminPanel() {
         </>
       )}
 
+      {/* BRS WITHDRAWALS TAB */}
+      {activeTab === "brsWithdraws" && (
+        <>
+          <h1 className="text-3xl mb-8 font-bold">🪙 BRS Withdrawal Requests</h1>
+
+          {brsWithdraws.length === 0 && (
+            <p className="text-gray-500">No BRS withdrawal requests yet</p>
+          )}
+
+          {brsWithdraws.map((w) => (
+            <div key={w.id} className={`p-6 mb-4 rounded-xl ${
+              w.status === 'pending' ? 'bg-amber-500/10 border border-amber-500/20' : 'bg-[#1a1a2e]'
+            }`}>
+              <p>User: {w.userId}</p>
+              <p className="text-amber-400 font-bold text-lg">{w.amount} BRS</p>
+              <p className="text-sm">To Wallet: <span className="text-cyan-400 font-mono text-xs">{w.walletAddress}</span></p>
+              <p className="text-sm">BNB Fee TX: <span className="text-green-400 font-mono text-xs break-all">{w.bnbTxHash}</span></p>
+              <p className="text-sm">Fee: ${w.feeUSD} BNB</p>
+              
+              {w.status === "pending" ? (
+                <div className="mt-3 flex gap-3">
+                  <a
+                    href={`https://bscscan.com/tx/${w.bnbTxHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 bg-blue-500/20 text-blue-400 rounded text-sm hover:bg-blue-500/30 transition"
+                  >
+                    🔍 Verify BNB on BscScan
+                  </a>
+                  <button
+                    disabled={processingId === w.id}
+                    onClick={() => approveBrsWithdraw(w.id, w.userId, w.amount)}
+                    className="px-4 py-2 bg-green-500 text-black rounded font-semibold disabled:opacity-50"
+                  >
+                    {processingId === w.id ? "⏳ Processing..." : "✅ Approve & Send BRS"}
+                  </button>
+                </div>
+              ) : (
+                <div className="mt-2">
+                  <span className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-semibold">
+                    ✅ Approved
+                  </span>
+                  {w.brsTxHash && (
+                    <p className="text-xs text-gray-500 mt-1">BRS TX: {w.brsTxHash}</p>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </>
+      )}
+
       {previewImage && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
 
@@ -673,3 +785,5 @@ export default function AdminPanel() {
   )
 
 }
+
+// Load BRS Withdrawals function — add after other load functions
