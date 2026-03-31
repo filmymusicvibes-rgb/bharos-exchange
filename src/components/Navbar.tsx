@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { navigate } from '@/lib/router'
 import { Menu, X, LayoutDashboard, Network, Trophy, ArrowLeftRight, User, LogOut, Home, Info, Zap, Coins, Map, Users } from 'lucide-react'
 import LanguageSwitcher from './LanguageSwitcher'
+import NotificationBell from './NotificationBell'
 
 function Navbar() {
 
@@ -99,6 +100,7 @@ function Navbar() {
         {/* DESKTOP RIGHT */}
         <div className="hidden md:flex items-center gap-3">
           <LanguageSwitcher />
+          {isLoggedIn && <NotificationBell />}
           {isLoggedIn ? (
             <button
               onClick={handleLogout}
@@ -118,6 +120,7 @@ function Navbar() {
 
         {/* MOBILE CONTROLS */}
         <div className="flex items-center gap-2 md:hidden">
+          {isLoggedIn && <NotificationBell />}
           <LanguageSwitcher />
           {isLoggedIn ? (
             <button
