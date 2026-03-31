@@ -17,6 +17,7 @@ import Community from "@/components/Community"
 import Footer from "@/components/Footer"
 import Navbar from "@/components/Navbar"
 import ParticleBackground from "@/components/ParticleBackground"
+import TrustSection from "@/components/TrustSection"
 
 function Home() {
 
@@ -88,6 +89,10 @@ function Home() {
 
         <div className="py-4">
           <MobileApp />
+        </div>
+
+        <div className="py-4">
+          <TrustSection />
         </div>
 
         <section id="community" className="py-6">
