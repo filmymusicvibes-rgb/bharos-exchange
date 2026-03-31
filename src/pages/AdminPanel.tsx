@@ -32,32 +32,24 @@ export default function AdminPanel() {
   useEffect(() => {
     const checkAdmin = async () => {
       const email = getUser()
-      if (!email) {
+      const isAdmin = localStorage.getItem("bharos_admin")
+
+      if (!email || isAdmin !== "true") {
         setLoading(false)
-        navigate("/auth", true)
+        navigate("/admin-login", true)
         return
       }
 
-      try {
-        const userRef = doc(db, "users", email)
-        const snap = await getDoc(userRef)
+      setAuthorized(true)
 
-        if (snap.exists()) {
-          const data: any = snap.data()
-          if (data.role === "admin") {
-            setAuthorized(true)
-            await loadDeposits()
-            await loadWithdraws()
-            await loadTripUsers()
-          } else {
-            navigate("/dashboard", true)
-          }
-        } else {
-          navigate("/auth", true)
-        }
+      try {
+        await loadDeposits()
+        await loadWithdraws()
+        await loadTripUsers()
       } catch (err) {
-        console.error(err)
+        console.error("Load error:", err)
       }
+
       setLoading(false)
     }
 

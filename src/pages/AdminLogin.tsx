@@ -43,15 +43,15 @@ export default function AdminLogin() {
         return
       }
 
-      // ✅ Admin verified — also authenticate with Firebase Auth
+      // ✅ Admin verified — set admin flag & login
       const userEmail = adminData.userEmail || cleanEmail
       try {
         await signInWithEmailAndPassword(auth, userEmail, password)
       } catch (authErr) {
-        // If Firebase Auth fails, try with admin password anyway
-        console.warn("Firebase Auth login failed, continuing with session:", authErr)
+        console.warn("Firebase Auth optional:", authErr)
       }
 
+      localStorage.setItem("bharos_admin", "true")
       setUser(userEmail)
       window.location.href = "/admin"
 
