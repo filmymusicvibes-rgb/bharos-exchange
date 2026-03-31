@@ -49,10 +49,10 @@ export default function AdminPanel() {
 
           if (data.role === "admin") {
             setAuthorized(true)
-            await loadDeposits()
-            await loadWithdraws()
-            await loadBrsWithdraws()
-            await loadTripUsers()
+            try { await loadDeposits() } catch(e) { console.warn('loadDeposits:', e) }
+            try { await loadWithdraws() } catch(e) { console.warn('loadWithdraws:', e) }
+            try { await loadBrsWithdraws() } catch(e) { console.warn('loadBrsWithdraws:', e) }
+            try { await loadTripUsers() } catch(e) { console.warn('loadTripUsers:', e) }
           } else {
             alert("Access denied")
             navigate("/dashboard", true)
