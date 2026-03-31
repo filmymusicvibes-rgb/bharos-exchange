@@ -3,7 +3,7 @@ import { Coins, TrendingUp, ArrowUpRight } from 'lucide-react'
 // BRS Price simulation data for chart display
 const priceHistory = [
   { phase: 'Launch', price: 0.005, label: 'Current' },
-  { phase: 'Phase 2', price: 0.05, label: '5K Users' },
+  { phase: 'Phase 2', price: 0.01, label: '30K Users' },
   { phase: 'Phase 3', price: 0.25, label: 'DEX Listed' },
   { phase: 'Phase 4', price: 0.75, label: 'Staking' },
   { phase: 'Phase 5', price: 1.50, label: 'CEX Listed' },
