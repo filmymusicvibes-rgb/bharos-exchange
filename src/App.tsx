@@ -79,6 +79,8 @@ export default function App() {
   else if (path === "/withdraw-brs") Page = <WithdrawBRS />
   else return <Home />
 
+  const showChat = path !== "/admin" && path !== "/admin-login"
+
   return (
     <div className="bg-[#0B0919] min-h-screen overflow-x-hidden">
       <div className="w-full max-w-6xl mx-auto px-4">
@@ -86,7 +88,7 @@ export default function App() {
           {Page}
         </Suspense>
       </div>
-      <SupportChat />
+      {showChat && <SupportChat />}
     </div>
   )
 }
