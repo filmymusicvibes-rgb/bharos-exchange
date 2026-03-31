@@ -113,7 +113,7 @@ export default function SupportChat() {
                 Telegram
               </a>
               <a
-                href="https://wa.me/919999999999"
+                href="https://wa.me/message/bharosexchange"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-green-500/10 border border-green-500/20 hover:bg-green-500/20 transition text-xs text-green-400"

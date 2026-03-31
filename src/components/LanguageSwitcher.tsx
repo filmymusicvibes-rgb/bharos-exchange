@@ -43,9 +43,31 @@ export default function LanguageSwitcher() {
           </div>
 
           <div className="max-h-64 overflow-y-auto p-1.5">
+            {/* English — Default */}
+            {LANGUAGES.filter(l => l.code === 'en').map(lang => (
+              <button
+                key={lang.code}
+                onClick={() => { setLang(lang.code); setCurrent(lang.code); setOpen(false); window.location.reload() }}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-all ${
+                  current === lang.code
+                    ? 'bg-cyan-500/10 border border-cyan-500/20'
+                    : 'hover:bg-white/5'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="text-sm">{lang.flag}</span>
+                  <div>
+                    <p className={`text-xs font-medium ${current === lang.code ? 'text-cyan-400' : 'text-white'}`}>{lang.native}</p>
+                    <p className="text-[10px] text-gray-500">Default</p>
+                  </div>
+                </div>
+                {current === lang.code && <Check className="w-3.5 h-3.5 text-cyan-400" />}
+              </button>
+            ))}
+
             {/* Indian Languages */}
-            <p className="text-[9px] text-gray-600 uppercase tracking-wider font-semibold px-2 py-1 mt-1">🇮🇳 India</p>
-            {LANGUAGES.filter(l => ['te', 'hi', 'ta', 'kn', 'ml', 'bn'].includes(l.code)).map(lang => (
+            <p className="text-[9px] text-gray-600 uppercase tracking-wider font-semibold px-2 py-1 mt-2">🇮🇳 India</p>
+            {LANGUAGES.filter(l => ['hi', 'te', 'ta', 'kn', 'ml', 'bn'].includes(l.code)).map(lang => (
               <button
                 key={lang.code}
                 onClick={() => { setLang(lang.code); setCurrent(lang.code); setOpen(false); window.location.reload() }}
@@ -68,7 +90,7 @@ export default function LanguageSwitcher() {
 
             {/* International */}
             <p className="text-[9px] text-gray-600 uppercase tracking-wider font-semibold px-2 py-1 mt-2">🌍 International</p>
-            {LANGUAGES.filter(l => ['en', 'es', 'ar', 'zh'].includes(l.code)).map(lang => (
+            {LANGUAGES.filter(l => ['es', 'ar', 'zh'].includes(l.code)).map(lang => (
               <button
                 key={lang.code}
                 onClick={() => { setLang(lang.code); setCurrent(lang.code); setOpen(false); window.location.reload() }}

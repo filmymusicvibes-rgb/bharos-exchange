@@ -4,6 +4,7 @@ import { navigate } from '@/lib/router'
 import { Menu, X, LayoutDashboard, Network, Trophy, ArrowLeftRight, User, LogOut, Home, Info, Zap, Coins, Map, Users } from 'lucide-react'
 import LanguageSwitcher from './LanguageSwitcher'
 import NotificationBell from './NotificationBell'
+import { t } from '../lib/i18n'
 
 function Navbar() {
 
@@ -42,22 +43,21 @@ function Navbar() {
 
   // Menu items for logged-in users
   const loggedInMenu = [
-    { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
-    // { label: "Staking", path: "/staking", icon: Lock },  // Hidden until listing — Phase 4
-    { label: "Network", path: "/referral-network", icon: Network },
-    { label: "Leaderboard", path: "/leaderboard", icon: Trophy },
-    { label: "Transactions", path: "/transactions", icon: ArrowLeftRight },
-    { label: "Profile", path: "/profile", icon: User },
+    { label: t('dashboard'), path: "/dashboard", icon: LayoutDashboard },
+    { label: t('network'), path: "/referral-network", icon: Network },
+    { label: t('leaderboard'), path: "/leaderboard", icon: Trophy },
+    { label: t('transactions'), path: "/transactions", icon: ArrowLeftRight },
+    { label: t('profile'), path: "/profile", icon: User },
   ]
 
   // Menu items for guests
   const guestSections = [
-    { label: "Home", id: "home", icon: Home },
-    { label: "About", id: "about", icon: Info },
-    { label: "Features", id: "features", icon: Zap },
-    { label: "Tokenomics", id: "tokenomics", icon: Coins },
-    { label: "Roadmap", id: "roadmap", icon: Map },
-    { label: "Community", id: "community", icon: Users },
+    { label: t('home'), id: "home", icon: Home },
+    { label: t('about'), id: "about", icon: Info },
+    { label: t('features'), id: "features", icon: Zap },
+    { label: t('tokenomics'), id: "tokenomics", icon: Coins },
+    { label: t('roadmap'), id: "roadmap", icon: Map },
+    { label: t('community'), id: "community", icon: Users },
   ]
 
   return (
@@ -106,14 +106,14 @@ function Navbar() {
               onClick={handleLogout}
               className="px-4 py-2 text-sm text-red-400 border border-red-500/20 rounded-lg hover:bg-red-500/10 transition"
             >
-              Logout
+              {t('logout')}
             </button>
           ) : (
             <button
               onClick={() => navigateTo("/auth")}
               className="px-5 py-2 text-sm font-semibold bg-gradient-to-r from-cyan-500 to-blue-600 rounded-lg hover:shadow-lg hover:shadow-cyan-500/25 hover:scale-105 transition-all"
             >
-              Join Now
+              {t('joinNow')}
             </button>
           )}
         </div>
