@@ -13,12 +13,12 @@ export interface Language {
 
 export const LANGUAGES: Language[] = [
   { code: 'en', name: 'English', native: 'English', flag: '🇬🇧' },
-  { code: 'te', name: 'Telugu', native: 'తెలుగు', flag: '🇮🇳' },
   { code: 'hi', name: 'Hindi', native: 'हिंदी', flag: '🇮🇳' },
   { code: 'ta', name: 'Tamil', native: 'தமிழ்', flag: '🇮🇳' },
   { code: 'kn', name: 'Kannada', native: 'ಕನ್ನಡ', flag: '🇮🇳' },
   { code: 'ml', name: 'Malayalam', native: 'മലയാളം', flag: '🇮🇳' },
   { code: 'bn', name: 'Bengali', native: 'বাংলা', flag: '🇮🇳' },
+  { code: 'te', name: 'Telugu', native: 'తెలుగు', flag: '🇮🇳' },
   { code: 'es', name: 'Spanish', native: 'Español', flag: '🇪🇸' },
   { code: 'ar', name: 'Arabic', native: 'العربية', flag: '🇸🇦' },
   { code: 'zh', name: 'Chinese', native: '中文', flag: '🇨🇳' },

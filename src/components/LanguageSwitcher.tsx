@@ -67,7 +67,7 @@ export default function LanguageSwitcher() {
 
             {/* Indian Languages */}
             <p className="text-[9px] text-gray-600 uppercase tracking-wider font-semibold px-2 py-1 mt-2">🇮🇳 India</p>
-            {LANGUAGES.filter(l => ['hi', 'te', 'ta', 'kn', 'ml', 'bn'].includes(l.code)).map(lang => (
+            {LANGUAGES.filter(l => ['hi', 'ta', 'kn', 'ml', 'bn', 'te'].includes(l.code)).map(lang => (
               <button
                 key={lang.code}
                 onClick={() => { setLang(lang.code); setCurrent(lang.code); setOpen(false); window.location.reload() }}
