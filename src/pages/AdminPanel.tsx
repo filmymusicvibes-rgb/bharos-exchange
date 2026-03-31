@@ -29,6 +29,8 @@ export default function AdminPanel() {
   const [loading, setLoading] = useState(true)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
 
+  const [dataLoading, setDataLoading] = useState(true)
+
   useEffect(() => {
     const email = getUser()
     const isAdmin = localStorage.getItem("bharos_admin")
@@ -42,10 +44,16 @@ export default function AdminPanel() {
     setAuthorized(true)
     setLoading(false)
 
-    // Load data in background — don't block page render
-    loadDeposits().catch(e => console.warn("deposits:", e))
-    loadWithdraws().catch(e => console.warn("withdraws:", e))
-    loadTripUsers().catch(e => console.warn("trips:", e))
+    // Load all data
+    const loadAll = async () => {
+      try {
+        await Promise.all([loadDeposits(), loadWithdraws(), loadTripUsers()])
+      } catch (e) {
+        console.warn("Data load:", e)
+      }
+      setDataLoading(false)
+    }
+    loadAll()
   }, [])
 
   // LOAD DEPOSITS
@@ -456,6 +464,8 @@ export default function AdminPanel() {
           <h1 className="text-3xl mb-8 font-bold">
             Deposit Requests
           </h1>
+
+          {dataLoading && <p className="text-cyan-400 animate-pulse mb-4">⏳ Loading deposits...</p>}
 
           {deposits.map((d) => (
             <div key={d.id} className="bg-[#1a1a2e] p-6 mb-4 rounded-xl">
