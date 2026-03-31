@@ -1,5 +1,6 @@
 import { useEffect, useState, lazy, Suspense } from "react"
 import { getCurrentPath } from "./lib/router"
+import SupportChat from "./components/SupportChat"
 
 import Home from "./pages/Home"
 import Auth from "./pages/Auth"
@@ -51,8 +52,8 @@ export default function App() {
   }, [])
 
   // Home and Auth are static imports (instant load)
-  if (path === "/") return <Home />
-  if (path === "/auth") return <Auth />
+  if (path === "/") return <><Home /><SupportChat /></>
+  if (path === "/auth") return <><Auth /><SupportChat /></>
 
   // All other pages are lazy loaded
   let Page = null
@@ -83,6 +84,7 @@ export default function App() {
           {Page}
         </Suspense>
       </div>
+      <SupportChat />
     </div>
   )
 }

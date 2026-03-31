@@ -11,6 +11,8 @@ import LoginPopup from "../components/LoginPopup"
 import brsLogo from "../assets/brs.png"
 import usdtLogo from "../assets/usdt.png"
 import trustLogo from "../assets/trustwallet.png"
+import BRSPriceCard from "../components/BRSPriceCard"
+import { QRCodeSVG } from 'qrcode.react'
 
 export default function Dashboard() {
 
@@ -513,6 +515,9 @@ export default function Dashboard() {
               )}
           </div>
 
+          {/* BRS PRICE CHART */}
+          <BRSPriceCard />
+
           {/* REFERRAL & SHARE */}
           <div className="relative mb-6">
             <div className="absolute -inset-[1px] bg-gradient-to-r from-yellow-500/10 to-amber-500/10 rounded-xl blur-sm" />
@@ -576,6 +581,50 @@ export default function Dashboard() {
                 </button>
               </div>
 
+            </div>
+          </div>
+
+          {/* QR CODE REFERRAL CARD */}
+          <div className="relative mb-6">
+            <div className="absolute -inset-[1px] bg-gradient-to-r from-purple-500/10 to-cyan-500/10 rounded-xl blur-sm" />
+            <div className="relative bg-[#0d1117]/90 backdrop-blur-xl border border-white/10 rounded-xl p-5">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs text-purple-400 font-medium">QR Referral Card</p>
+                <span className="text-[10px] text-gray-500">Scan to join</span>
+              </div>
+              <div className="flex items-center gap-5">
+                <div className="bg-white p-2.5 rounded-xl">
+                  <QRCodeSVG
+                    value={referralLink}
+                    size={100}
+                    bgColor="#ffffff"
+                    fgColor="#050816"
+                    level="H"
+                  />
+                </div>
+                <div className="flex-1">
+                  <p className="text-white text-sm font-semibold mb-1">Share Your QR Code</p>
+                  <p className="text-gray-500 text-[11px] mb-3 leading-relaxed">Friends can scan this QR to join Bharos Exchange with your referral</p>
+                  <button
+                    onClick={() => {
+                      const svg = document.querySelector('.qr-ref-card svg')
+                      if (svg) {
+                        const data = new XMLSerializer().serializeToString(svg)
+                        const blob = new Blob([data], { type: 'image/svg+xml' })
+                        const url = URL.createObjectURL(blob)
+                        const a = document.createElement('a')
+                        a.href = url
+                        a.download = 'bharos-referral-qr.svg'
+                        a.click()
+                        URL.revokeObjectURL(url)
+                      }
+                    }}
+                    className="px-4 py-2 rounded-lg text-xs font-semibold bg-purple-500/10 border border-purple-500/20 text-purple-400 hover:bg-purple-500/20 transition-all"
+                  >
+                    📥 Download QR
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
