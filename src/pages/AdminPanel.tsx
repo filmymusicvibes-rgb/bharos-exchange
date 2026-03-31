@@ -30,49 +30,48 @@ export default function AdminPanel() {
   const [previewImage, setPreviewImage] = useState<string | null>(null)
 
   useEffect(() => {
-    import("firebase/auth").then(({ onAuthStateChanged }) => {
-      const unsubscribe = onAuthStateChanged(auth, async () => {
-        unsubscribe()
+    const checkAdmin = async () => {
+      const email = getUser()
 
-        const email = getUser()
-
-        if (!email) {
-          alert("Please login first")
-          setLoading(false)
-          navigate("/auth", true)
-          return
-        }
-
-        try {
-          const userRef = doc(db, "users", email)
-          const snap = await getDoc(userRef)
-
-          if (snap.exists()) {
-            const data: any = snap.data()
-
-            if (data.role === "admin") {
-              setAuthorized(true)
-              try { await loadDeposits() } catch(e) { console.warn('loadDeposits:', e) }
-              try { await loadWithdraws() } catch(e) { console.warn('loadWithdraws:', e) }
-              try { await loadBrsWithdraws() } catch(e) { console.warn('loadBrsWithdraws:', e) }
-              try { await loadTripUsers() } catch(e) { console.warn('loadTripUsers:', e) }
-            } else {
-              alert("Access denied — role: " + (data.role || "none"))
-              navigate("/dashboard", true)
-            }
-          } else {
-            alert("User doc not found for: " + email)
-            navigate("/auth", true)
-          }
-
-        } catch (err: any) {
-          console.error("Admin check error:", err)
-          alert("Admin Error: " + (err?.message || err) + "\n\nTry: Login via /auth first, then go to /admin")
-        }
-
+      if (!email) {
         setLoading(false)
-      })
-    })
+        navigate("/auth", true)
+        return
+      }
+
+      try {
+        // Wait a moment for Firebase Auth to restore
+        await new Promise(r => setTimeout(r, 1500))
+
+        const userRef = doc(db, "users", email)
+        const snap = await getDoc(userRef)
+
+        if (snap.exists()) {
+          const data: any = snap.data()
+
+          if (data.role === "admin") {
+            setAuthorized(true)
+            try { await loadDeposits() } catch(e) { console.warn(e) }
+            try { await loadWithdraws() } catch(e) { console.warn(e) }
+            try { await loadBrsWithdraws() } catch(e) { console.warn(e) }
+            try { await loadTripUsers() } catch(e) { console.warn(e) }
+          } else {
+            alert("Access denied")
+            navigate("/dashboard", true)
+          }
+        } else {
+          alert("User not found")
+          navigate("/auth", true)
+        }
+      } catch (err: any) {
+        console.error(err)
+        alert("Error: " + err?.message + "\n\nPlease login via /auth first, then visit /admin")
+      }
+
+      setLoading(false)
+    }
+
+    checkAdmin()
   }, [])
 
   // LOAD DEPOSITS
