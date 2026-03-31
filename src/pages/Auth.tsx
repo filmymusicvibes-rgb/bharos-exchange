@@ -407,7 +407,7 @@ export default function Auth() {
       )}
 
       {/* 🧊 FORM */}
-      {step === "form" && (
+      {step === "form" && mode !== "forgot-password" && (
         <div className="w-full max-w-md relative">
           {/* Animated glow border */}
           <div
