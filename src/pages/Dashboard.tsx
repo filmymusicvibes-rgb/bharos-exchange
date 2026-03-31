@@ -594,7 +594,7 @@ export default function Dashboard() {
                 <span className="text-[10px] text-gray-500">Scan to join</span>
               </div>
               <div className="flex items-center gap-5">
-                <div className="bg-white p-2.5 rounded-xl">
+                <div className="bg-white p-2.5 rounded-xl" id="qr-ref-container">
                   <QRCodeSVG
                     value={referralLink}
                     size={100}
@@ -608,17 +608,23 @@ export default function Dashboard() {
                   <p className="text-gray-500 text-[11px] mb-3 leading-relaxed">Friends can scan this QR to join Bharos Exchange with your referral</p>
                   <button
                     onClick={() => {
-                      const svg = document.querySelector('.qr-ref-card svg')
-                      if (svg) {
-                        const data = new XMLSerializer().serializeToString(svg)
-                        const blob = new Blob([data], { type: 'image/svg+xml' })
-                        const url = URL.createObjectURL(blob)
+                      const container = document.getElementById('qr-ref-container')
+                      const svg = container?.querySelector('svg')
+                      if (!svg) return
+                      const canvas = document.createElement('canvas')
+                      canvas.width = 300
+                      canvas.height = 300
+                      const ctx = canvas.getContext('2d')
+                      const data = new XMLSerializer().serializeToString(svg)
+                      const img = new Image()
+                      img.onload = () => {
+                        ctx?.drawImage(img, 0, 0, 300, 300)
                         const a = document.createElement('a')
-                        a.href = url
-                        a.download = 'bharos-referral-qr.svg'
+                        a.href = canvas.toDataURL('image/png')
+                        a.download = 'bharos-referral-qr.png'
                         a.click()
-                        URL.revokeObjectURL(url)
                       }
+                      img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(data)))
                     }}
                     className="px-4 py-2 rounded-lg text-xs font-semibold bg-purple-500/10 border border-purple-500/20 text-purple-400 hover:bg-purple-500/20 transition-all"
                   >

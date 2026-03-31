@@ -24,7 +24,7 @@ const defaultNotifications: Notification[] = [
   },
   {
     id: '3', icon: TrendingUp, title: 'Phase 2 Coming Soon',
-    message: 'BRS price target: $0.05 at 5,000 users. Invite friends to accelerate growth!',
+    message: 'BRS price target: $0.01 at 30,000 users. Invite friends to accelerate growth!',
     time: '2h ago', type: 'promo', read: true
   },
   {
@@ -39,7 +39,7 @@ const defaultNotifications: Notification[] = [
   },
   {
     id: '6', icon: Sparkles, title: 'Staking Coming in Phase 4',
-    message: 'Earn 8-40% APY by staking BRS. Available when we reach 20,000 users!',
+    message: 'Earn 8-40% APY by staking BRS. Available when we reach 50,000 users!',
     time: '2d ago', type: 'promo', read: true
   },
 ]
