@@ -1,3 +1,4 @@
+import { getUser, setUser, removeUser } from "../lib/session"
 import { useEffect, useState } from "react"
 import { navigate } from "@/lib/router"
 import { db } from "../lib/firebase"
@@ -55,7 +56,7 @@ export default function ReferralNetwork() {
 
   const loadNetwork = async () => {
 
-    const email = localStorage.getItem("bharos_user")
+    const email = getUser()
     if (!email) return navigate("/")
 
     const userRef = doc(db, "users", email)

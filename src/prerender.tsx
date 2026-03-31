@@ -1,8 +1,6 @@
 import App from '@/App.tsx'
 import { routes } from '@/lib/router.ts'
-import { createHead, UnheadProvider } from '@unhead/react/server'
 import { renderToString } from 'react-dom/server'
-import { StaticRouter } from 'react-router-dom/server'
 
 interface PrerenderData {
   url: string
@@ -26,17 +24,7 @@ const paths = Object.values(routes)
 
 export async function prerender(data: PrerenderData): Promise<PrerenderResult> {
   try {
-    const head = createHead({
-      disableDefaults: true,
-    })
-
-    const html = renderToString(
-      <UnheadProvider value={head}>
-        <StaticRouter location={data.url}>
-          <App />
-        </StaticRouter>
-      </UnheadProvider>,
-    )
+    const html = renderToString(<App />)
 
     const { parseLinks } = await import('vite-prerender-plugin/parse')
 
@@ -45,24 +33,12 @@ export async function prerender(data: PrerenderData): Promise<PrerenderResult> {
       ...paths,
     ]
 
-    const headTags = await head.resolveTags()
-    const lang = headTags.find(tag => tag.tag === 'htmlAttrs')?.props.lang
-    const title = headTags.find(tag => tag.tag === 'title')?.textContent
-    const elements = headTags
-      .filter(tag => tag.tag !== 'htmlAttrs' && tag.tag !== 'title')
-      .map(tag => ({
-        type: tag.tag,
-        props: tag.props,
-        children: tag.textContent,
-      }))
-
     return {
       html,
       links,
       head: {
-        lang,
-        title,
-        elements: new Set(elements),
+        lang: 'en',
+        title: 'Bharos Exchange - Trustworthy Crypto for Everyone | BRS Coin',
       },
     }
   } catch (e: any) {

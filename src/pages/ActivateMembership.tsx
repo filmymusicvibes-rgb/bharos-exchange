@@ -1,3 +1,4 @@
+import { getUser, setUser, removeUser } from "../lib/session"
 import { useState, useEffect, useRef } from "react"
 import { db } from "../lib/firebase"
 import { collection, addDoc, getDocs, doc, getDoc, updateDoc, increment } from "firebase/firestore"
@@ -24,7 +25,7 @@ function ActivateMembership() {
   // 🔒 Check status on load
   useEffect(() => {
     const init = async () => {
-      const email = localStorage.getItem("bharos_user")
+      const email = getUser()
       if (!email) return
 
       const userRef = doc(db, "users", email)
@@ -51,7 +52,7 @@ function ActivateMembership() {
 
   // 🔒 Reset user status back to inactive
   const resetUserStatus = async () => {
-    const email = localStorage.getItem("bharos_user")
+    const email = getUser()
     if (!email) return
     try {
       await updateDoc(doc(db, "users", email), { status: "inactive" })
@@ -62,7 +63,7 @@ function ActivateMembership() {
 
   // 🔍 Start auto-detection
   const startPolling = async () => {
-    const email = localStorage.getItem("bharos_user")
+    const email = getUser()
     if (!email) return
 
     setStep("waiting")

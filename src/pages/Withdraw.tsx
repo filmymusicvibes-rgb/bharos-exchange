@@ -1,3 +1,4 @@
+import { getUser, setUser, removeUser } from "../lib/session"
 import { useState, useEffect } from "react"
 import { db } from "../lib/firebase"
 import { collection, addDoc, doc, getDoc, updateDoc, increment } from "firebase/firestore"
@@ -15,7 +16,7 @@ export default function Withdraw() {
     // Load user's profile wallet address
     useEffect(() => {
         const loadProfileWallet = async () => {
-            const email = localStorage.getItem("bharos_user")
+            const email = getUser()
             if (!email) return
 
             const snap = await getDoc(doc(db, "users", email))
@@ -42,7 +43,7 @@ export default function Withdraw() {
 
     const submitWithdraw = async () => {
 
-        const email = localStorage.getItem("bharos_user")
+        const email = getUser()
 
         if (!email) {
             alert("User not logged in")

@@ -1,13 +1,11 @@
 import { useEffect, useState, useRef } from 'react'
 import {CheckCircle2, Wallet, Gift, RefreshCcw, Coins, Rocket} from 'lucide-react'
-import { useAuth } from '@/hooks/useAuth'
-import { useNavigate } from 'react-router-dom'
+import { navigate } from '@/lib/router'
 
 function Membership() {
   const [isVisible, setIsVisible] = useState(false)
   const sectionRef = useRef<HTMLDivElement>(null)
-  const { isAuthenticated } = useAuth()
-  const navigate = useNavigate()
+  const isAuthenticated = !!sessionStorage.getItem('bharos_user')
 
   const handleActivateClick = () => {
     if (isAuthenticated) {

@@ -1,3 +1,4 @@
+import { getUser, setUser, removeUser } from "../lib/session"
 import { useEffect, useState } from "react"
 import { navigate } from "../lib/router"
 import { db } from "../lib/firebase"
@@ -31,7 +32,7 @@ export default function Wallet() {
 
   const loadWallet = async () => {
 
-    const email = localStorage.getItem("bharos_user")
+    const email = getUser()
 
     if (!email) {
       navigate("/")

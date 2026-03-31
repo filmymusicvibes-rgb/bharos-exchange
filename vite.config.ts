@@ -39,8 +39,24 @@ export default defineConfig(({ mode }) => {
         prerenderScript: path.resolve(__dirname, 'src/prerender.tsx'),
       }),
     ],
-    build,
-    esbuild,
+    build: mode === 'development' ? build : {
+      // Production optimizations
+      minify: 'esbuild',
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'firebase': ['firebase/app', 'firebase/firestore', 'firebase/auth'],
+            'vendor': ['react', 'react-dom', 'framer-motion'],
+          },
+        },
+      },
+      chunkSizeWarningLimit: 600,
+    },
+    esbuild: mode === 'development' ? esbuild : {
+      // Remove console.log in production (keep error/warn)
+      drop: ['debugger'],
+      pure: ['console.log'],
+    },
     define,
     resolve: {
       alias: {

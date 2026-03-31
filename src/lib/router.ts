@@ -1,7 +1,11 @@
 // Simple client-side router helper
 
-export function navigate(path: string) {
-  window.history.pushState({}, "", path)
+export function navigate(path: string, replace: boolean = false) {
+  if (replace) {
+    window.history.replaceState({}, "", path)
+  } else {
+    window.history.pushState({}, "", path)
+  }
   window.dispatchEvent(new PopStateEvent("popstate"))
 }
 

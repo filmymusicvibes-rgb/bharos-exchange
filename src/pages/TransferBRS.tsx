@@ -1,3 +1,4 @@
+import { getUser, setUser, removeUser } from "../lib/session"
 import { useState } from "react"
 import { db } from "../lib/firebase"
 import { doc, getDoc, updateDoc, addDoc, collection, getDocs, increment } from "firebase/firestore"
@@ -12,7 +13,7 @@ export default function TransferBRS() {
 
     const sendBRS = async () => {
 
-        const senderEmail = localStorage.getItem("bharos_user")
+        const senderEmail = getUser()
 
         if (!senderEmail) {
             alert("Login required")

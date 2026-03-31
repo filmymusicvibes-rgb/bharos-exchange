@@ -1,6 +1,8 @@
+import { getUser, setUser, removeUser } from "../lib/session"
 import { useEffect, useState } from "react"
 import { db } from "../lib/firebase"
 import { collection, getDocs, query, where } from "firebase/firestore"
+import { navigate } from "../lib/router"
 import { ArrowUpRight, ArrowDownLeft, CreditCard, Wallet, Clock, CheckCircle, XCircle } from "lucide-react"
 import Navbar from "@/components/Navbar"
 
@@ -14,8 +16,9 @@ export default function Transactions() {
     }, [])
 
     const loadTransactions = async () => {
-        const email = localStorage.getItem("bharos_user")
+        const email = getUser()
         if (!email) {
+            navigate("/auth", true)
             setLoading(false)
             return
         }

@@ -1,8 +1,10 @@
+import { getUser, setUser, removeUser } from "../lib/session"
 import { useEffect, useState } from "react"
-import { db } from "../lib/firebase"
+import { db, auth } from "../lib/firebase"
 import { doc, getDoc, updateDoc } from "firebase/firestore"
 import { navigate } from "@/lib/router"
-import { User, Mail, Phone, Wallet, Calendar, Lock, Save, CheckCircle } from "lucide-react"
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "firebase/auth"
+import { User, Mail, Phone, Wallet, Calendar, Lock, Save, CheckCircle, KeyRound, Eye, EyeOff, Check, Circle, ChevronDown, ChevronUp } from "lucide-react"
 
 import Navbar from "../components/Navbar"
 
@@ -19,12 +21,81 @@ export default function Profile() {
 
   const [walletLocked, setWalletLocked] = useState(false)
 
+  // Change Password States
+  const [showChangePassword, setShowChangePassword] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [showCurrentPw, setShowCurrentPw] = useState(false)
+  const [showNewPw, setShowNewPw] = useState(false)
+  const [changingPw, setChangingPw] = useState(false)
+  const [pwSuccess, setPwSuccess] = useState("")
+  const [pwError, setPwError] = useState("")
+
+  // Password rules
+  const passwordRules = [
+    { id: "length", label: "Minimum 8 characters", test: (p: string) => p.length >= 8 },
+    { id: "upper", label: "One uppercase letter (A-Z)", test: (p: string) => /[A-Z]/.test(p) },
+    { id: "lower", label: "One lowercase letter (a-z)", test: (p: string) => /[a-z]/.test(p) },
+    { id: "number", label: "One number (0-9)", test: (p: string) => /[0-9]/.test(p) },
+    { id: "special", label: "One special character (!@#$%...)", test: (p: string) => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(p) },
+  ]
+  const allPwRulesPass = passwordRules.every(rule => rule.test(newPassword))
+
+  const handleChangePassword = async () => {
+    setPwError("")
+    setPwSuccess("")
+
+    if (!currentPassword) { setPwError("Enter current password"); return }
+    if (!allPwRulesPass) { setPwError("New password doesn't meet requirements"); return }
+    if (newPassword !== confirmPassword) { setPwError("Passwords don't match"); return }
+    if (currentPassword === newPassword) { setPwError("New password must be different"); return }
+
+    setChangingPw(true)
+
+    try {
+      const user = auth.currentUser
+      if (!user || !user.email) {
+        setPwError("Session expired. Please sign in again.")
+        setChangingPw(false)
+        return
+      }
+
+      // Re-authenticate first (Firebase requires this for password change)
+      const credential = EmailAuthProvider.credential(user.email, currentPassword)
+      await reauthenticateWithCredential(user, credential)
+
+      // Update password
+      await updatePassword(user, newPassword)
+
+      setPwSuccess("Password changed successfully! ✅")
+      setCurrentPassword("")
+      setNewPassword("")
+      setConfirmPassword("")
+      setShowChangePassword(false)
+
+      setTimeout(() => setPwSuccess(""), 5000)
+    } catch (err: any) {
+      if (err.code === "auth/wrong-password" || err.code === "auth/invalid-credential") {
+        setPwError("Current password is incorrect")
+      } else if (err.code === "auth/too-many-requests") {
+        setPwError("Too many attempts. Try again later.")
+      } else if (err.code === "auth/requires-recent-login") {
+        setPwError("Session expired. Please logout and login again.")
+      } else {
+        setPwError("Failed to change password. Try again.")
+      }
+    }
+
+    setChangingPw(false)
+  }
+
   useEffect(() => {
     loadUser()
   }, [])
 
   const loadUser = async () => {
-    const email = localStorage.getItem("bharos_user")
+    const email = getUser()
     if (!email) return navigate("/")
 
     const snap = await getDoc(doc(db, "users", email))
@@ -43,7 +114,7 @@ export default function Profile() {
   }
 
   const saveProfile = async () => {
-    const email = localStorage.getItem("bharos_user")
+    const email = getUser()
     if (!email) return
 
     setSaving(true)
@@ -195,6 +266,161 @@ export default function Profile() {
                   className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/[0.02] border border-white/5 text-gray-500 cursor-not-allowed"
                 />
               </div>
+            </div>
+
+            {/* CHANGE PASSWORD SECTION */}
+            <div className="border-t border-white/10 pt-5">
+              {pwSuccess && (
+                <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-3 mb-4 flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-400" />
+                  <p className="text-green-400 text-sm">{pwSuccess}</p>
+                </div>
+              )}
+
+              <button
+                onClick={() => { setShowChangePassword(!showChangePassword); setPwError(""); setPwSuccess("") }}
+                className="w-full flex items-center justify-between py-3 px-4 rounded-xl bg-white/[0.03] border border-white/8 hover:bg-white/[0.06] hover:border-amber-500/20 transition-all group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+                    <KeyRound className="w-4 h-4 text-amber-400" />
+                  </div>
+                  <span className="text-sm font-medium text-gray-300 group-hover:text-white transition">Change Password</span>
+                </div>
+                {showChangePassword ? (
+                  <ChevronUp className="w-4 h-4 text-gray-500" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-gray-500" />
+                )}
+              </button>
+
+              {showChangePassword && (
+                <div className="mt-4 space-y-4 bg-white/[0.02] border border-white/8 rounded-xl p-5">
+                  
+                  {pwError && (
+                    <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-center gap-2">
+                      <span className="text-red-400 text-sm">❌</span>
+                      <p className="text-red-400 text-sm">{pwError}</p>
+                    </div>
+                  )}
+
+                  {/* Current Password */}
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1.5 block font-medium">Current Password</label>
+                    <div className="relative">
+                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                      <input
+                        type={showCurrentPw ? "text" : "password"}
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        className="w-full pl-10 pr-12 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:border-amber-400/50 focus:bg-white/8 outline-none transition-all duration-300"
+                        placeholder="Enter current password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowCurrentPw(!showCurrentPw)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-amber-400 transition"
+                      >
+                        {showCurrentPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* New Password */}
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1.5 block font-medium">New Password</label>
+                    <div className="relative">
+                      <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                      <input
+                        type={showNewPw ? "text" : "password"}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className="w-full pl-10 pr-12 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:border-amber-400/50 focus:bg-white/8 outline-none transition-all duration-300"
+                        placeholder="Enter new password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPw(!showNewPw)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-amber-400 transition"
+                      >
+                        {showNewPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Password Strength */}
+                  {newPassword.length > 0 && (
+                    <div className="bg-white/[0.03] border border-white/8 rounded-xl p-3 space-y-1.5">
+                      <p className="text-[10px] text-gray-400 mb-1 font-semibold uppercase tracking-wider">Requirements:</p>
+                      {passwordRules.map(rule => (
+                        <div key={rule.id} className="flex items-center gap-2">
+                          <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center transition-all ${
+                            rule.test(newPassword)
+                              ? 'bg-green-400/20 border border-green-400/40'
+                              : 'bg-white/5 border border-white/10'
+                          }`}>
+                            {rule.test(newPassword)
+                              ? <Check className="w-2 h-2 text-green-400" />
+                              : <Circle className="w-1.5 h-1.5 text-gray-600" />
+                            }
+                          </div>
+                          <span className={`text-[11px] transition-all ${rule.test(newPassword) ? 'text-green-400' : 'text-gray-500'}`}>
+                            {rule.label}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Confirm Password */}
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1.5 block font-medium">Confirm New Password</label>
+                    <div className="relative">
+                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                      <input
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className={`w-full pl-10 pr-4 py-3 rounded-xl bg-white/5 border text-white placeholder-gray-500 focus:bg-white/8 outline-none transition-all duration-300 ${
+                          confirmPassword && confirmPassword === newPassword
+                            ? 'border-green-500/40 focus:border-green-400/60'
+                            : confirmPassword
+                              ? 'border-red-500/40 focus:border-red-400/60'
+                              : 'border-white/10 focus:border-amber-400/50'
+                        }`}
+                        placeholder="Re-enter new password"
+                      />
+                      {confirmPassword && (
+                        <div className="absolute right-3.5 top-1/2 -translate-y-1/2">
+                          {confirmPassword === newPassword
+                            ? <Check className="w-4 h-4 text-green-400" />
+                            : <span className="text-red-400 text-xs">✕</span>
+                          }
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Change Password Button */}
+                  <button
+                    onClick={handleChangePassword}
+                    disabled={changingPw || !allPwRulesPass || newPassword !== confirmPassword || !currentPassword}
+                    className="w-full py-3 rounded-xl font-semibold text-sm text-black bg-gradient-to-r from-amber-400 via-orange-500 to-red-500 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:hover:scale-100 shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2"
+                  >
+                    {changingPw ? (
+                      <span className="flex items-center gap-2">
+                        <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                        Changing...
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-2">
+                        <KeyRound className="w-4 h-4" />
+                        Update Password
+                      </span>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* SAVE BUTTON */}

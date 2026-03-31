@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
-import {Lock, Shield} from 'lucide-react'
 
 function BRSSmartContract() {
   const [isVisible, setIsVisible] = useState(false)
   const [shaking, setShaking] = useState(false)
   const sectionRef = useRef<HTMLDivElement>(null)
   
-  // Full contract address (will be revealed after launch)
-  const maskedAddress = "0xB7A9****F92A"
+  // Real contract address (masked for now — reveal after listing)
+  // Full: 0xa516f62cef0b4A690d32EF1b57A8CFe8b612459e
+  const maskedAddress = "0xa516****459e"
   
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -61,7 +61,6 @@ function BRSSmartContract() {
             <div className="relative bg-[#1a1a2e] border-2 border-cyan-500/40 rounded-2xl p-8 hover:border-cyan-400/60 transition-all duration-300">
               {/* Network Badge */}
               <div className="flex items-center justify-center gap-3 mb-6">
-                <Shield className="w-6 h-6 text-yellow-400" />
                 <span className="px-4 py-2 bg-gradient-to-r from-yellow-500/20 to-yellow-600/20 border border-yellow-500/40 rounded-full text-yellow-400 text-sm font-semibold">
                   BEP20 Smart Contract (BNB Smart Chain)
                 </span>
@@ -89,7 +88,6 @@ function BRSSmartContract() {
                       shaking ? 'animate-[shake_0.5s_ease-in-out]' : ''
                     }`}
                   >
-                    <Lock className="w-5 h-5 shrink-0 text-yellow-400" />
                     <span className="text-sm sm:text-base whitespace-nowrap text-gray-300">
                       {shaking ? "🔒 Available after listing" : "🔒 Coming Soon"}
                     </span>

@@ -1,3 +1,4 @@
+import { getUser, setUser, removeUser } from "../lib/session"
 import { useState, useEffect } from 'react'
 import { db } from "../lib/firebase"
 import { collection, getDocs } from "firebase/firestore"
@@ -29,8 +30,8 @@ export default function ReferralEarnings() {
 
   useEffect(() => {
     const load = async () => {
-      const email = localStorage.getItem("bharos_user")
-      if (!email) return navigate("/auth")
+      const email = getUser()
+      if (!email) return navigate("/auth", true)
 
       try {
         const snap = await getDocs(collection(db, "users"))

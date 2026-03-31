@@ -1,24 +1,38 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, lazy, Suspense } from "react"
 import { getCurrentPath } from "./lib/router"
 
 import Home from "./pages/Home"
 import Auth from "./pages/Auth"
-import Dashboard from "./pages/Dashboard"
-import AdminPanel from "./pages/AdminPanel"
-import ActivateMembership from "./pages/ActivateMembership"
-import ReferralNetwork from "./pages/ReferralNetwork"
-import ReferralEarnings from "./pages/ReferralEarnings"
-import Withdraw from "./pages/Withdraw"
-import WithdrawHistory from "./pages/WithdrawHistory"
-import Transactions from "./pages/Transactions"
-import Wallet from "./pages/Wallet"
-import Leaderboard from "./pages/Leaderboard"
-import TransferBRS from "./pages/TransferBRS"
-import Profile from "./pages/Profile"
-import AdminLogin from "./pages/AdminLogin"
-import Support from "./pages/Support"
-import FAQs from "./pages/FAQs"
-import TermsOfService from "./pages/TermsOfService"
+
+// Lazy load all dashboard pages (code splitting — reduces initial bundle)
+const Dashboard = lazy(() => import("./pages/Dashboard"))
+const AdminPanel = lazy(() => import("./pages/AdminPanel"))
+const ActivateMembership = lazy(() => import("./pages/ActivateMembership"))
+const ReferralNetwork = lazy(() => import("./pages/ReferralNetwork"))
+const ReferralEarnings = lazy(() => import("./pages/ReferralEarnings"))
+const Withdraw = lazy(() => import("./pages/Withdraw"))
+const WithdrawHistory = lazy(() => import("./pages/WithdrawHistory"))
+const Transactions = lazy(() => import("./pages/Transactions"))
+const Wallet = lazy(() => import("./pages/Wallet"))
+const Leaderboard = lazy(() => import("./pages/Leaderboard"))
+const TransferBRS = lazy(() => import("./pages/TransferBRS"))
+const Profile = lazy(() => import("./pages/Profile"))
+const AdminLogin = lazy(() => import("./pages/AdminLogin"))
+const Support = lazy(() => import("./pages/Support"))
+const FAQs = lazy(() => import("./pages/FAQs"))
+const TermsOfService = lazy(() => import("./pages/TermsOfService"))
+const Staking = lazy(() => import("./pages/Staking"))
+
+function PageLoader() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[#050816]">
+      <div className="text-center">
+        <div className="w-8 h-8 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin mx-auto mb-3" />
+        <p className="text-gray-500 text-sm">Loading...</p>
+      </div>
+    </div>
+  )
+}
 
 export default function App() {
 
@@ -36,34 +50,39 @@ export default function App() {
     }
   }, [])
 
-  let Page = <Home />
+  // Home and Auth are static imports (instant load)
+  if (path === "/") return <Home />
+  if (path === "/auth") return <Auth />
 
-  if (path === "/auth") Page = <Auth />
+  // All other pages are lazy loaded
+  let Page = null
+
   if (path === "/dashboard") Page = <Dashboard />
-  if (path === "/wallet") Page = <Wallet />
-  if (path === "/withdraw") Page = <Withdraw />
-  if (path === "/withdraw-history") Page = <WithdrawHistory />
-  if (path === "/transactions") Page = <Transactions />
-  if (path === "/transfer") Page = <TransferBRS />
-  if (path === "/leaderboard") Page = <Leaderboard />
-  if (path === "/referral-network") Page = <ReferralNetwork />
-  if (path === "/referral-earnings") Page = <ReferralEarnings />
-  if (path === "/activate-membership") Page = <ActivateMembership />
-  if (path === "/activate") Page = <ActivateMembership />
-  if (path === "/admin") Page = <AdminPanel />
-  if (path === "/admin-login") Page = <AdminLogin />
-  if (path === "/profile") Page = <Profile />
-  if (path === "/support") Page = <Support />
-  if (path === "/faqs") Page = <FAQs />
-  if (path === "/terms-of-service") Page = <TermsOfService />
+  else if (path === "/wallet") Page = <Wallet />
+  else if (path === "/withdraw") Page = <Withdraw />
+  else if (path === "/withdraw-history") Page = <WithdrawHistory />
+  else if (path === "/transactions") Page = <Transactions />
+  else if (path === "/transfer") Page = <TransferBRS />
+  else if (path === "/leaderboard") Page = <Leaderboard />
+  else if (path === "/referral-network") Page = <ReferralNetwork />
+  else if (path === "/referral-earnings") Page = <ReferralEarnings />
+  else if (path === "/activate-membership" || path === "/activate") Page = <ActivateMembership />
+  else if (path === "/admin") Page = <AdminPanel />
+  else if (path === "/admin-login") Page = <AdminLogin />
+  else if (path === "/profile") Page = <Profile />
+  else if (path === "/support") Page = <Support />
+  else if (path === "/faqs") Page = <FAQs />
+  else if (path === "/terms-of-service") Page = <TermsOfService />
+  else if (path === "/staking") Page = <Staking />
+  else return <Home />
 
   return (
     <div className="bg-[#0B0919] min-h-screen overflow-x-hidden">
-
       <div className="w-full max-w-6xl mx-auto px-4">
-        {Page}
+        <Suspense fallback={<PageLoader />}>
+          {Page}
+        </Suspense>
       </div>
-
     </div>
   )
 }

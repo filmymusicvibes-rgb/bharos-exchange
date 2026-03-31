@@ -1,15 +1,18 @@
+import { getUser, setUser, removeUser } from "../lib/session"
 import { useState, useEffect } from "react"
 import { Eye, EyeOff, Mail, Lock, User, Phone, Link2, Shield, Check, Circle } from "lucide-react"
 import coin from "../assets/brs.png"
 import { db, auth } from "../lib/firebase"
+import { navigate } from "../lib/router"
 import { doc, setDoc, collection, query, where, getDocs, getDoc } from "firebase/firestore"
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  sendEmailVerification
+  sendEmailVerification,
+  sendPasswordResetEmail
 } from "firebase/auth"
 
-type Mode = "signin" | "signup"
+type Mode = "signin" | "signup" | "forgot-password"
 type Step = "form" | "verify-email"
 
 // 🔐 Password rules
@@ -36,6 +39,17 @@ export default function Auth() {
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [resendTimer, setResendTimer] = useState(0)
+  const [forgotEmail, setForgotEmail] = useState("")
+  const [resetSent, setResetSent] = useState(false)
+
+  // 🔒 Auto-redirect if already logged in
+  useEffect(() => {
+    const user = getUser()
+    if (user) {
+      navigate("/dashboard", true)
+      return
+    }
+  }, [])
 
   // 🔗 referral auto detect
   useEffect(() => {
@@ -91,8 +105,9 @@ export default function Auth() {
       await user.reload()
 
       if (user.emailVerified) {
-        localStorage.setItem("bharos_user", user.email!.toLowerCase())
-        window.location.href = "/dashboard"
+        setUser(user.email!.toLowerCase())
+        navigate("/dashboard", true)
+        return
       } else {
         setError("Email not verified yet. Please check your inbox & spam folder.")
       }
@@ -235,8 +250,8 @@ export default function Auth() {
                 const newCred = await createUserWithEmailAndPassword(auth, cleanEmail, password)
                 void newCred
                 // Migration successful — log them in directly
-                localStorage.setItem("bharos_user", cleanEmail)
-                window.location.href = "/dashboard"
+                setUser(cleanEmail)
+                navigate("/dashboard", true)
                 return
               } catch (migrateErr: any) {
                 if (migrateErr.code === "auth/email-already-in-use") {
@@ -280,8 +295,8 @@ export default function Auth() {
           }
 
           // Old user (no flag) OR verified new user — login directly
-          localStorage.setItem("bharos_user", cleanEmail)
-          window.location.href = "/dashboard"
+          setUser(cleanEmail)
+          navigate("/dashboard", true)
           return
         }
 
@@ -295,8 +310,8 @@ export default function Auth() {
         }
 
         // ✅ Verified new user — login
-        localStorage.setItem("bharos_user", cleanEmail)
-        window.location.href = "/dashboard"
+        setUser(cleanEmail)
+        navigate("/dashboard", true)
         return
       }
 
@@ -561,6 +576,18 @@ export default function Auth() {
               ) : mode === "signin" ? "Sign In" : "Create Account"}
             </button>
 
+            {/* 🔓 FORGOT PASSWORD (only on sign in) */}
+            {mode === "signin" && (
+              <p className="text-right -mt-1">
+                <span
+                  onClick={() => { setMode("forgot-password"); setError(""); setForgotEmail(email); setResetSent(false) }}
+                  className="text-cyan-400/70 cursor-pointer hover:text-cyan-300 transition text-xs font-medium"
+                >
+                  Forgot Password?
+                </span>
+              </p>
+            )}
+
             {/* 🔄 SWITCH */}
             <p className="text-center text-gray-500 text-sm pt-1">
               {mode === "signin" ? (
@@ -587,6 +614,145 @@ export default function Auth() {
             </p>
 
           </form>
+        </div>
+      )}
+
+      {/* 🔓 FORGOT PASSWORD SCREEN */}
+      {mode === "forgot-password" && (
+        <div className="w-full max-w-md relative">
+          {/* Animated glow border */}
+          <div
+            className="absolute -inset-[1px] rounded-2xl"
+            style={{
+              background: 'linear-gradient(135deg, rgba(6,182,212,0.3), rgba(59,130,246,0.2), rgba(168,85,247,0.3), rgba(6,182,212,0.3))',
+              backgroundSize: '300% 300%',
+              animation: 'borderGlow 4s ease-in-out infinite',
+              filter: 'blur(1px)',
+            }}
+          />
+
+          <div className="relative bg-[#0d1117]/90 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl space-y-5">
+
+            {/* Icon */}
+            <div className="flex justify-center">
+              <div className="relative">
+                <div className="absolute -inset-3 bg-gradient-to-r from-amber-400/20 to-orange-400/20 rounded-full blur-lg animate-pulse" />
+                <div className="relative w-16 h-16 bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-full flex items-center justify-center border border-amber-500/30">
+                  <Lock className="w-8 h-8 text-amber-400" />
+                </div>
+              </div>
+            </div>
+
+            {/* Title */}
+            <h2 className="text-2xl font-bold text-center bg-gradient-to-r from-amber-400 via-orange-400 to-red-400 bg-clip-text text-transparent">
+              Reset Password
+            </h2>
+            <p className="text-center text-gray-500 text-sm -mt-2">
+              Enter your email to receive a password reset link
+            </p>
+
+            {/* Error */}
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-center gap-2">
+                <span className="text-red-400 text-sm">❌</span>
+                <p className="text-red-400 text-sm">{error}</p>
+              </div>
+            )}
+
+            {/* Success */}
+            {resetSent ? (
+              <div className="space-y-4">
+                <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4 text-center">
+                  <div className="text-3xl mb-2">📧✅</div>
+                  <p className="text-green-400 font-semibold text-sm">Password Reset Email Sent!</p>
+                  <p className="text-gray-400 text-xs mt-2">Check your inbox & spam folder for the reset link</p>
+                  <p className="text-cyan-400 text-sm font-medium mt-2">{forgotEmail}</p>
+                </div>
+
+                <div className="bg-amber-500/10 border border-amber-400/20 rounded-xl p-3">
+                  <p className="text-amber-300 text-xs text-center">📌 Click the link in the email → Set new password → Sign in</p>
+                </div>
+
+                <button
+                  onClick={() => { setMode("signin"); setError(""); setResetSent(false) }}
+                  className="w-full py-3.5 rounded-xl font-semibold text-sm text-black bg-gradient-to-r from-cyan-400 to-blue-500 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-cyan-500/20"
+                >
+                  ← Back to Sign In
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Email Input */}
+                <div className="relative">
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                  <input
+                    type="email"
+                    placeholder="Enter your registered email"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:border-amber-400/50 focus:bg-white/8 outline-none transition-all duration-300"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    required
+                  />
+                </div>
+
+                {/* Send Reset Button */}
+                <button
+                  onClick={async () => {
+                    const cleanEmail = forgotEmail.trim().toLowerCase()
+                    if (!cleanEmail) { setError("Please enter your email"); return }
+                    
+                    setLoading(true)
+                    setError("")
+                    
+                    try {
+                      // Check if user exists in Firestore
+                      const userSnap = await getDoc(doc(db, "users", cleanEmail))
+                      if (!userSnap.exists()) {
+                        setError("No account found with this email")
+                        setLoading(false)
+                        return
+                      }
+                      
+                      await sendPasswordResetEmail(auth, cleanEmail)
+                      setResetSent(true)
+                    } catch (err: any) {
+                      if (err.code === "auth/user-not-found") {
+                        setError("No account found with this email")
+                      } else if (err.code === "auth/too-many-requests") {
+                        setError("Too many requests. Please try again later.")
+                      } else if (err.code === "auth/invalid-email") {
+                        setError("Invalid email address")
+                      } else {
+                        setError("Failed to send reset email. Try again.")
+                      }
+                    }
+                    setLoading(false)
+                  }}
+                  disabled={loading}
+                  className="w-full py-3.5 rounded-xl font-semibold text-sm text-black bg-gradient-to-r from-amber-400 via-orange-500 to-red-500 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 shadow-lg shadow-amber-500/20"
+                >
+                  {loading ? (
+                    <span className="flex items-center justify-center gap-2 text-black">
+                      <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                      Sending...
+                    </span>
+                  ) : "📧 Send Reset Link"}
+                </button>
+
+                {/* Back to Sign In */}
+                <p className="text-center text-gray-500 text-sm">
+                  Remember your password?{" "}
+                  <span
+                    onClick={() => { setMode("signin"); setError(""); setResetSent(false) }}
+                    className="text-cyan-400 cursor-pointer hover:text-cyan-300 transition font-medium"
+                  >
+                    Sign in
+                  </span>
+                </p>
+              </div>
+            )}
+
+          </div>
         </div>
       )}
 

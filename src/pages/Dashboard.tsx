@@ -1,3 +1,4 @@
+import { getUser, setUser, removeUser } from "../lib/session"
 import { useEffect, useState } from "react"
 import { navigate } from "@/lib/router"
 import { db } from "../lib/firebase"
@@ -38,14 +39,14 @@ export default function Dashboard() {
   const [matrixAchieved, setMatrixAchieved] = useState(false)
   const [tripMilestone, setTripMilestone] = useState(false)
   
-  const email = localStorage.getItem("bharos_user")
+  const email = getUser()
 
 
 
   // Load extra dashboard data (team, rank, transactions, milestones)
   useEffect(() => {
     const loadExtras = async () => {
-      const email = localStorage.getItem("bharos_user")
+      const email = getUser()
       if (!email) return
 
       try {
@@ -105,8 +106,8 @@ export default function Dashboard() {
 
     const loadUser = async () => {
 
-      const email = localStorage.getItem("bharos_user")
-      if (!email) return navigate("/")
+      const email = getUser()
+      if (!email) return navigate("/", true)
 
       const ref = doc(db, "users", email)
       const snap = await getDoc(ref)

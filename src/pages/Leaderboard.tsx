@@ -1,23 +1,30 @@
+import { getUser, setUser, removeUser } from "../lib/session"
 import { useEffect, useState } from "react"
 import { db } from "../lib/firebase"
 import { collection, getDocs } from "firebase/firestore"
 import { navigate } from "../lib/router"
-import { Trophy, TrendingUp, Target, Award } from "lucide-react"
+import { Trophy, TrendingUp, Target, Award, ArrowLeft, Users, Crown, Medal } from "lucide-react"
 import Navbar from "@/components/Navbar"
 
 export default function Leaderboard() {
 
     const [referrers, setReferrers] = useState<any[]>([])
-    const [earners, setEarners] = useState<any[]>([])
     const [myReferrals, setMyReferrals] = useState(0)
+    const [myRank, setMyRank] = useState(0)
+    const [loading, setLoading] = useState(true)
 
     useEffect(() => {
+        const email = getUser()
+        if (!email) {
+            navigate("/auth", true)
+            return
+        }
         loadLeaderboard()
     }, [])
 
     const loadLeaderboard = async () => {
 
-        const email = localStorage.getItem("bharos_user")
+        const email = getUser()
 
         const snap = await getDocs(collection(db, "users"))
 
@@ -27,13 +34,7 @@ export default function Leaderboard() {
             users.push(doc.data())
         })
 
-        const topEarners =
-            [...users]
-                .sort((a, b) => (b.usdtBalance || 0) - (a.usdtBalance || 0))
-                .slice(0, 5)
-
-        setEarners(topEarners)
-
+        // Count active referrals per user
         const counts: any = {}
 
         users.forEach((u) => {
@@ -43,35 +44,46 @@ export default function Leaderboard() {
             }
         })
 
-        const refList = users.map((u) => ({
-            name: u.userName,
-            count: counts[u.referralCode] || 0
-        }))
+        const refList = users
+            .filter(u => u.status === "active")
+            .map((u) => ({
+                name: u.userName || "User",
+                count: counts[u.referralCode] || 0,
+                email: u.email
+            }))
+            .filter(u => u.count > 0)
 
         const topRef =
             refList
                 .sort((a, b) => b.count - a.count)
-                .slice(0, 5)
+                .slice(0, 10)
 
         setReferrers(topRef)
 
+        // My rank in referral leaderboard
         const myUser = users.find((u) => u.email === email)
 
         if (myUser) {
             const myCount = counts[myUser.referralCode] || 0
             setMyReferrals(myCount)
+
+            // Find my rank
+            const allSorted = refList.sort((a, b) => b.count - a.count)
+            const idx = allSorted.findIndex(u => u.email === email)
+            setMyRank(idx >= 0 ? idx + 1 : 0)
         }
 
+        setLoading(false)
     }
 
     const progress =
         Math.min((myReferrals / 500) * 100, 100)
 
-    const getMedal = (i: number) => {
-        if (i === 0) return <span className="text-yellow-400">1st</span>
-        if (i === 1) return <span className="text-gray-300">2nd</span>
-        if (i === 2) return <span className="text-amber-600">3rd</span>
-        return <span className="text-gray-500">{i + 1}th</span>
+    const getRankIcon = (i: number) => {
+        if (i === 0) return <Crown className="w-4 h-4 text-yellow-400" />
+        if (i === 1) return <Medal className="w-4 h-4 text-gray-300" />
+        if (i === 2) return <Medal className="w-4 h-4 text-amber-600" />
+        return <span className="text-xs text-gray-500 font-bold">{i + 1}</span>
     }
 
     const getRankBg = (i: number) => {
@@ -79,6 +91,17 @@ export default function Leaderboard() {
         if (i === 1) return "from-gray-400/10 to-gray-500/5 border-gray-400/20 hover:border-gray-300/30"
         if (i === 2) return "from-amber-700/10 to-orange-500/5 border-amber-600/20 hover:border-amber-500/30"
         return "from-white/5 to-white/[0.02] border-white/8 hover:border-white/15"
+    }
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-[#050816] flex items-center justify-center">
+                <div className="text-center">
+                    <div className="w-8 h-8 border-2 border-yellow-400/30 border-t-yellow-400 rounded-full animate-spin mx-auto mb-3" />
+                    <p className="text-gray-500 text-sm">Loading leaderboard...</p>
+                </div>
+            </div>
+        )
     }
 
     return (
@@ -94,9 +117,32 @@ export default function Leaderboard() {
                     <div className="p-2.5 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
                         <Trophy className="w-6 h-6 text-yellow-400" />
                     </div>
-                    <h1 className="text-3xl font-bold bg-gradient-to-r from-yellow-400 via-amber-400 to-orange-400 bg-clip-text text-transparent">
-                        Bharos Leaderboard
-                    </h1>
+                    <div>
+                        <h1 className="text-3xl font-bold bg-gradient-to-r from-yellow-400 via-amber-400 to-orange-400 bg-clip-text text-transparent">
+                            Bharos Leaderboard
+                        </h1>
+                        <p className="text-gray-500 text-sm mt-0.5">Top performers in the Bharos community</p>
+                    </div>
+                </div>
+
+                {/* MY STATS */}
+                <div className="grid grid-cols-2 gap-4 mb-8">
+                    <div className="relative">
+                        <div className="absolute -inset-[1px] bg-gradient-to-br from-cyan-500/15 to-blue-500/10 rounded-xl blur-sm" />
+                        <div className="relative bg-[#0d1117]/90 backdrop-blur-xl border border-white/10 rounded-xl p-4 text-center">
+                            <Users className="w-5 h-5 text-cyan-400 mx-auto mb-2" />
+                            <p className="text-2xl font-bold text-white">{myReferrals}</p>
+                            <p className="text-[10px] text-gray-500">My Referrals</p>
+                        </div>
+                    </div>
+                    <div className="relative">
+                        <div className="absolute -inset-[1px] bg-gradient-to-br from-yellow-500/15 to-amber-500/10 rounded-xl blur-sm" />
+                        <div className="relative bg-[#0d1117]/90 backdrop-blur-xl border border-white/10 rounded-xl p-4 text-center">
+                            <Trophy className="w-5 h-5 text-yellow-400 mx-auto mb-2" />
+                            <p className="text-2xl font-bold text-white">#{myRank || '—'}</p>
+                            <p className="text-[10px] text-gray-500">My Rank</p>
+                        </div>
+                    </div>
                 </div>
 
                 {/* TOP REFERRERS */}
@@ -106,57 +152,34 @@ export default function Leaderboard() {
                         <h2 className="text-xl font-semibold text-yellow-400">Top Referrers</h2>
                     </div>
 
-                    <div className="space-y-2.5">
-                        {referrers.map((item: any, i: number) => (
-                            <div
-                                key={i}
-                                className={`p-4 rounded-xl flex justify-between items-center
-                                bg-gradient-to-r ${getRankBg(i)} border
-                                backdrop-blur-xl transition-all duration-300 hover:scale-[1.01]`}
-                            >
-                                <div className="flex items-center gap-3.5">
-                                    <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-sm font-bold">
-                                        {getMedal(i)}
+                    {referrers.length === 0 ? (
+                        <div className="text-center py-12">
+                            <Users className="w-10 h-10 text-gray-600 mx-auto mb-3" />
+                            <p className="text-gray-500 text-sm">No referrers yet. Be the first!</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-2.5">
+                            {referrers.map((item: any, i: number) => (
+                                <div
+                                    key={i}
+                                    className={`p-4 rounded-xl flex justify-between items-center
+                                    bg-gradient-to-r ${getRankBg(i)} border
+                                    backdrop-blur-xl transition-all duration-300 hover:scale-[1.01]`}
+                                >
+                                    <div className="flex items-center gap-3.5">
+                                        <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+                                            {getRankIcon(i)}
+                                        </div>
+                                        <span className="font-medium text-white">{item.name}</span>
                                     </div>
-                                    <span className="font-medium text-white">{item.name}</span>
+
+                                    <span className="font-bold text-yellow-400 text-sm">
+                                        {item.count} referrals
+                                    </span>
                                 </div>
-
-                                <span className="font-bold text-yellow-400 text-sm">
-                                    {item.count} referrals
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* TOP EARNERS */}
-                <div className="mb-12">
-                    <div className="flex items-center gap-2 mb-5">
-                        <Award className="w-5 h-5 text-green-400" />
-                        <h2 className="text-xl font-semibold text-green-400">Top Earners</h2>
-                    </div>
-
-                    <div className="space-y-2.5">
-                        {earners.map((item: any, i: number) => (
-                            <div
-                                key={i}
-                                className={`p-4 rounded-xl flex justify-between items-center
-                                bg-gradient-to-r ${getRankBg(i)} border
-                                backdrop-blur-xl transition-all duration-300 hover:scale-[1.01]`}
-                            >
-                                <div className="flex items-center gap-3.5">
-                                    <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-sm font-bold">
-                                        {getMedal(i)}
-                                    </div>
-                                    <span className="font-medium text-white">{item.userName}</span>
-                                </div>
-
-                                <span className="font-bold text-green-400 text-sm">
-                                    ${Number(item.usdtBalance || 0).toFixed(2)}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 {/* LEADER PROGRAM */}
@@ -201,9 +224,10 @@ export default function Leaderboard() {
 
                 <button
                     onClick={() => navigate("/dashboard")}
-                    className="mt-8 px-6 py-2.5 rounded-xl font-medium text-sm text-gray-400 border border-white/10 bg-white/5 hover:bg-white/8 hover:text-white hover:border-cyan-500/30 transition-all"
+                    className="mt-8 px-6 py-2.5 rounded-xl font-medium text-sm text-gray-400 border border-white/10 bg-white/5 hover:bg-white/8 hover:text-white hover:border-cyan-500/30 transition-all flex items-center gap-2"
                 >
-                    ← Back to Dashboard
+                    <ArrowLeft className="w-4 h-4" />
+                    Back to Dashboard
                 </button>
 
             </div>

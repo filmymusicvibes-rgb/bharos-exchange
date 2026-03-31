@@ -1,5 +1,5 @@
 {
-  "name": "vite-react-ts-template",
+  "name": "bharos-exchange",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -11,8 +11,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@lumi.new/sdk": "0.4.3-beta.3",
-    "@unhead/react": "2.1.2",
     "firebase": "^12.10.0",
     "framer-motion": "12.23.11",
     "lucide-react": "0.540.0",

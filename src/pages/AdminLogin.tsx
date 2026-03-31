@@ -1,3 +1,4 @@
+import { getUser, setUser, removeUser } from "../lib/session"
 import { useState } from "react"
 import { db } from "../lib/firebase"
 import { doc, getDoc } from "firebase/firestore"
@@ -42,7 +43,7 @@ export default function AdminLogin() {
       }
 
       // ✅ Admin verified — login
-      localStorage.setItem("bharos_user", adminData.userEmail || cleanEmail)
+      setUser(adminData.userEmail || cleanEmail)
       window.location.href = "/admin"
 
     } catch (err: any) {

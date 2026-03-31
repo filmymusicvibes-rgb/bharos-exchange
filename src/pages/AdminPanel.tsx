@@ -1,3 +1,4 @@
+import { getUser, setUser, removeUser } from "../lib/session"
 import { useEffect, useState } from "react"
 import { navigate } from "../lib/router"
 import { db } from "../lib/firebase"
@@ -29,11 +30,11 @@ export default function AdminPanel() {
   useEffect(() => {
     const checkAdmin = async () => {
 
-      const email = localStorage.getItem("bharos_user")
+      const email = getUser()
 
       if (!email) {
         alert("Please login")
-        navigate("/auth")
+        navigate("/auth", true)
         return
       }
 
@@ -51,11 +52,11 @@ export default function AdminPanel() {
             await loadTripUsers()
           } else {
             alert("Access denied")
-            navigate("/dashboard")
+            navigate("/dashboard", true)
           }
         } else {
           alert("User not found")
-          navigate("/auth")
+          navigate("/auth", true)
         }
 
       } catch (err) {
