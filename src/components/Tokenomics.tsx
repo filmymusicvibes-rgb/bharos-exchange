@@ -292,37 +292,34 @@ function Tokenomics() {
           </div>
         </div>
 
-        {/* ─── Staking CTA ─── */}
+        {/* ─── Staking CTA (Coming Soon — Phase 4) ─── */}
         <div className={`mt-16 transition-all duration-1000 ${
           burnVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
         }`} style={{ transitionDelay: '700ms' }}>
-          <div className="relative overflow-hidden bg-gradient-to-r from-[#0d1b3e] to-[#132044] border border-cyan-500/20 rounded-2xl p-8 lg:p-10">
+          <div className="relative overflow-hidden bg-gradient-to-r from-[#0d1b3e] to-[#132044] border border-white/10 rounded-2xl p-8 lg:p-10">
             {/* Background decoration */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-cyan-500/10 to-transparent rounded-full blur-3xl" />
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-green-500/10 to-transparent rounded-full blur-3xl" />
+            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-cyan-500/5 to-transparent rounded-full blur-3xl" />
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-purple-500/5 to-transparent rounded-full blur-3xl" />
 
             <div className="relative z-10 flex flex-col lg:flex-row items-center gap-8">
               <div className="flex-1 text-center lg:text-left">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20 mb-4">
-                  <Lock size={14} className="text-green-400" />
-                  <span className="text-green-400 text-xs font-medium">Staking Live</span>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 mb-4">
+                  <Lock size={14} className="text-amber-400" />
+                  <span className="text-amber-400 text-xs font-medium">Coming in Phase 4</span>
                 </div>
                 <h3 className="text-2xl sm:text-3xl font-bold text-white mb-3">
                   Stake BRS, Earn Rewards
                 </h3>
-                <p className="text-gray-300 leading-relaxed max-w-xl">
+                <p className="text-gray-400 leading-relaxed max-w-xl">
                   Lock your BRS tokens in the Staking Pool and earn proportional daily rewards.
                   20% of total supply is allocated exclusively for staking distributions.
                   The longer you stake, the more you earn.
                 </p>
               </div>
-              <a
-                href="/staking"
-                className="shrink-0 inline-flex items-center gap-2 px-8 py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold rounded-xl hover:from-cyan-400 hover:to-blue-500 transition-all duration-300 shadow-lg shadow-cyan-500/25 hover:shadow-cyan-400/40 hover:scale-105 group"
-              >
-                Start Staking
-                <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-              </a>
+              <div className="shrink-0 inline-flex items-center gap-2 px-8 py-3.5 bg-white/5 border border-white/10 text-gray-500 font-semibold rounded-xl cursor-not-allowed select-none">
+                <Lock size={16} />
+                <span>Phase 4 • 20,000 Users</span>
+              </div>
             </div>
           </div>
         </div>
