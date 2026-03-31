@@ -20,9 +20,9 @@ export default function TransferBRS() {
             return
         }
 
-        const receiverInput = userId.trim()
-        if (!receiverInput) {
-            alert("Enter valid receiver referral code")
+        const receiverInput = userId.trim().toLowerCase()
+        if (!receiverInput || !receiverInput.includes("@")) {
+            alert("Enter a valid email address")
             return
         }
 
@@ -55,25 +55,18 @@ export default function TransferBRS() {
                 return
             }
 
-            const usersSnap = await getDocs(collection(db, "users"))
+            // Direct lookup by email (Firestore doc ID = email)
+            const receiverRef = doc(db, "users", receiverInput)
+            const receiverSnap = await getDoc(receiverRef)
 
-            let receiverUser: any = null
-
-            usersSnap.forEach((doc) => {
-                const d: any = doc.data()
-
-                if (d.referralCode === receiverInput) {
-                    receiverUser = d
-                }
-            })
-
-            if (!receiverUser) {
-                alert("Receiver not found")
+            if (!receiverSnap.exists()) {
+                alert("Receiver not found — check email address")
                 setLoading(false)
                 return
             }
 
-            const receiverEmail = receiverUser.email
+            const receiverUser: any = receiverSnap.data()
+            const receiverEmail = receiverInput
 
             if (senderEmail === receiverEmail) {
                 alert("You cannot send to yourself")
@@ -167,13 +160,13 @@ export default function TransferBRS() {
 
                         {/* RECEIVER */}
                         <div>
-                            <label className="text-xs text-gray-400 mb-1.5 block font-medium">Receiver Referral Code</label>
+                            <label className="text-xs text-gray-400 mb-1.5 block font-medium">Receiver Email Address</label>
                             <div className="relative">
-                                <Hash className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                                <Shield className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                                 <input
                                     value={userId}
                                     onChange={(e) => setUserId(e.target.value)}
-                                    placeholder="e.g. REF123456"
+                                    placeholder="e.g. user@gmail.com"
                                     className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:border-yellow-400/50 focus:bg-white/8 outline-none transition-all duration-300"
                                 />
                             </div>

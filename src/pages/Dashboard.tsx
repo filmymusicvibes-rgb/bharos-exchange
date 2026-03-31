@@ -427,10 +427,10 @@ export default function Dashboard() {
 
                 <div className="flex gap-3">
                   <button
-                    onClick={() => navigate("/withdraw-brs")}
-                    className="flex-1 py-3 rounded-xl font-medium text-sm text-amber-400 border border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/15 transition-all"
+                    disabled
+                    className="flex-1 py-3 rounded-xl font-medium text-sm text-gray-500 border border-white/10 bg-white/[0.03] cursor-not-allowed opacity-50"
                   >
-                    Withdraw BRS
+                    🔒 Withdraw (Phase 3)
                   </button>
                   <button
                     onClick={() => navigate("/transfer")}
