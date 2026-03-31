@@ -3,7 +3,7 @@ import { useEffect, useState } from "react"
 import { navigate } from "@/lib/router"
 import { db } from "../lib/firebase"
 import { doc, getDoc, updateDoc, addDoc, collection, getDocs, query, where, orderBy, limit } from "firebase/firestore"
-import { Users, Trophy, ArrowUpRight, ArrowDownLeft, Activity, Target, Grid3X3, Plane, ChevronRight, User, Coins } from "lucide-react"
+import { Users, Trophy, ArrowUpRight, ArrowDownLeft, Activity, Target, Grid3X3, Plane, ChevronRight, User, Coins, Copy, Share2, MessageCircle, Send, Check } from "lucide-react"
 
 import Navbar from "../components/Navbar"
 import LoginPopup from "../components/LoginPopup"
@@ -192,9 +192,38 @@ export default function Dashboard() {
 
   }, [])
 
+  const [copied, setCopied] = useState(false)
+
+  const shareMessage = `🚀 Join Bharos Exchange — India's Trusted Crypto Platform!\n\n🪙 Get FREE 150 BRS Coins on signup\n💰 Earn USDT through referrals\n🔥 BRS Coin live on BSC Mainnet\n\n👉 Sign up now: ${referralLink}`
+
   const copyReferral = () => {
     navigator.clipboard.writeText(referralLink)
-    alert("Copied")
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const shareWhatsApp = () => {
+    window.open(`https://wa.me/?text=${encodeURIComponent(shareMessage)}`, '_blank')
+  }
+
+  const shareTelegram = () => {
+    window.open(`https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('🚀 Join Bharos Exchange — Get FREE 150 BRS Coins!')}`, '_blank')
+  }
+
+  const shareNative = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Join Bharos Exchange',
+          text: '🚀 Get FREE 150 BRS Coins on signup! Join now:',
+          url: referralLink
+        })
+      } catch (err) {
+        copyReferral()
+      }
+    } else {
+      copyReferral()
+    }
   }
 
   if (loading) {
@@ -484,24 +513,69 @@ export default function Dashboard() {
               )}
           </div>
 
-          {/* REFERRAL */}
+          {/* REFERRAL & SHARE */}
           <div className="relative mb-6">
             <div className="absolute -inset-[1px] bg-gradient-to-r from-yellow-500/10 to-amber-500/10 rounded-xl blur-sm" />
             <div className="relative bg-[#0d1117]/90 backdrop-blur-xl border border-white/10 rounded-xl p-5">
-              <p className="text-xs text-yellow-400 font-medium mb-2.5">Referral Link</p>
-              <div className="flex gap-2">
+              
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs text-yellow-400 font-medium">Your Referral Link</p>
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/20">
+                  <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+                  <span className="text-[10px] text-green-400 font-medium">Active</span>
+                </div>
+              </div>
+
+              {/* Referral Link Input */}
+              <div className="flex gap-2 mb-4">
                 <input
                   value={referralLink}
                   readOnly
-                  className="flex-1 px-3 py-2.5 bg-white/5 border border-white/10 text-white text-xs rounded-xl font-mono"
+                  className="flex-1 px-3 py-2.5 bg-white/5 border border-white/10 text-white text-xs rounded-xl font-mono truncate"
                 />
                 <button
                   onClick={copyReferral}
-                  className="px-5 py-2.5 rounded-xl text-sm font-semibold text-black bg-gradient-to-r from-cyan-400 to-blue-500 hover:scale-105 transition-all shadow-lg shadow-cyan-500/20"
+                  className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center gap-1.5 ${
+                    copied 
+                      ? 'bg-green-500 text-white shadow-lg shadow-green-500/20' 
+                      : 'text-black bg-gradient-to-r from-cyan-400 to-blue-500 hover:scale-105 shadow-lg shadow-cyan-500/20'
+                  }`}
                 >
-                  Copy
+                  {copied ? <><Check className="w-3.5 h-3.5" /> Copied!</> : <><Copy className="w-3.5 h-3.5" /> Copy</>}
                 </button>
               </div>
+
+              {/* Share Buttons */}
+              <p className="text-[10px] text-gray-500 mb-2.5 uppercase tracking-wider font-semibold">Share & Invite Friends</p>
+              <div className="grid grid-cols-3 gap-2">
+                {/* WhatsApp */}
+                <button
+                  onClick={shareWhatsApp}
+                  className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-green-500/10 border border-green-500/20 hover:bg-green-500/20 hover:border-green-500/40 transition-all group"
+                >
+                  <MessageCircle className="w-4 h-4 text-green-400 group-hover:scale-110 transition-transform" />
+                  <span className="text-xs text-green-400 font-medium">WhatsApp</span>
+                </button>
+
+                {/* Telegram */}
+                <button
+                  onClick={shareTelegram}
+                  className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 hover:border-blue-500/40 transition-all group"
+                >
+                  <Send className="w-4 h-4 text-blue-400 group-hover:scale-110 transition-transform" />
+                  <span className="text-xs text-blue-400 font-medium">Telegram</span>
+                </button>
+
+                {/* Share */}
+                <button
+                  onClick={shareNative}
+                  className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/20 hover:border-purple-500/40 transition-all group"
+                >
+                  <Share2 className="w-4 h-4 text-purple-400 group-hover:scale-110 transition-transform" />
+                  <span className="text-xs text-purple-400 font-medium">Share</span>
+                </button>
+              </div>
+
             </div>
           </div>
 
