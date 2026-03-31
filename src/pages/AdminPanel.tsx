@@ -82,6 +82,21 @@ export default function AdminPanel() {
       list.push({ id: d.id, ...d.data() })
     })
 
+    // Fetch user names for each deposit
+    const userNames: Record<string, string> = {}
+    for (const dep of list) {
+      if (dep.userId && !userNames[dep.userId]) {
+        try {
+          const userSnap = await getDoc(doc(db, "users", dep.userId))
+          if (userSnap.exists()) {
+            const userData: any = userSnap.data()
+            userNames[dep.userId] = userData.fullName || userData.userName || ''
+          }
+        } catch { }
+      }
+      dep.userName = userNames[dep.userId] || ''
+    }
+
     const getTime = (t: any) =>
       t?.seconds ? t.seconds * 1000 : 0
 
@@ -411,6 +426,7 @@ export default function AdminPanel() {
             <div key={d.id} className="bg-[#1a1a2e] p-6 mb-4 rounded-xl">
 
               <p>User: {d.userId}</p>
+              {d.userName && <p className="text-cyan-300 font-semibold">Name: {d.userName}</p>}
               <p>Amount: {d.amount} USDT</p>
               <p className="text-sm break-all">TXID: {d.txHash}</p>
 

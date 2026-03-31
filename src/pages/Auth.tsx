@@ -482,7 +482,7 @@ export default function Auth() {
                 <Shield className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                 <input
                   type="text"
-                  placeholder="Full Name (Optional)"
+                  placeholder="Full Name"
                   className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:border-cyan-400/50 focus:bg-white/8 outline-none transition-all duration-300"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
@@ -496,7 +496,7 @@ export default function Auth() {
                 <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                 <input
                   type="tel"
-                  placeholder="Phone Number (Optional)"
+                  placeholder="Phone Number"
                   className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:border-cyan-400/50 focus:bg-white/8 outline-none transition-all duration-300"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
