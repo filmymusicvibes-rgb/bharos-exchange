@@ -9,7 +9,9 @@ import {
   updateDoc,
   getDoc,
   increment,
-  serverTimestamp
+  serverTimestamp,
+  addDoc,
+  deleteDoc
 } from "firebase/firestore"
 
 import AdminStats from "./AdminStats"
@@ -17,7 +19,13 @@ import { logTransaction, runFullActivation } from "../lib/commission"
 
 export default function AdminPanel() {
 
-  const [activeTab, setActiveTab] = useState<"deposits" | "withdraws" | "trips" | "brsWithdraws">("deposits")
+  const [activeTab, setActiveTab] = useState<"deposits" | "withdraws" | "trips" | "brsWithdraws" | "announcements">("deposits")
+
+  // Announcement states
+  const [announcements, setAnnouncements] = useState<any[]>([])
+  const [annTitle, setAnnTitle] = useState("")
+  const [annMessage, setAnnMessage] = useState("")
+  const [annType, setAnnType] = useState<"info" | "warning" | "promo" | "update">("info")
 
   const [deposits, setDeposits] = useState<any[]>([])
   const [withdraws, setWithdraws] = useState<any[]>([])
@@ -207,6 +215,21 @@ export default function AdminPanel() {
     setTripUsers(list)
   }
 
+  // LOAD ANNOUNCEMENTS
+  const loadAnnouncements = async () => {
+    try {
+      const snap = await getDocs(collection(db, "announcements"))
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      list.sort((a: any, b: any) => {
+        const tA = a.createdAt?.seconds || 0
+        const tB = b.createdAt?.seconds || 0
+        return tB - tA
+      })
+      setAnnouncements(list)
+    } catch (err) {
+      console.log("No announcements yet")
+    }
+  }
   // Commission logic is now in shared module: src/lib/commission.ts
 
   // APPROVE DEPOSIT (OPTIMIZED — uses shared commission engine)
@@ -455,6 +478,17 @@ export default function AdminPanel() {
           }`}
         >
           🪙 BRS Withdrawals
+        </button>
+
+        <button
+          onClick={() => { setActiveTab("announcements"); loadAnnouncements() }}
+          className={`px-4 py-2 rounded ${
+            activeTab === "announcements"
+              ? "bg-pink-500 text-white font-bold"
+              : "bg-gray-700"
+          }`}
+        >
+          📢 Announcements
         </button>
 
       </div>
@@ -739,6 +773,127 @@ export default function AdminPanel() {
               )}
             </div>
           ))}
+        </>
+      )}
+
+      {/* ANNOUNCEMENTS TAB */}
+      {activeTab === "announcements" && (
+        <>
+          <h1 className="text-3xl mb-6 font-bold">📢 Manage Announcements</h1>
+
+          {/* Create New */}
+          <div className="bg-[#1a1a2e] p-6 mb-6 rounded-xl border border-pink-500/20">
+            <h3 className="text-lg font-bold text-pink-400 mb-4">➕ Create Announcement</h3>
+            <div className="space-y-3">
+              <input
+                value={annTitle}
+                onChange={(e) => setAnnTitle(e.target.value)}
+                placeholder="Title (e.g. Phase 2 Launch!)"
+                className="w-full p-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500"
+              />
+              <textarea
+                value={annMessage}
+                onChange={(e) => setAnnMessage(e.target.value)}
+                placeholder="Message (e.g. Exciting news! BRS trading goes live...)"
+                rows={3}
+                className="w-full p-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500 resize-none"
+              />
+              <div className="flex gap-2">
+                {(["info", "warning", "promo", "update"] as const).map(type => (
+                  <button
+                    key={type}
+                    onClick={() => setAnnType(type)}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                      annType === type
+                        ? type === 'info' ? 'bg-blue-500 text-white'
+                          : type === 'warning' ? 'bg-orange-500 text-white'
+                          : type === 'promo' ? 'bg-purple-500 text-white'
+                          : 'bg-green-500 text-white'
+                        : 'bg-gray-700 text-gray-400'
+                    }`}
+                  >
+                    {type === 'info' ? 'ℹ️ Info' : type === 'warning' ? '⚠️ Alert' : type === 'promo' ? '🎁 Promo' : '🚀 Update'}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={async () => {
+                  if (!annTitle.trim() || !annMessage.trim()) { alert('Fill title and message'); return }
+                  try {
+                    await addDoc(collection(db, "announcements"), {
+                      title: annTitle.trim(),
+                      message: annMessage.trim(),
+                      type: annType,
+                      active: true,
+                      createdAt: serverTimestamp(),
+                    })
+                    setAnnTitle('')
+                    setAnnMessage('')
+                    alert('✅ Announcement posted!')
+                    loadAnnouncements()
+                  } catch (err) {
+                    alert('Error posting announcement')
+                  }
+                }}
+                className="w-full py-3 bg-gradient-to-r from-pink-500 to-purple-600 rounded-lg font-bold text-white hover:scale-[1.02] transition-all"
+              >
+                📢 Post Announcement
+              </button>
+            </div>
+          </div>
+
+          {/* List */}
+          {announcements.map((ann) => (
+            <div key={ann.id} className={`p-5 mb-3 rounded-xl border ${
+              ann.active ? 'bg-[#1a1a2e] border-green-500/20' : 'bg-[#0f0f1a] border-gray-700/30 opacity-50'
+            }`}>
+              <div className="flex justify-between items-start">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h4 className="font-bold text-white">{ann.title}</h4>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      ann.type === 'info' ? 'bg-blue-500/20 text-blue-400'
+                        : ann.type === 'warning' ? 'bg-orange-500/20 text-orange-400'
+                        : ann.type === 'promo' ? 'bg-purple-500/20 text-purple-400'
+                        : 'bg-green-500/20 text-green-400'
+                    }`}>{ann.type}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      ann.active ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                    }`}>{ann.active ? '🟢 Live' : '🔴 Off'}</span>
+                  </div>
+                  <p className="text-sm text-gray-400">{ann.message}</p>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <button
+                    onClick={async () => {
+                      await updateDoc(doc(db, "announcements", ann.id), { active: !ann.active })
+                      loadAnnouncements()
+                    }}
+                    className={`px-3 py-1.5 rounded text-xs font-bold ${
+                      ann.active ? 'bg-orange-500 text-white' : 'bg-green-500 text-white'
+                    }`}
+                  >
+                    {ann.active ? '⏸ Disable' : '▶️ Enable'}
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (confirm('Delete this announcement?')) {
+                        await deleteDoc(doc(db, "announcements", ann.id))
+                        loadAnnouncements()
+                      }
+                    }}
+                    className="px-3 py-1.5 rounded text-xs font-bold bg-red-500 text-white"
+                  >
+                    🗑 Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {announcements.length === 0 && (
+            <p className="text-gray-500 text-center py-8">No announcements yet. Create your first one above!</p>
+          )}
         </>
       )}
 
