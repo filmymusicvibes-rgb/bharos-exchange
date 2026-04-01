@@ -901,7 +901,7 @@ export default function Dashboard() {
                     ctx.shadowBlur = 0
 
                     // ═══ BENEFITS SECTION ═══
-                    const benefitsY = memberY + 225
+                    const benefitsY = memberY + 220
 
                     // Section divider
                     const divGrad = ctx.createLinearGradient(80, 0, W - 80, 0)
@@ -913,69 +913,54 @@ export default function Dashboard() {
                     ctx.strokeStyle = divGrad
                     ctx.lineWidth = 1.5
                     ctx.beginPath()
-                    ctx.moveTo(80, benefitsY - 18)
-                    ctx.lineTo(W - 80, benefitsY - 18)
+                    ctx.moveTo(80, benefitsY - 15)
+                    ctx.lineTo(W - 80, benefitsY - 15)
                     ctx.stroke()
 
                     ctx.fillStyle = '#fbbf24'
                     ctx.font = '800 15px system-ui'
+                    ctx.textAlign = 'center'
                     ctx.fillText('★  W H Y   J O I N   B H A R O S ?  ★', cx, benefitsY + 8)
 
                     const benefits = [
-                      { icon: '🪙', title: '150 BRS Welcome Bonus', desc: 'Free BRS coins on signup', color: '#fbbf24' },
-                      { icon: '📈', title: 'Staking Rewards', desc: 'Earn daily passive income', color: '#10b981' },
-                      { icon: '👥', title: '12-Level Referral Income', desc: 'Earn from 12 levels deep', color: '#8b5cf6' },
-                      { icon: '🎰', title: 'Daily Spin & Rewards', desc: 'Win BRS coins every day', color: '#ef4444' },
-                      { icon: '🌍', title: 'International Trips', desc: 'Win free trips abroad', color: '#06b6d4' },
-                      { icon: '💹', title: 'Bharos Futures', desc: 'Trade crypto futures', color: '#ec4899' },
-                      { icon: '🏆', title: 'Leaderboard & Badges', desc: 'Compete & earn badges', color: '#f59e0b' },
-                      { icon: '🔒', title: 'Bank-Grade Security', desc: 'Assets protected 24/7', color: '#6366f1' },
+                      { icon: '🪙', title: '150 BRS Welcome Bonus', desc: 'Free BRS coins on signup' },
+                      { icon: '📈', title: 'Staking Rewards', desc: 'Earn daily passive income on your BRS' },
+                      { icon: '👥', title: '12-Level Referral Income', desc: 'Earn commissions from 12 levels deep' },
+                      { icon: '🎰', title: 'Daily Spin & Rewards', desc: 'Win BRS coins every single day' },
+                      { icon: '🌍', title: 'International Trip Rewards', desc: 'Build your team & win free trips abroad' },
+                      { icon: '💹', title: 'Bharos Futures Trading', desc: 'Trade crypto futures with low fees' },
+                      { icon: '🏆', title: 'Leaderboard & Badges', desc: 'Compete for top spots & earn badges' },
+                      { icon: '🔒', title: 'Bank-Grade Security', desc: 'Your assets are fully protected 24/7' },
                     ]
 
-                    // 2-column centered layout
-                    const colW = 420
-                    const totalW = colW * 2 + 40
-                    const startX = (W - totalW) / 2
-
+                    // Clean single-column centered list
+                    const listX = 160
                     benefits.forEach((b, i) => {
-                      const isRight = i >= 4
-                      const row = isRight ? i - 4 : i
-                      const colX = isRight ? startX + colW + 40 : startX
-                      const y = benefitsY + 40 + row * 62
+                      const y = benefitsY + 38 + i * 44
 
-                      // Icon circle
-                      ctx.fillStyle = b.color + '10'
-                      ctx.beginPath()
-                      ctx.arc(colX + 18, y + 10, 18, 0, Math.PI * 2)
-                      ctx.fill()
-                      ctx.strokeStyle = b.color + '30'
-                      ctx.lineWidth = 1.5
-                      ctx.stroke()
-
-                      ctx.font = '18px system-ui'
-                      ctx.textAlign = 'center'
-                      ctx.fillText(b.icon, colX + 18, y + 17)
-
-                      // Title
+                      // Emoji icon
+                      ctx.font = '20px system-ui'
                       ctx.textAlign = 'left'
-                      ctx.fillStyle = '#ffffff'
-                      ctx.font = '700 15px system-ui'
-                      ctx.fillText(b.title, colX + 44, y + 5)
+                      ctx.fillText(b.icon, listX, y + 6)
 
-                      // Description
+                      // Title — bold white
+                      ctx.fillStyle = '#ffffff'
+                      ctx.font = '700 17px system-ui'
+                      ctx.fillText(b.title, listX + 34, y)
+
+                      // Description — subtle
                       ctx.fillStyle = 'rgba(255,255,255,0.35)'
-                      ctx.font = '400 12px system-ui'
-                      ctx.fillText(b.desc, colX + 44, y + 22)
+                      ctx.font = '400 13px system-ui'
+                      ctx.fillText(b.desc, listX + 34, y + 19)
                     })
 
                     // ═══ CTA BUTTON — right below benefits ═══
-                    const lastBenefitY = benefitsY + 40 + 3 * 66 // bottom of 4th row
-                    const ctaY = lastBenefitY + 65
+                    const lastItemY = benefitsY + 38 + 7 * 44
+                    const ctaY = lastItemY + 50
                     const ctaW2 = 650
-                    const ctaH2 = 72
+                    const ctaH2 = 68
                     const ctaX2 = cx - ctaW2 / 2
 
-                    // Button gradient
                     const btnGrad = ctx.createLinearGradient(ctaX2, ctaY, ctaX2 + ctaW2, ctaY)
                     btnGrad.addColorStop(0, '#7c3aed')
                     btnGrad.addColorStop(0.3, '#8b5cf6')
@@ -984,78 +969,81 @@ export default function Dashboard() {
                     btnGrad.addColorStop(1, '#f59e0b')
                     ctx.fillStyle = btnGrad
                     ctx.shadowColor = 'rgba(139, 92, 246, 0.5)'
-                    ctx.shadowBlur = 30
+                    ctx.shadowBlur = 25
                     ctx.beginPath()
-                    ctx.roundRect(ctaX2, ctaY, ctaW2, ctaH2, 22)
+                    ctx.roundRect(ctaX2, ctaY, ctaW2, ctaH2, 20)
                     ctx.fill()
                     ctx.shadowBlur = 0
 
                     ctx.fillStyle = '#ffffff'
-                    ctx.font = '900 24px system-ui'
+                    ctx.font = '900 22px system-ui'
                     ctx.textAlign = 'center'
-                    ctx.fillText('🚀  Join Now & Start Earning!', cx, ctaY + 46)
+                    ctx.fillText('🚀  Join Now & Start Earning!', cx, ctaY + 43)
 
                     // ═══ COMING SOON — App Stores ═══
-                    const storeY = ctaY + ctaH2 + 50
+                    const storeY = ctaY + ctaH2 + 40
 
                     ctx.fillStyle = 'rgba(255,255,255,0.3)'
-                    ctx.font = '600 14px system-ui'
+                    ctx.font = '600 13px system-ui'
                     ctx.fillText('C O M I N G   S O O N', cx, storeY)
 
-                    // Play Store badge
-                    const badgeW = 180
-                    const badgeH = 52
-                    const gap = 20
+                    const badgeW = 170
+                    const badgeH = 48
+                    const gap = 16
                     const playX = cx - badgeW - gap / 2
                     const appX = cx + gap / 2
-                    const badgeY = storeY + 18
+                    const badgeY2 = storeY + 15
 
                     // Play Store
                     ctx.fillStyle = 'rgba(255,255,255,0.06)'
                     ctx.beginPath()
-                    ctx.roundRect(playX, badgeY, badgeW, badgeH, 12)
+                    ctx.roundRect(playX, badgeY2, badgeW, badgeH, 10)
                     ctx.fill()
                     ctx.strokeStyle = 'rgba(255,255,255,0.12)'
                     ctx.lineWidth = 1
                     ctx.stroke()
-
-                    ctx.fillStyle = 'rgba(255,255,255,0.5)'
-                    ctx.font = '400 10px system-ui'
-                    ctx.textAlign = 'center'
-                    ctx.fillText('GET IT ON', playX + badgeW / 2, badgeY + 18)
+                    ctx.fillStyle = 'rgba(255,255,255,0.45)'
+                    ctx.font = '400 9px system-ui'
+                    ctx.fillText('GET IT ON', playX + badgeW / 2, badgeY2 + 16)
                     ctx.fillStyle = '#ffffff'
-                    ctx.font = '700 16px system-ui'
-                    ctx.fillText('▶ Google Play', playX + badgeW / 2, badgeY + 38)
+                    ctx.font = '700 15px system-ui'
+                    ctx.fillText('▶ Google Play', playX + badgeW / 2, badgeY2 + 35)
 
                     // App Store
                     ctx.fillStyle = 'rgba(255,255,255,0.06)'
                     ctx.beginPath()
-                    ctx.roundRect(appX, badgeY, badgeW, badgeH, 12)
+                    ctx.roundRect(appX, badgeY2, badgeW, badgeH, 10)
                     ctx.fill()
                     ctx.strokeStyle = 'rgba(255,255,255,0.12)'
                     ctx.lineWidth = 1
                     ctx.stroke()
-
-                    ctx.fillStyle = 'rgba(255,255,255,0.5)'
-                    ctx.font = '400 10px system-ui'
-                    ctx.fillText('DOWNLOAD ON', appX + badgeW / 2, badgeY + 18)
+                    ctx.fillStyle = 'rgba(255,255,255,0.45)'
+                    ctx.font = '400 9px system-ui'
+                    ctx.fillText('DOWNLOAD ON', appX + badgeW / 2, badgeY2 + 16)
                     ctx.fillStyle = '#ffffff'
-                    ctx.font = '700 16px system-ui'
-                    ctx.fillText(' App Store', appX + badgeW / 2, badgeY + 38)
+                    ctx.font = '700 15px system-ui'
+                    ctx.fillText(' App Store', appX + badgeW / 2, badgeY2 + 35)
 
-                    // ═══ FOOTER ═══
+                    // ═══ FOOTER — tight, no wasted space ═══
+                    const footerY = badgeY2 + badgeH + 30
                     ctx.fillStyle = 'rgba(255,255,255,0.25)'
-                    ctx.font = '500 14px system-ui'
-                    ctx.textAlign = 'center'
-                    ctx.fillText('bharosexchange.com  •  © 2026 Bharos Exchange', cx, H - 55)
-
+                    ctx.font = '500 13px system-ui'
+                    ctx.fillText('bharosexchange.com  •  © 2026 Bharos Exchange', cx, footerY)
                     ctx.fillStyle = 'rgba(255,255,255,0.15)'
-                    ctx.font = '400 12px system-ui'
-                    ctx.fillText('Scan the QR code or use the referral code to register & earn', cx, H - 30)
+                    ctx.font = '400 11px system-ui'
+                    ctx.fillText('Scan the QR code or use the referral code to register & earn', cx, footerY + 22)
+
+                    // ═══ RESIZE CANVAS to actual content height ═══
+                    const finalH = footerY + 45
+                    const trimmed = document.createElement('canvas')
+                    trimmed.width = W
+                    trimmed.height = finalH
+                    const tCtx = trimmed.getContext('2d')!
+                    tCtx.drawImage(canvas, 0, 0)
 
                     // ═══ DOWNLOAD ═══
                     const a = document.createElement('a')
-                    a.href = canvas.toDataURL('image/png')
+                    a.href = trimmed.toDataURL('image/png')
                     a.download = `bharos-referral-${refCode}.png`
                     a.click()
                   }
