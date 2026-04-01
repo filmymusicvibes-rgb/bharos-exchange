@@ -710,7 +710,6 @@ export default function Dashboard() {
                       </div>
                     </div>
                   </div>
-
                   {/* Footer */}
                   <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between">
                     <p className="text-[9px] text-gray-600">bharosexchange.com</p>
@@ -728,227 +727,258 @@ export default function Dashboard() {
 
                   const svgData = new XMLSerializer().serializeToString(svgEl)
                   const qrImg = new Image()
-                  qrImg.onload = () => {
-                    // 16:9 HD Card
-                    const W = 1920
-                    const H = 1080
+
+                  // Load BRS coin logo
+                  const coinImg = new Image()
+                  coinImg.crossOrigin = 'anonymous'
+
+                  let loaded = 0
+                  const onBothLoaded = () => {
+                    loaded++
+                    if (loaded < 2) return
+
+                    // ═══ PORTRAIT 9:16 HD CARD ═══
+                    const W = 1080
+                    const H = 1920
                     const canvas = document.createElement('canvas')
                     canvas.width = W
                     canvas.height = H
                     const ctx = canvas.getContext('2d')!
+                    const cx = W / 2
 
-                    // ═══ BACKGROUND ═══
-                    const bg = ctx.createLinearGradient(0, 0, W, H)
-                    bg.addColorStop(0, '#050816')
-                    bg.addColorStop(0.3, '#0d0d2b')
-                    bg.addColorStop(0.6, '#0a1e3d')
-                    bg.addColorStop(1, '#050816')
+                    // ═══ BACKGROUND — Deep space gradient ═══
+                    const bg = ctx.createLinearGradient(0, 0, 0, H)
+                    bg.addColorStop(0, '#030712')
+                    bg.addColorStop(0.15, '#0c0a2a')
+                    bg.addColorStop(0.4, '#0a1628')
+                    bg.addColorStop(0.7, '#0d0d2b')
+                    bg.addColorStop(1, '#030712')
                     ctx.fillStyle = bg
                     ctx.fillRect(0, 0, W, H)
 
-                    // Decorative ambient circles
-                    const drawGlow = (x: number, y: number, r: number, color: string) => {
+                    // Ambient glows
+                    const glow = (x: number, y: number, r: number, c: string) => {
                       const g = ctx.createRadialGradient(x, y, 0, x, y, r)
-                      g.addColorStop(0, color)
+                      g.addColorStop(0, c)
                       g.addColorStop(1, 'transparent')
                       ctx.fillStyle = g
-                      ctx.fillRect(x - r, y - r, r * 2, r * 2)
+                      ctx.fillRect(0, 0, W, H)
                     }
-                    drawGlow(W * 0.15, H * 0.2, 350, 'rgba(139, 92, 246, 0.08)')
-                    drawGlow(W * 0.85, H * 0.8, 400, 'rgba(6, 182, 212, 0.06)')
-                    drawGlow(W * 0.5, H * 0.1, 300, 'rgba(250, 204, 21, 0.04)')
-                    drawGlow(W * 0.7, H * 0.3, 250, 'rgba(236, 72, 153, 0.04)')
+                    glow(cx, 200, 500, 'rgba(139, 92, 246, 0.07)')
+                    glow(200, 700, 400, 'rgba(6, 182, 212, 0.05)')
+                    glow(W - 200, 1400, 450, 'rgba(250, 204, 21, 0.04)')
+                    glow(cx, H - 300, 400, 'rgba(236, 72, 153, 0.04)')
 
-                    // Subtle grid pattern
-                    ctx.strokeStyle = 'rgba(255,255,255,0.015)'
-                    ctx.lineWidth = 1
-                    for (let x = 0; x < W; x += 60) {
-                      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke()
-                    }
-                    for (let y = 0; y < H; y += 60) {
-                      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke()
+                    // Subtle dot grid
+                    ctx.fillStyle = 'rgba(255,255,255,0.02)'
+                    for (let dotX = 30; dotX < W; dotX += 40) {
+                      for (let dotY = 30; dotY < H; dotY += 40) {
+                        ctx.beginPath()
+                        ctx.arc(dotX, dotY, 1, 0, Math.PI * 2)
+                        ctx.fill()
+                      }
                     }
 
-                    // ═══ TOP BAR — BRANDING ═══
-                    // Left: BHAROS EXCHANGE
+                    // ═══ TOP: BHAROS EXCHANGE BRANDING ═══
+                    // BRS Coin Logo
+                    try { ctx.drawImage(coinImg, cx - 30, 65, 60, 60) } catch {}
+
+                    ctx.textAlign = 'center'
                     ctx.fillStyle = '#ffffff'
-                    ctx.font = '900 42px system-ui'
-                    ctx.textAlign = 'left'
-                    ctx.fillText('BHAROS', 80, 75)
-                    ctx.fillStyle = 'rgba(34, 211, 238, 0.6)'
-                    ctx.font = '600 14px system-ui'
-                    ctx.fillText('E X C H A N G E', 82, 95)
+                    ctx.font = '900 64px system-ui'
+                    ctx.fillText('BHAROS', cx, 175)
 
-                    // Right: Website
-                    ctx.fillStyle = 'rgba(255,255,255,0.4)'
-                    ctx.font = '500 16px system-ui'
-                    ctx.textAlign = 'right'
-                    ctx.fillText('bharosexchange.com', W - 80, 75)
+                    // "Exchange" with gradient effect (simulated)
+                    ctx.fillStyle = '#22d3ee'
+                    ctx.font = '300 28px system-ui'
+                    ctx.fillText('E x c h a n g e', cx, 215)
 
-                    // Top line
-                    ctx.strokeStyle = 'rgba(139, 92, 246, 0.2)'
-                    ctx.lineWidth = 1
-                    ctx.beginPath(); ctx.moveTo(80, 115); ctx.lineTo(W - 80, 115); ctx.stroke()
+                    // Decorative line
+                    const lineGrad = ctx.createLinearGradient(cx - 200, 0, cx + 200, 0)
+                    lineGrad.addColorStop(0, 'transparent')
+                    lineGrad.addColorStop(0.3, 'rgba(139, 92, 246, 0.5)')
+                    lineGrad.addColorStop(0.5, 'rgba(34, 211, 238, 0.6)')
+                    lineGrad.addColorStop(0.7, 'rgba(139, 92, 246, 0.5)')
+                    lineGrad.addColorStop(1, 'transparent')
+                    ctx.strokeStyle = lineGrad
+                    ctx.lineWidth = 2
+                    ctx.beginPath()
+                    ctx.moveTo(cx - 200, 240)
+                    ctx.lineTo(cx + 200, 240)
+                    ctx.stroke()
 
-                    // ═══ CENTER: QR CODE (BIG) ═══
-                    const qrSize = 320
-                    const qrX = (W - qrSize) / 2
-                    const qrY = 155
+                    // Tagline
+                    ctx.fillStyle = 'rgba(255,255,255,0.3)'
+                    ctx.font = '400 16px system-ui'
+                    ctx.fillText('Trustworthy Crypto for Everyone', cx, 270)
 
-                    // QR white background with rounded corners & shadow
-                    ctx.shadowColor = 'rgba(139, 92, 246, 0.3)'
-                    ctx.shadowBlur = 40
+                    // ═══ QR CODE — MASSIVE CENTER ═══
+                    const qrSize = 420
+                    const qrX = cx - qrSize / 2
+                    const qrY = 320
+
+                    // Outer glow ring
+                    ctx.shadowColor = 'rgba(139, 92, 246, 0.4)'
+                    ctx.shadowBlur = 60
                     ctx.fillStyle = '#ffffff'
                     ctx.beginPath()
-                    ctx.roundRect(qrX - 20, qrY - 20, qrSize + 40, qrSize + 40, 24)
+                    ctx.roundRect(qrX - 28, qrY - 28, qrSize + 56, qrSize + 56, 32)
                     ctx.fill()
                     ctx.shadowBlur = 0
 
-                    // Purple border ring
-                    ctx.strokeStyle = 'rgba(139, 92, 246, 0.3)'
-                    ctx.lineWidth = 3
+                    // Purple border
+                    const borderGrad = ctx.createLinearGradient(qrX, qrY, qrX + qrSize, qrY + qrSize)
+                    borderGrad.addColorStop(0, 'rgba(139, 92, 246, 0.4)')
+                    borderGrad.addColorStop(0.5, 'rgba(34, 211, 238, 0.3)')
+                    borderGrad.addColorStop(1, 'rgba(250, 204, 21, 0.4)')
+                    ctx.strokeStyle = borderGrad
+                    ctx.lineWidth = 4
                     ctx.stroke()
 
-                    // Draw QR
+                    // QR Image
                     ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize)
 
-                    // ═══ BELOW QR: MEMBER + REF CODE ═══
-                    const infoY = qrY + qrSize + 65
+                    // ═══ SCAN LABEL ═══
+                    const scanY = qrY + qrSize + 65
+                    ctx.fillStyle = 'rgba(255,255,255,0.35)'
+                    ctx.font = '600 15px system-ui'
+                    ctx.fillText('▲  SCAN QR CODE TO JOIN  ▲', cx, scanY)
 
-                    // "SCAN TO JOIN" label
-                    ctx.fillStyle = 'rgba(255,255,255,0.25)'
-                    ctx.font = '600 13px system-ui'
-                    ctx.textAlign = 'center'
-                    ctx.fillText('▲  SCAN QR CODE TO JOIN  ▲', W / 2, qrY + qrSize + 35)
+                    // ═══ MEMBER INFO ═══
+                    const memberY = scanY + 50
+                    ctx.fillStyle = 'rgba(255,255,255,0.35)'
+                    ctx.font = '600 16px system-ui'
+                    ctx.fillText('M E M B E R', cx, memberY)
 
-                    // Member label
-                    ctx.fillStyle = 'rgba(255,255,255,0.4)'
-                    ctx.font = '600 14px system-ui'
-                    ctx.fillText('M E M B E R', W / 2, infoY)
-
-                    // Member Name
                     ctx.fillStyle = '#ffffff'
-                    ctx.font = '900 36px system-ui'
-                    ctx.fillText((email?.split("@")[0] || 'User').toUpperCase(), W / 2, infoY + 42)
+                    ctx.font = '900 48px system-ui'
+                    ctx.fillText((email?.split("@")[0] || 'User').toUpperCase(), cx, memberY + 55)
 
-                    // Divider dot
+                    // Gold divider
                     ctx.fillStyle = '#fbbf24'
-                    ctx.beginPath(); ctx.arc(W / 2, infoY + 60, 4, 0, Math.PI * 2); ctx.fill()
+                    ctx.beginPath()
+                    ctx.arc(cx - 30, memberY + 80, 4, 0, Math.PI * 2); ctx.fill()
+                    ctx.beginPath()
+                    ctx.arc(cx, memberY + 80, 5, 0, Math.PI * 2); ctx.fill()
+                    ctx.beginPath()
+                    ctx.arc(cx + 30, memberY + 80, 4, 0, Math.PI * 2); ctx.fill()
 
-                    // Ref Code label
-                    ctx.fillStyle = 'rgba(255,255,255,0.4)'
-                    ctx.font = '600 14px system-ui'
-                    ctx.fillText('R E F E R R A L   C O D E', W / 2, infoY + 85)
+                    // Ref code label
+                    ctx.fillStyle = 'rgba(255,255,255,0.35)'
+                    ctx.font = '600 16px system-ui'
+                    ctx.fillText('R E F E R R A L   C O D E', cx, memberY + 110)
 
-                    // Ref Code Value — BIG & CYAN
-                    ctx.fillStyle = '#22d3ee'
-                    ctx.font = '900 44px monospace'
-                    ctx.fillText(refCode, W / 2, infoY + 130)
+                    // REF CODE — BIG YELLOW/GOLD
+                    ctx.fillStyle = '#fbbf24'
+                    ctx.font = '900 56px monospace'
+                    ctx.shadowColor = 'rgba(251, 191, 36, 0.3)'
+                    ctx.shadowBlur = 20
+                    ctx.fillText(refCode, cx, memberY + 170)
+                    ctx.shadowBlur = 0
 
-                    // ═══ LEFT SIDE: BENEFITS ═══
-                    const benefitsX = 80
-                    const benefitsStartY = 180
+                    // ═══ BENEFITS SECTION ═══
+                    const benefitsY = memberY + 230
+
+                    // Section divider
+                    const divGrad = ctx.createLinearGradient(100, 0, W - 100, 0)
+                    divGrad.addColorStop(0, 'transparent')
+                    divGrad.addColorStop(0.2, 'rgba(139, 92, 246, 0.3)')
+                    divGrad.addColorStop(0.5, 'rgba(34, 211, 238, 0.4)')
+                    divGrad.addColorStop(0.8, 'rgba(139, 92, 246, 0.3)')
+                    divGrad.addColorStop(1, 'transparent')
+                    ctx.strokeStyle = divGrad
+                    ctx.lineWidth = 1
+                    ctx.beginPath()
+                    ctx.moveTo(100, benefitsY - 20)
+                    ctx.lineTo(W - 100, benefitsY - 20)
+                    ctx.stroke()
+
+                    ctx.fillStyle = '#fbbf24'
+                    ctx.font = '700 14px system-ui'
+                    ctx.fillText('★  W H A T   Y O U   G E T  ★', cx, benefitsY + 5)
+
                     const benefits = [
-                      { icon: '💰', title: '150 BRS Welcome', desc: 'Free tokens on signup' },
-                      { icon: '📈', title: 'Staking Rewards', desc: 'Earn daily returns' },
-                      { icon: '👥', title: 'Referral Bonus', desc: 'Earn from your team' },
-                      { icon: '🔒', title: 'Secure Platform', desc: 'Bank-grade security' },
+                      { icon: '🪙', title: '150 BRS Welcome Bonus', desc: 'Get free BRS coins on joining', color: '#fbbf24' },
+                      { icon: '📈', title: 'Staking Rewards', desc: 'Earn daily returns on your BRS', color: '#10b981' },
+                      { icon: '👥', title: '5-Level Referral Income', desc: 'Earn commissions from your network', color: '#8b5cf6' },
+                      { icon: '🎰', title: 'Daily Spin & Earn', desc: 'Win BRS coins every single day', color: '#ef4444' },
+                      { icon: '🌍', title: 'International Trip Rewards', desc: 'Build team & win free trips abroad', color: '#06b6d4' },
+                      { icon: '🏆', title: 'Leaderboard Prizes', desc: 'Top performers win exclusive rewards', color: '#f59e0b' },
                     ]
-
-                    ctx.textAlign = 'left'
-                    ctx.fillStyle = 'rgba(255,255,255,0.3)'
-                    ctx.font = '700 11px system-ui'
-                    ctx.fillText('W H Y   J O I N ?', benefitsX, benefitsStartY)
 
                     benefits.forEach((b, i) => {
-                      const y = benefitsStartY + 35 + i * 72
+                      const y = benefitsY + 40 + i * 72
 
-                      // Icon bg
-                      ctx.fillStyle = 'rgba(139, 92, 246, 0.08)'
+                      // Icon circle
+                      ctx.fillStyle = b.color + '15'
                       ctx.beginPath()
-                      ctx.roundRect(benefitsX, y - 16, 44, 44, 10)
+                      ctx.arc(120, y + 14, 26, 0, Math.PI * 2)
                       ctx.fill()
-                      ctx.strokeStyle = 'rgba(139, 92, 246, 0.15)'
-                      ctx.lineWidth = 1
+                      ctx.strokeStyle = b.color + '40'
+                      ctx.lineWidth = 2
                       ctx.stroke()
 
-                      ctx.font = '24px system-ui'
-                      ctx.fillText(b.icon, benefitsX + 10, y + 14)
-
-                      ctx.fillStyle = '#ffffff'
-                      ctx.font = '700 15px system-ui'
-                      ctx.fillText(b.title, benefitsX + 56, y + 2)
-                      ctx.fillStyle = 'rgba(255,255,255,0.35)'
-                      ctx.font = '400 12px system-ui'
-                      ctx.fillText(b.desc, benefitsX + 56, y + 20)
-                    })
-
-                    // ═══ RIGHT SIDE: FEATURES ═══
-                    const featX = W - 80
-                    ctx.textAlign = 'right'
-                    ctx.fillStyle = 'rgba(255,255,255,0.3)'
-                    ctx.font = '700 11px system-ui'
-                    ctx.fillText('F E A T U R E S', featX, benefitsStartY)
-
-                    const features = [
-                      { icon: '🎰', title: 'Daily Rewards', desc: 'Spin & earn daily' },
-                      { icon: '🌍', title: 'Trip Rewards', desc: 'Win international trips' },
-                      { icon: '💱', title: 'Crypto Trading', desc: 'Trade BRS tokens' },
-                      { icon: '🏆', title: 'Leaderboard', desc: 'Compete & win prizes' },
-                    ]
-
-                    features.forEach((f, i) => {
-                      const y = benefitsStartY + 35 + i * 72
-
-                      ctx.fillStyle = 'rgba(6, 182, 212, 0.08)'
-                      ctx.beginPath()
-                      ctx.roundRect(featX - 44, y - 16, 44, 44, 10)
-                      ctx.fill()
-                      ctx.strokeStyle = 'rgba(6, 182, 212, 0.15)'
-                      ctx.lineWidth = 1
-                      ctx.stroke()
-
+                      ctx.font = '28px system-ui'
                       ctx.textAlign = 'center'
-                      ctx.font = '24px system-ui'
-                      ctx.fillText(f.icon, featX - 22, y + 14)
+                      ctx.fillText(b.icon, 120, y + 24)
 
-                      ctx.textAlign = 'right'
+                      // Text
+                      ctx.textAlign = 'left'
                       ctx.fillStyle = '#ffffff'
-                      ctx.font = '700 15px system-ui'
-                      ctx.fillText(f.title, featX - 56, y + 2)
-                      ctx.fillStyle = 'rgba(255,255,255,0.35)'
-                      ctx.font = '400 12px system-ui'
-                      ctx.fillText(f.desc, featX - 56, y + 20)
+                      ctx.font = '700 20px system-ui'
+                      ctx.fillText(b.title, 165, y + 8)
+
+                      ctx.fillStyle = 'rgba(255,255,255,0.4)'
+                      ctx.font = '400 15px system-ui'
+                      ctx.fillText(b.desc, 165, y + 30)
                     })
 
-                    // ═══ BOTTOM BAR ═══
-                    const bottomY = H - 65
-                    ctx.strokeStyle = 'rgba(139, 92, 246, 0.15)'
-                    ctx.lineWidth = 1
-                    ctx.beginPath(); ctx.moveTo(80, bottomY); ctx.lineTo(W - 80, bottomY); ctx.stroke()
+                    // ═══ CTA BUTTON ═══
+                    const ctaY = H - 180
+                    const ctaW = 600
+                    const ctaH = 70
+                    const ctaX = cx - ctaW / 2
 
-                    // Tagline
+                    // Button gradient
+                    const btnGrad = ctx.createLinearGradient(ctaX, ctaY, ctaX + ctaW, ctaY)
+                    btnGrad.addColorStop(0, '#8b5cf6')
+                    btnGrad.addColorStop(0.5, '#06b6d4')
+                    btnGrad.addColorStop(1, '#fbbf24')
+                    ctx.fillStyle = btnGrad
+                    ctx.shadowColor = 'rgba(139, 92, 246, 0.4)'
+                    ctx.shadowBlur = 25
+                    ctx.beginPath()
+                    ctx.roundRect(ctaX, ctaY, ctaW, ctaH, 20)
+                    ctx.fill()
+                    ctx.shadowBlur = 0
+
+                    ctx.fillStyle = '#ffffff'
+                    ctx.font = '800 22px system-ui'
                     ctx.textAlign = 'center'
-                    ctx.fillStyle = 'rgba(255,255,255,0.5)'
-                    ctx.font = '500 16px system-ui'
-                    ctx.fillText('Join the future of crypto. Start earning today!', W / 2, bottomY + 30)
+                    ctx.fillText('🚀  Join Now & Start Earning!', cx, ctaY + 44)
 
-                    // Bottom corners
-                    ctx.textAlign = 'left'
+                    // ═══ FOOTER ═══
                     ctx.fillStyle = 'rgba(255,255,255,0.2)'
+                    ctx.font = '400 14px system-ui'
+                    ctx.fillText('bharosexchange.com  •  © 2025 Bharos Exchange', cx, H - 60)
+
+                    ctx.fillStyle = 'rgba(255,255,255,0.12)'
                     ctx.font = '400 12px system-ui'
-                    ctx.fillText('Trustworthy Crypto for Everyone', 80, bottomY + 30)
+                    ctx.fillText('Scan the QR code or use the referral code to register', cx, H - 35)
 
-                    ctx.textAlign = 'right'
-                    ctx.fillText('© 2025 Bharos Exchange', W - 80, bottomY + 30)
-
-                    // Download
+                    // ═══ DOWNLOAD ═══
                     const a = document.createElement('a')
                     a.href = canvas.toDataURL('image/png')
                     a.download = `bharos-referral-${refCode}.png`
                     a.click()
                   }
+
+                  qrImg.onload = onBothLoaded
+                  coinImg.onload = onBothLoaded
+                  coinImg.onerror = onBothLoaded // fallback if coin logo fails
+
                   qrImg.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)))
+                  coinImg.src = brsLogo
                 }}
                 className="w-full py-3 rounded-xl font-bold text-sm text-black bg-gradient-to-r from-purple-400 via-cyan-400 to-yellow-400 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-purple-500/20"
               >
