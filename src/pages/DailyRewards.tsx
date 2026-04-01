@@ -2,23 +2,26 @@ import { useEffect, useState, useRef } from "react"
 import { getUser } from "../lib/session"
 import { navigate } from "@/lib/router"
 import { db } from "../lib/firebase"
-import { doc, getDoc, updateDoc, addDoc, collection, increment } from "firebase/firestore"
-import { ArrowLeft, Calendar, Star, Flame, Gift, Trophy, Zap } from "lucide-react"
+import { doc, getDoc, updateDoc, addDoc, collection, increment, getDocs, query, where } from "firebase/firestore"
+import { ArrowLeft, Calendar, Star, Flame, Gift, Trophy, Zap, Lock, Users, X } from "lucide-react"
 import Navbar from "../components/Navbar"
 
 // ═══════════════════════════════════════════
-// DAILY REWARDS CONFIG
+// CONFIG
 // ═══════════════════════════════════════════
+const REQUIRED_DIRECT_ACTIVE = 10 // Need 10 direct active members to unlock
 const DAILY_CHECKIN_REWARDS = [2, 3, 5, 7, 10, 15, 25] // Day 1-7
+
+// Rebalanced: average ~5 BRS/spin (50 BRS over ~10 spins)
 const SPIN_PRIZES = [
-  { label: "1 BRS", value: 1, color: "#3b82f6", chance: 25 },
-  { label: "3 BRS", value: 3, color: "#8b5cf6", chance: 20 },
-  { label: "5 BRS", value: 5, color: "#06b6d4", chance: 18 },
-  { label: "10 BRS", value: 10, color: "#f59e0b", chance: 15 },
-  { label: "15 BRS", value: 15, color: "#10b981", chance: 10 },
-  { label: "25 BRS", value: 25, color: "#ef4444", chance: 7 },
-  { label: "50 BRS", value: 50, color: "#ec4899", chance: 3 },
-  { label: "2 BRS", value: 2, color: "#6366f1", chance: 2 },
+  { label: "1 BRS", value: 1, color: "#6b7280", chance: 30 },
+  { label: "2 BRS", value: 2, color: "#3b82f6", chance: 25 },
+  { label: "3 BRS", value: 3, color: "#8b5cf6", chance: 18 },
+  { label: "5 BRS", value: 5, color: "#06b6d4", chance: 12 },
+  { label: "8 BRS", value: 8, color: "#f59e0b", chance: 7 },
+  { label: "10 BRS", value: 10, color: "#10b981", chance: 4 },
+  { label: "15 BRS", value: 15, color: "#ef4444", chance: 2.5 },
+  { label: "25 BRS", value: 25, color: "#ec4899", chance: 1.5 },
 ]
 
 function getWeightedPrize(): number {
@@ -39,6 +42,11 @@ export default function DailyRewards() {
   const [canCheckin, setCanCheckin] = useState(false)
   const [checkinDone, setCheckinDone] = useState(false)
   const [checkinReward, setCheckinReward] = useState(0)
+
+  // Lock state
+  const [directActiveCount, setDirectActiveCount] = useState(0)
+  const [isUnlocked, setIsUnlocked] = useState(false)
+  const [showLockPopup, setShowLockPopup] = useState(false)
 
   // Spin states
   const [canSpin, setCanSpin] = useState(false)
@@ -86,6 +94,21 @@ export default function DailyRewards() {
         if (lastSpinDate !== today) {
           setCanSpin(true)
         }
+
+        // Check direct active members
+        const refCode = data.referralCode || ""
+        if (refCode) {
+          const usersSnap = await getDocs(
+            query(collection(db, "users"), where("referredBy", "==", refCode))
+          )
+          let activeCount = 0
+          usersSnap.forEach(d => {
+            const u: any = d.data()
+            if (u.status === "active") activeCount++
+          })
+          setDirectActiveCount(activeCount)
+          setIsUnlocked(activeCount >= REQUIRED_DIRECT_ACTIVE)
+        }
       }
     } catch (err) {
       console.error("Load error:", err)
@@ -94,12 +117,11 @@ export default function DailyRewards() {
   }
 
   const handleCheckin = async () => {
-    if (!email || !canCheckin) return
+    if (!email || !canCheckin || !isUnlocked) return
 
     const today = new Date().toISOString().split("T")[0]
     const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0]
 
-    // Calculate streak
     let newStreak = 1
     if (lastCheckin === yesterday) {
       newStreak = Math.min(streak + 1, 7)
@@ -127,7 +149,7 @@ export default function DailyRewards() {
       setCheckinReward(reward)
       setCheckinDone(true)
       setCanCheckin(false)
-      setCanSpin(true) // Unlock spin after check-in
+      setCanSpin(true)
       setTotalEarnedToday(prev => prev + reward)
     } catch (err) {
       console.error("Checkin error:", err)
@@ -149,17 +171,14 @@ export default function DailyRewards() {
 
     ctx.clearRect(0, 0, size, size)
 
-    // Draw segments
     for (let i = 0; i < segments; i++) {
       const angle = i * arc + (spinAngle * Math.PI) / 180
 
-      // Segment
       ctx.beginPath()
       ctx.moveTo(center, center)
       ctx.arc(center, center, radius, angle, angle + arc)
       ctx.closePath()
 
-      // Gradient fill
       const grad = ctx.createRadialGradient(center, center, 0, center, center, radius)
       grad.addColorStop(0, SPIN_PRIZES[i].color + "40")
       grad.addColorStop(0.7, SPIN_PRIZES[i].color + "90")
@@ -167,12 +186,10 @@ export default function DailyRewards() {
       ctx.fillStyle = grad
       ctx.fill()
 
-      // Border
       ctx.strokeStyle = "rgba(255,255,255,0.15)"
       ctx.lineWidth = 1.5
       ctx.stroke()
 
-      // Text
       ctx.save()
       ctx.translate(center, center)
       ctx.rotate(angle + arc / 2)
@@ -185,7 +202,6 @@ export default function DailyRewards() {
       ctx.restore()
     }
 
-    // Center circle
     const centerGrad = ctx.createRadialGradient(center, center, 0, center, center, 30)
     centerGrad.addColorStop(0, "#1e293b")
     centerGrad.addColorStop(1, "#0f172a")
@@ -197,7 +213,6 @@ export default function DailyRewards() {
     ctx.lineWidth = 2
     ctx.stroke()
 
-    // Center text
     ctx.fillStyle = "#fbbf24"
     ctx.font = "bold 11px system-ui"
     ctx.textAlign = "center"
@@ -206,7 +221,7 @@ export default function DailyRewards() {
   }
 
   const handleSpin = () => {
-    if (!canSpin || spinning) return
+    if (!canSpin || spinning || !isUnlocked) return
 
     setSpinning(true)
     setShowPrize(false)
@@ -215,28 +230,21 @@ export default function DailyRewards() {
     const prizeIndex = getWeightedPrize()
     const segments = SPIN_PRIZES.length
     const segmentAngle = 360 / segments
-
-    // Calculate target angle (spin at least 5 full rotations + land on prize)
     const targetAngle = 360 * 7 + (360 - prizeIndex * segmentAngle - segmentAngle / 2)
 
-    let currentAngle = 0
-    const duration = 4000 // 4 seconds
+    const duration = 4000
     const startTime = Date.now()
 
     const animate = () => {
       const elapsed = Date.now() - startTime
       const progress = Math.min(elapsed / duration, 1)
-
-      // Easing: decelerate
       const eased = 1 - Math.pow(1 - progress, 3)
-      currentAngle = eased * targetAngle
-
+      const currentAngle = eased * targetAngle
       setSpinAngle(currentAngle % 360)
 
       if (progress < 1) {
         requestAnimationFrame(animate)
       } else {
-        // Done spinning
         setSpinResult(prizeIndex)
         setShowPrize(true)
         creditSpinReward(prizeIndex)
@@ -290,7 +298,6 @@ export default function DailyRewards() {
       {/* AMBIENT */}
       <div className="absolute top-[-10%] left-[-5%] w-[400px] h-[400px] bg-yellow-500/5 blur-[120px] rounded-full" />
       <div className="absolute bottom-[-10%] right-[-5%] w-[400px] h-[400px] bg-purple-500/5 blur-[120px] rounded-full" />
-      <div className="absolute top-1/3 left-1/2 w-[300px] h-[300px] bg-cyan-500/3 blur-[100px] rounded-full" />
 
       <Navbar />
 
@@ -309,10 +316,8 @@ export default function DailyRewards() {
         <div className="relative mb-8">
           <div className="absolute -inset-[1px] bg-gradient-to-r from-yellow-500/30 via-orange-500/20 to-red-500/30 rounded-2xl blur-md" />
           <div className="relative bg-[#0d1117]/95 backdrop-blur-xl border border-white/10 rounded-2xl p-6 text-center overflow-hidden">
-            <div className="absolute top-3 left-6 text-2xl animate-bounce" style={{ animationDelay: '0s' }}>🎰</div>
+            <div className="absolute top-3 left-6 text-2xl animate-bounce">🎰</div>
             <div className="absolute top-3 right-6 text-2xl animate-bounce" style={{ animationDelay: '0.5s' }}>🎁</div>
-            <div className="absolute bottom-3 left-10 text-lg animate-bounce" style={{ animationDelay: '1s' }}>✨</div>
-            <div className="absolute bottom-3 right-10 text-lg animate-bounce" style={{ animationDelay: '1.5s' }}>⭐</div>
 
             <div className="relative z-10">
               <h1 className="text-3xl font-black mb-2">
@@ -322,198 +327,255 @@ export default function DailyRewards() {
               </h1>
               <p className="text-gray-400 text-sm mb-4">Check in daily + Spin the Wheel to earn BRS!</p>
 
+              {/* UNLOCK PROGRESS */}
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.03] border border-white/10 mb-2">
+                <Users className="w-4 h-4 text-cyan-400" />
+                <span className="text-xs text-gray-400">
+                  Direct Active: <span className={`font-bold ${isUnlocked ? 'text-green-400' : 'text-yellow-400'}`}>
+                    {directActiveCount}/{REQUIRED_DIRECT_ACTIVE}
+                  </span>
+                </span>
+                {isUnlocked ? (
+                  <span className="text-[10px] text-green-400 font-bold">✅ Unlocked!</span>
+                ) : (
+                  <span className="text-[10px] text-orange-400 font-bold">🔒 Locked</span>
+                )}
+              </div>
+
               {totalEarnedToday > 0 && (
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-green-500/10 border border-green-500/20">
-                  <Trophy className="w-4 h-4 text-green-400" />
-                  <span className="text-green-400 font-bold text-sm">Today's Earnings: +{totalEarnedToday} BRS</span>
+                <div className="flex justify-center mt-2">
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-green-500/10 border border-green-500/20">
+                    <Trophy className="w-4 h-4 text-green-400" />
+                    <span className="text-green-400 font-bold text-sm">Today: +{totalEarnedToday} BRS</span>
+                  </div>
                 </div>
               )}
             </div>
           </div>
         </div>
 
-        {/* ═══════ DAILY CHECK-IN ═══════ */}
-        <div className="relative mb-8">
-          <div className="absolute -inset-[1px] bg-gradient-to-r from-cyan-500/15 to-blue-500/15 rounded-2xl blur-sm" />
-          <div className="relative bg-[#0d1117]/90 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
+        {/* ═══════ LOCKED OVERLAY WRAPPER ═══════ */}
+        <div className="relative">
 
-            <div className="flex items-center justify-between mb-5">
-              <div className="flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-cyan-400" />
-                <h2 className="font-bold text-lg text-white">Daily Check-in</h2>
-              </div>
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/20">
-                <Flame className="w-3.5 h-3.5 text-orange-400" />
-                <span className="text-xs text-orange-400 font-bold">{streak} Day Streak</span>
+          {/* LOCK OVERLAY — when not unlocked */}
+          {!isUnlocked && (
+            <div
+              className="absolute inset-0 z-30 rounded-2xl cursor-pointer"
+              onClick={() => setShowLockPopup(true)}
+              style={{
+                backgroundColor: 'rgba(5, 8, 22, 0.75)',
+                backdropFilter: 'blur(6px)',
+                WebkitBackdropFilter: 'blur(6px)',
+              }}
+            >
+              <div className="flex flex-col items-center justify-center h-full min-h-[400px]">
+                <div className="relative mb-4">
+                  <div className="absolute -inset-4 bg-orange-500/10 rounded-full blur-xl animate-pulse" />
+                  <div className="relative w-20 h-20 rounded-full bg-gradient-to-br from-orange-500/20 to-red-500/10 border-2 border-orange-500/30 flex items-center justify-center">
+                    <Lock className="w-10 h-10 text-orange-400" />
+                  </div>
+                </div>
+                <h3 className="text-xl font-black text-orange-400 mb-2">Daily Rewards Locked</h3>
+                <p className="text-gray-500 text-sm mb-1 text-center px-8">
+                  Need <span className="text-yellow-400 font-bold">{REQUIRED_DIRECT_ACTIVE} Direct Active Members</span> to unlock
+                </p>
+                <div className="mt-3 px-5 py-2 rounded-xl bg-orange-500/10 border border-orange-500/20">
+                  <span className="text-orange-400 font-bold text-sm">
+                    Progress: {directActiveCount}/{REQUIRED_DIRECT_ACTIVE} members
+                  </span>
+                </div>
+                {/* Progress bar */}
+                <div className="w-48 mt-3 bg-white/5 h-2.5 rounded-full overflow-hidden border border-white/10">
+                  <div
+                    className="h-2.5 rounded-full bg-gradient-to-r from-orange-400 to-yellow-400 transition-all"
+                    style={{ width: `${Math.min((directActiveCount / REQUIRED_DIRECT_ACTIVE) * 100, 100)}%` }}
+                  />
+                </div>
+                <p className="text-[10px] text-gray-600 mt-2">Tap for details</p>
               </div>
             </div>
+          )}
 
-            {/* 7-Day Grid */}
-            <div className="grid grid-cols-7 gap-2 mb-5">
-              {DAILY_CHECKIN_REWARDS.map((reward, i) => {
-                const dayNum = i + 1
-                const isCompleted = i < streak
-                const isToday = i === streak && !canCheckin
-                const isNext = i === streak && canCheckin
-                const isFuture = i > streak
+          {/* ═══════ DAILY CHECK-IN ═══════ */}
+          <div className="relative mb-8">
+            <div className="absolute -inset-[1px] bg-gradient-to-r from-cyan-500/15 to-blue-500/15 rounded-2xl blur-sm" />
+            <div className="relative bg-[#0d1117]/90 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
 
-                return (
-                  <div
-                    key={i}
-                    className={`relative rounded-xl p-2 text-center transition-all ${
-                      isCompleted
-                        ? "bg-gradient-to-b from-green-500/20 to-green-500/5 border border-green-500/30"
-                        : isToday
-                        ? "bg-gradient-to-b from-cyan-500/20 to-cyan-500/5 border border-cyan-500/30"
-                        : isNext
-                        ? "bg-gradient-to-b from-yellow-500/20 to-yellow-500/5 border border-yellow-500/30 animate-pulse"
-                        : "bg-white/[0.03] border border-white/5"
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-cyan-400" />
+                  <h2 className="font-bold text-lg text-white">Daily Check-in</h2>
+                </div>
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/20">
+                  <Flame className="w-3.5 h-3.5 text-orange-400" />
+                  <span className="text-xs text-orange-400 font-bold">{streak} Day Streak</span>
+                </div>
+              </div>
+
+              {/* 7-Day Grid */}
+              <div className="grid grid-cols-7 gap-2 mb-5">
+                {DAILY_CHECKIN_REWARDS.map((reward, i) => {
+                  const dayNum = i + 1
+                  const isCompleted = i < streak
+                  const isToday = i === streak && !canCheckin
+                  const isNext = i === streak && canCheckin
+                  const isFuture = i > streak
+
+                  return (
+                    <div
+                      key={i}
+                      className={`relative rounded-xl p-2 text-center transition-all ${
+                        isCompleted
+                          ? "bg-gradient-to-b from-green-500/20 to-green-500/5 border border-green-500/30"
+                          : isToday
+                          ? "bg-gradient-to-b from-cyan-500/20 to-cyan-500/5 border border-cyan-500/30"
+                          : isNext
+                          ? "bg-gradient-to-b from-yellow-500/20 to-yellow-500/5 border border-yellow-500/30 animate-pulse"
+                          : "bg-white/[0.03] border border-white/5"
+                      }`}
+                    >
+                      <p className={`text-[9px] font-bold mb-1 ${
+                        isCompleted ? "text-green-400" : isToday ? "text-cyan-400" : isNext ? "text-yellow-400" : "text-gray-600"
+                      }`}>
+                        Day {dayNum}
+                      </p>
+                      <div className={`text-lg mb-0.5 ${isFuture ? "opacity-30" : ""}`}>
+                        {isCompleted ? "✅" : dayNum === 7 ? "🎁" : "🪙"}
+                      </div>
+                      <p className={`text-[10px] font-bold ${
+                        isCompleted ? "text-green-400" : isNext ? "text-yellow-400" : "text-gray-500"
+                      }`}>
+                        +{reward}
+                      </p>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Check-in Button */}
+              {canCheckin ? (
+                <button
+                  onClick={handleCheckin}
+                  className="w-full py-3.5 rounded-xl font-bold text-black bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-yellow-500/20 text-base"
+                >
+                  ✨ Check In — Earn {DAILY_CHECKIN_REWARDS[Math.min(streak, 6)]} BRS
+                </button>
+              ) : checkinDone ? (
+                <div className="w-full py-3.5 rounded-xl text-center bg-green-500/10 border border-green-500/20">
+                  <span className="text-green-400 font-bold text-sm">✅ Checked In Today — +{checkinReward} BRS!</span>
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          {/* ═══════ SPIN THE WHEEL ═══════ */}
+          <div className="relative mb-8">
+            <div className="absolute -inset-[1px] bg-gradient-to-r from-purple-500/20 via-pink-500/15 to-yellow-500/20 rounded-2xl blur-sm" />
+            <div className="relative bg-[#0d1117]/90 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
+
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2">
+                  <Zap className="w-5 h-5 text-yellow-400" />
+                  <h2 className="font-bold text-lg text-white">Spin the Wheel</h2>
+                </div>
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20">
+                  <Gift className="w-3.5 h-3.5 text-purple-400" />
+                  <span className="text-xs text-purple-400 font-bold">1 Spin / Day</span>
+                </div>
+              </div>
+
+              {/* Wheel */}
+              <div className="flex flex-col items-center">
+                <div className="relative mb-5">
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 z-20">
+                    <div className="w-0 h-0 border-l-[12px] border-r-[12px] border-t-[20px] border-l-transparent border-r-transparent border-t-yellow-400 drop-shadow-lg" />
+                  </div>
+
+                  <div className={`absolute -inset-3 rounded-full blur-lg transition-all duration-500 ${
+                    spinning ? "bg-gradient-to-r from-yellow-500/30 via-purple-500/30 to-cyan-500/30 animate-pulse" : "bg-transparent"
+                  }`} />
+
+                  <div className="relative p-2 rounded-full bg-gradient-to-r from-yellow-500/30 via-purple-500/20 to-cyan-500/30">
+                    <div className="rounded-full p-1 bg-[#0d1117] border border-white/10">
+                      <canvas
+                        ref={canvasRef}
+                        width={280}
+                        height={280}
+                        className="rounded-full"
+                        style={{ display: 'block' }}
+                      />
+                    </div>
+                  </div>
+
+                  {[...Array(16)].map((_, i) => (
+                    <div
+                      key={i}
+                      className={`absolute w-2 h-2 rounded-full ${spinning ? 'bg-yellow-400' : 'bg-white/10'} transition-colors`}
+                      style={{
+                        top: `${50 + 48 * Math.sin((i * 22.5 * Math.PI) / 180)}%`,
+                        left: `${50 + 48 * Math.cos((i * 22.5 * Math.PI) / 180)}%`,
+                        transform: 'translate(-50%, -50%)',
+                      }}
+                    />
+                  ))}
+                </div>
+
+                {/* Spin Button */}
+                {canSpin ? (
+                  <button
+                    onClick={handleSpin}
+                    disabled={spinning}
+                    className={`px-10 py-3.5 rounded-xl font-bold text-base transition-all shadow-lg ${
+                      spinning
+                        ? "bg-gray-500/20 text-gray-400 cursor-not-allowed border border-white/5"
+                        : "text-black bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 hover:scale-105 active:scale-95 shadow-yellow-500/20"
                     }`}
                   >
-                    <p className={`text-[9px] font-bold mb-1 ${
-                      isCompleted ? "text-green-400" : isToday ? "text-cyan-400" : isNext ? "text-yellow-400" : "text-gray-600"
-                    }`}>
-                      Day {dayNum}
-                    </p>
-                    <div className={`text-lg mb-0.5 ${isFuture ? "opacity-30" : ""}`}>
-                      {isCompleted ? "✅" : dayNum === 7 ? "🎁" : "🪙"}
+                    {spinning ? (
+                      <span className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-gray-500 border-t-white rounded-full animate-spin" />
+                        Spinning...
+                      </span>
+                    ) : (
+                      "🎰 SPIN NOW!"
+                    )}
+                  </button>
+                ) : !canCheckin && !checkinDone ? (
+                  <div className="px-8 py-3 rounded-xl bg-orange-500/10 border border-orange-500/20 text-center">
+                    <p className="text-orange-400 font-bold text-sm">🔒 Check in first to unlock spin!</p>
+                  </div>
+                ) : showPrize ? null : (
+                  <div className="px-8 py-3 rounded-xl bg-green-500/10 border border-green-500/20 text-center">
+                    <p className="text-green-400 font-bold text-sm">✅ Already spun today — Come back tomorrow!</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Prize Pop-up */}
+              {showPrize && spinResult !== null && (
+                <div className="mt-6">
+                  <div className="relative">
+                    <div className="absolute -inset-[1px] bg-gradient-to-r from-yellow-500/40 to-green-500/40 rounded-2xl blur-md animate-pulse" />
+                    <div className="relative bg-[#0d1117]/95 border border-yellow-500/30 rounded-2xl p-6 text-center">
+                      <div className="text-5xl mb-3 animate-bounce">🎉</div>
+                      <h3 className="text-2xl font-black mb-1">
+                        <span className="bg-gradient-to-r from-yellow-400 to-green-400 bg-clip-text text-transparent">
+                          You Won!
+                        </span>
+                      </h3>
+                      <div className="text-4xl font-black text-yellow-400 mb-2">
+                        +{SPIN_PRIZES[spinResult].value} BRS
+                      </div>
+                      <p className="text-gray-500 text-xs">Coins added to your wallet instantly!</p>
                     </div>
-                    <p className={`text-[10px] font-bold ${
-                      isCompleted ? "text-green-400" : isNext ? "text-yellow-400" : "text-gray-500"
-                    }`}>
-                      +{reward}
-                    </p>
                   </div>
-                )
-              })}
-            </div>
-
-            {/* Check-in Button */}
-            {canCheckin ? (
-              <button
-                onClick={handleCheckin}
-                className="w-full py-3.5 rounded-xl font-bold text-black bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-yellow-500/20 text-base"
-              >
-                ✨ Check In — Earn {DAILY_CHECKIN_REWARDS[Math.min(streak, 6)]} BRS
-              </button>
-            ) : checkinDone ? (
-              <div className="w-full py-3.5 rounded-xl text-center bg-green-500/10 border border-green-500/20">
-                <span className="text-green-400 font-bold text-sm">✅ Checked In Today — +{checkinReward} BRS!</span>
-              </div>
-            ) : null}
-          </div>
-        </div>
-
-        {/* ═══════ SPIN THE WHEEL ═══════ */}
-        <div className="relative mb-8">
-          <div className="absolute -inset-[1px] bg-gradient-to-r from-purple-500/20 via-pink-500/15 to-yellow-500/20 rounded-2xl blur-sm" />
-          <div className="relative bg-[#0d1117]/90 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
-
-            <div className="flex items-center justify-between mb-5">
-              <div className="flex items-center gap-2">
-                <Zap className="w-5 h-5 text-yellow-400" />
-                <h2 className="font-bold text-lg text-white">Spin the Wheel</h2>
-              </div>
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20">
-                <Gift className="w-3.5 h-3.5 text-purple-400" />
-                <span className="text-xs text-purple-400 font-bold">1 Spin / Day</span>
-              </div>
-            </div>
-
-            {/* Wheel */}
-            <div className="flex flex-col items-center">
-              <div className="relative mb-5">
-                {/* Pointer */}
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 z-20">
-                  <div className="w-0 h-0 border-l-[12px] border-r-[12px] border-t-[20px] border-l-transparent border-r-transparent border-t-yellow-400 drop-shadow-lg" />
-                </div>
-
-                {/* Outer glow ring */}
-                <div className={`absolute -inset-3 rounded-full blur-lg transition-all duration-500 ${
-                  spinning ? "bg-gradient-to-r from-yellow-500/30 via-purple-500/30 to-cyan-500/30 animate-pulse" : "bg-transparent"
-                }`} />
-
-                {/* Outer border ring */}
-                <div className="relative p-2 rounded-full bg-gradient-to-r from-yellow-500/30 via-purple-500/20 to-cyan-500/30">
-                  <div className="rounded-full p-1 bg-[#0d1117] border border-white/10">
-                    <canvas
-                      ref={canvasRef}
-                      width={280}
-                      height={280}
-                      className="rounded-full"
-                      style={{ display: 'block' }}
-                    />
-                  </div>
-                </div>
-
-                {/* Decorative dots around wheel */}
-                {[...Array(16)].map((_, i) => (
-                  <div
-                    key={i}
-                    className={`absolute w-2 h-2 rounded-full ${spinning ? 'bg-yellow-400' : 'bg-white/10'} transition-colors`}
-                    style={{
-                      top: `${50 + 48 * Math.sin((i * 22.5 * Math.PI) / 180)}%`,
-                      left: `${50 + 48 * Math.cos((i * 22.5 * Math.PI) / 180)}%`,
-                      transform: 'translate(-50%, -50%)',
-                      animationDelay: `${i * 100}ms`,
-                    }}
-                  />
-                ))}
-              </div>
-
-              {/* Spin Button */}
-              {canSpin ? (
-                <button
-                  onClick={handleSpin}
-                  disabled={spinning}
-                  className={`px-10 py-3.5 rounded-xl font-bold text-base transition-all shadow-lg ${
-                    spinning
-                      ? "bg-gray-500/20 text-gray-400 cursor-not-allowed border border-white/5"
-                      : "text-black bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 hover:scale-105 active:scale-95 shadow-yellow-500/20"
-                  }`}
-                >
-                  {spinning ? (
-                    <span className="flex items-center gap-2">
-                      <div className="w-4 h-4 border-2 border-gray-500 border-t-white rounded-full animate-spin" />
-                      Spinning...
-                    </span>
-                  ) : (
-                    "🎰 SPIN NOW!"
-                  )}
-                </button>
-              ) : !canCheckin && !checkinDone ? (
-                <div className="px-8 py-3 rounded-xl bg-orange-500/10 border border-orange-500/20 text-center">
-                  <p className="text-orange-400 font-bold text-sm">🔒 Check in first to unlock spin!</p>
-                </div>
-              ) : showPrize ? null : (
-                <div className="px-8 py-3 rounded-xl bg-green-500/10 border border-green-500/20 text-center">
-                  <p className="text-green-400 font-bold text-sm">✅ Already spun today — Come back tomorrow!</p>
                 </div>
               )}
             </div>
-
-            {/* Prize Pop-up */}
-            {showPrize && spinResult !== null && (
-              <div className="mt-6">
-                <div className="relative">
-                  <div className="absolute -inset-[1px] bg-gradient-to-r from-yellow-500/40 to-green-500/40 rounded-2xl blur-md animate-pulse" />
-                  <div className="relative bg-[#0d1117]/95 border border-yellow-500/30 rounded-2xl p-6 text-center">
-                    <div className="text-5xl mb-3 animate-bounce">🎉</div>
-                    <h3 className="text-2xl font-black mb-1">
-                      <span className="bg-gradient-to-r from-yellow-400 to-green-400 bg-clip-text text-transparent">
-                        You Won!
-                      </span>
-                    </h3>
-                    <div className="text-4xl font-black text-yellow-400 mb-2">
-                      +{SPIN_PRIZES[spinResult].value} BRS
-                    </div>
-                    <p className="text-gray-500 text-xs">Coins added to your wallet instantly!</p>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
+
         </div>
+        {/* END locked wrapper */}
 
         {/* ═══════ PRIZE TABLE ═══════ */}
         <div className="relative mb-8">
@@ -547,6 +609,7 @@ export default function DailyRewards() {
           <div className="relative bg-[#0d1117]/60 backdrop-blur-xl border border-white/5 rounded-xl p-4">
             <h4 className="text-xs font-bold text-gray-400 mb-2">📋 Rules</h4>
             <ul className="text-[11px] text-gray-500 space-y-1">
+              <li>• Requires <span className="text-yellow-400">{REQUIRED_DIRECT_ACTIVE} direct active members</span> to unlock</li>
               <li>• Check in every day to maintain your streak</li>
               <li>• Missing a day resets your streak to Day 1</li>
               <li>• Day 7 gives the biggest reward: <span className="text-yellow-400">25 BRS!</span></li>
@@ -557,6 +620,88 @@ export default function DailyRewards() {
         </div>
 
       </div>
+
+      {/* ═══════ LOCK POPUP ═══════ */}
+      {showLockPopup && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4" style={{ backgroundColor: 'rgba(0,0,0,0.8)' }}>
+          <div className="relative w-full max-w-sm">
+            <div className="absolute -inset-[1px] bg-gradient-to-r from-orange-500/40 to-yellow-500/40 rounded-2xl blur-md animate-pulse" />
+            <div className="relative bg-[#0d1117] border border-orange-500/30 rounded-2xl p-6 text-center">
+
+              {/* Close */}
+              <button
+                onClick={() => setShowLockPopup(false)}
+                className="absolute top-3 right-3 text-gray-500 hover:text-white p-1 rounded-lg hover:bg-white/5"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-orange-500/20 to-red-500/10 border-2 border-orange-500/30 flex items-center justify-center mx-auto mb-4">
+                <Lock className="w-8 h-8 text-orange-400" />
+              </div>
+
+              <h3 className="text-xl font-black text-white mb-2">Daily Rewards Locked</h3>
+
+              <p className="text-sm text-gray-400 mb-4 leading-relaxed">
+                Invite friends and get <span className="text-yellow-400 font-bold">{REQUIRED_DIRECT_ACTIVE} direct active members</span> to unlock 
+                <span className="text-green-400 font-bold"> Daily Check-in</span> and 
+                <span className="text-purple-400 font-bold"> Spin the Wheel!</span>
+              </p>
+
+              {/* Progress */}
+              <div className="mb-5">
+                <div className="flex justify-between text-xs mb-1.5">
+                  <span className="text-gray-500">Progress</span>
+                  <span className="text-yellow-400 font-bold">{directActiveCount}/{REQUIRED_DIRECT_ACTIVE}</span>
+                </div>
+                <div className="w-full bg-white/5 h-3 rounded-full overflow-hidden border border-white/10">
+                  <div
+                    className="h-3 rounded-full bg-gradient-to-r from-orange-400 to-yellow-400 transition-all relative"
+                    style={{ width: `${Math.min((directActiveCount / REQUIRED_DIRECT_ACTIVE) * 100, 100)}%` }}
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
+                  </div>
+                </div>
+                <p className="text-[10px] text-gray-600 mt-1">
+                  Need {Math.max(0, REQUIRED_DIRECT_ACTIVE - directActiveCount)} more active members
+                </p>
+              </div>
+
+              {/* Rewards Preview */}
+              <div className="bg-white/[0.03] border border-white/5 rounded-xl p-3 mb-4">
+                <p className="text-[10px] text-gray-500 mb-2 font-bold uppercase tracking-wider">What You'll Unlock:</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-cyan-500/5 border border-cyan-500/10 rounded-lg p-2 text-center">
+                    <div className="text-lg">📅</div>
+                    <p className="text-[10px] text-cyan-400 font-bold">Daily Check-in</p>
+                    <p className="text-[9px] text-gray-500">up to 25 BRS/day</p>
+                  </div>
+                  <div className="bg-purple-500/5 border border-purple-500/10 rounded-lg p-2 text-center">
+                    <div className="text-lg">🎰</div>
+                    <p className="text-[10px] text-purple-400 font-bold">Spin Wheel</p>
+                    <p className="text-[9px] text-gray-500">up to 25 BRS/spin</p>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => { setShowLockPopup(false); navigate("/dashboard") }}
+                className="w-full py-3 rounded-xl font-bold text-black bg-gradient-to-r from-yellow-400 to-amber-500 hover:scale-[1.02] transition-all shadow-lg shadow-yellow-500/20 text-sm"
+              >
+                📢 Invite Friends & Unlock
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes shimmer {
+          0% { transform: translateX(-200%); }
+          100% { transform: translateX(200%); }
+        }
+        .animate-shimmer { animation: shimmer 3s infinite; }
+      `}</style>
     </div>
   )
 }

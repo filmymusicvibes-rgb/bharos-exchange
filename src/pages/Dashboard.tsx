@@ -42,6 +42,7 @@ export default function Dashboard() {
   const [directAchieved, setDirectAchieved] = useState(false)
   const [matrixAchieved, setMatrixAchieved] = useState(false)
   const [tripMilestone, setTripMilestone] = useState(false)
+  const [refCode, setRefCode] = useState("")
   
   const email = getUser()
 
@@ -132,8 +133,10 @@ export default function Dashboard() {
         setBrs(Number(data.brsBalance || 0))
 
         // ✅ REF LINK
+        const myRefCode = data.referralCode || ''
+        setRefCode(myRefCode)
         setReferralLink(
-          window.location.origin + "/auth?ref=" + data.referralCode
+          window.location.origin + "/auth?ref=" + myRefCode
         )
 
         // ✅ DAYS CALCULATION + 30-DAY AUTO REWARD
@@ -643,53 +646,217 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* QR CODE REFERRAL CARD */}
+          {/* 🎴 PREMIUM QR REFERRAL CARD */}
           <div className="relative mb-6">
-            <div className="absolute -inset-[1px] bg-gradient-to-r from-purple-500/10 to-cyan-500/10 rounded-xl blur-sm" />
+            <div className="absolute -inset-[1px] bg-gradient-to-r from-purple-500/15 via-cyan-500/10 to-yellow-500/15 rounded-xl blur-sm" />
             <div className="relative bg-[#0d1117]/90 backdrop-blur-xl border border-white/10 rounded-xl p-5">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-xs text-purple-400 font-medium">QR Referral Card</p>
-                <span className="text-[10px] text-gray-500">Scan to join</span>
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-xs text-purple-400 font-semibold flex items-center gap-1.5">🎴 Referral Card</p>
+                <span className="text-[10px] text-gray-500">Share & Grow</span>
               </div>
-              <div className="flex items-center gap-5">
-                <div className="bg-white p-2.5 rounded-xl" id="qr-ref-container">
-                  <QRCodeSVG
-                    value={referralLink}
-                    size={100}
-                    bgColor="#ffffff"
-                    fgColor="#050816"
-                    level="H"
-                  />
-                </div>
-                <div className="flex-1">
-                  <p className="text-white text-sm font-semibold mb-1">Share Your QR Code</p>
-                  <p className="text-gray-500 text-[11px] mb-3 leading-relaxed">Friends can scan this QR to join Bharos Exchange with your referral</p>
-                  <button
-                    onClick={() => {
-                      const container = document.getElementById('qr-ref-container')
-                      const svg = container?.querySelector('svg')
-                      if (!svg) return
-                      const canvas = document.createElement('canvas')
-                      canvas.width = 300
-                      canvas.height = 300
-                      const ctx = canvas.getContext('2d')
-                      const data = new XMLSerializer().serializeToString(svg)
-                      const img = new Image()
-                      img.onload = () => {
-                        ctx?.drawImage(img, 0, 0, 300, 300)
-                        const a = document.createElement('a')
-                        a.href = canvas.toDataURL('image/png')
-                        a.download = 'bharos-referral-qr.png'
-                        a.click()
-                      }
-                      img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(data)))
-                    }}
-                    className="px-4 py-2 rounded-lg text-xs font-semibold bg-purple-500/10 border border-purple-500/20 text-purple-400 hover:bg-purple-500/20 transition-all"
-                  >
-                    📥 Download QR
-                  </button>
+
+              {/* Card Preview */}
+              <div
+                id="referral-card-preview"
+                className="relative rounded-2xl overflow-hidden mb-4"
+                style={{
+                  background: 'linear-gradient(135deg, #0d0d2b 0%, #1a0a3e 30%, #0d1f3c 60%, #0a1628 100%)',
+                  padding: '24px',
+                  border: '1px solid rgba(139, 92, 246, 0.25)',
+                }}
+              >
+                {/* Decorative circles */}
+                <div className="absolute top-[-20px] right-[-20px] w-40 h-40 rounded-full bg-purple-500/10 blur-3xl" />
+                <div className="absolute bottom-[-30px] left-[-20px] w-48 h-48 rounded-full bg-cyan-500/8 blur-3xl" />
+
+                <div className="relative z-10">
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-5">
+                    <div>
+                      <h3 className="text-lg font-black text-white tracking-wide">BHAROS</h3>
+                      <p className="text-[9px] text-cyan-400/60 uppercase tracking-[3px]">Exchange</p>
+                    </div>
+                    <div className="px-2.5 py-1 rounded-full bg-green-500/15 border border-green-500/25">
+                      <span className="text-[9px] text-green-400 font-bold">● ACTIVE</span>
+                    </div>
+                  </div>
+
+                  {/* User info + QR */}
+                  <div className="flex items-center gap-4">
+                    {/* QR Code */}
+                    <div className="bg-white p-2.5 rounded-xl shadow-lg shadow-purple-500/10" id="qr-card-container">
+                      <QRCodeSVG
+                        value={referralLink}
+                        size={88}
+                        bgColor="#ffffff"
+                        fgColor="#0d0d2b"
+                        level="H"
+                      />
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1">
+                      <p className="text-[10px] text-gray-500 mb-0.5">MEMBER</p>
+                      <p className="text-white font-bold text-base mb-2">{email?.split("@")[0]}</p>
+
+                      <p className="text-[10px] text-gray-500 mb-0.5">REFERRAL CODE</p>
+                      <div className="flex items-center gap-2">
+                        <code className="text-cyan-400 font-mono font-bold text-sm tracking-wider">{refCode}</code>
+                      </div>
+
+                      <div className="mt-2 flex items-center gap-1">
+                        <div className="w-1.5 h-1.5 rounded-full bg-yellow-400" />
+                        <p className="text-[9px] text-gray-400">Scan QR or use code to join</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between">
+                    <p className="text-[9px] text-gray-600">bharosexchange.com</p>
+                    <p className="text-[9px] text-gray-600">Trustworthy Crypto for Everyone</p>
+                  </div>
                 </div>
               </div>
+
+              {/* Download Button */}
+              <button
+                onClick={() => {
+                  const card = document.getElementById('referral-card-preview')
+                  if (!card) return
+
+                  const canvas = document.createElement('canvas')
+                  const scale = 3
+                  canvas.width = card.offsetWidth * scale
+                  canvas.height = card.offsetHeight * scale
+                  const ctx = canvas.getContext('2d')
+                  if (!ctx) return
+
+                  // Draw gradient background
+                  const bgGrad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height)
+                  bgGrad.addColorStop(0, '#0d0d2b')
+                  bgGrad.addColorStop(0.3, '#1a0a3e')
+                  bgGrad.addColorStop(0.6, '#0d1f3c')
+                  bgGrad.addColorStop(1, '#0a1628')
+                  ctx.fillStyle = bgGrad
+                  ctx.beginPath()
+                  ctx.roundRect(0, 0, canvas.width, canvas.height, 24 * scale)
+                  ctx.fill()
+
+                  // Border
+                  ctx.strokeStyle = 'rgba(139, 92, 246, 0.3)'
+                  ctx.lineWidth = 2 * scale
+                  ctx.stroke()
+
+                  // Decorative circles
+                  ctx.fillStyle = 'rgba(139, 92, 246, 0.08)'
+                  ctx.beginPath()
+                  ctx.arc(canvas.width - 20 * scale, -20 * scale, 80 * scale, 0, 2 * Math.PI)
+                  ctx.fill()
+
+                  ctx.fillStyle = 'rgba(6, 182, 212, 0.05)'
+                  ctx.beginPath()
+                  ctx.arc(-20 * scale, canvas.height + 10 * scale, 90 * scale, 0, 2 * Math.PI)
+                  ctx.fill()
+
+                  const px = (v: number) => v * scale
+                  const baseX = px(24)
+
+                  // "BHAROS" title
+                  ctx.fillStyle = '#ffffff'
+                  ctx.font = `900 ${px(20)}px system-ui`
+                  ctx.fillText('BHAROS', baseX, px(40))
+
+                  ctx.fillStyle = 'rgba(34, 211, 238, 0.5)'
+                  ctx.font = `700 ${px(8)}px system-ui`
+                  ctx.letterSpacing = '3px'
+                  ctx.fillText('EXCHANGE', baseX, px(52))
+
+                  // Active badge
+                  ctx.fillStyle = 'rgba(34, 197, 94, 0.15)'
+                  ctx.beginPath()
+                  ctx.roundRect(canvas.width - px(80), px(22), px(56), px(20), px(10))
+                  ctx.fill()
+                  ctx.strokeStyle = 'rgba(34, 197, 94, 0.3)'
+                  ctx.lineWidth = 1
+                  ctx.stroke()
+                  ctx.fillStyle = '#22c55e'
+                  ctx.font = `700 ${px(8)}px system-ui`
+                  ctx.fillText('● ACTIVE', canvas.width - px(74), px(36))
+
+                  // QR code as image
+                  const qrContainer = document.getElementById('qr-card-container')
+                  const svgEl = qrContainer?.querySelector('svg')
+                  if (svgEl) {
+                    const svgData = new XMLSerializer().serializeToString(svgEl)
+                    const qrImg = new Image()
+                    qrImg.onload = () => {
+                      // White QR background
+                      ctx.fillStyle = '#ffffff'
+                      ctx.beginPath()
+                      ctx.roundRect(baseX, px(68), px(100), px(100), px(12))
+                      ctx.fill()
+                      ctx.drawImage(qrImg, baseX + px(8), px(76), px(84), px(84))
+
+                      // Member label
+                      const infoX = baseX + px(112)
+                      ctx.fillStyle = '#6b7280'
+                      ctx.font = `600 ${px(9)}px system-ui`
+                      ctx.fillText('MEMBER', infoX, px(82))
+
+                      // Member name
+                      ctx.fillStyle = '#ffffff'
+                      ctx.font = `800 ${px(16)}px system-ui`
+                      ctx.fillText(email?.split("@")[0] || 'User', infoX, px(100))
+
+                      // Ref code label
+                      ctx.fillStyle = '#6b7280'
+                      ctx.font = `600 ${px(9)}px system-ui`
+                      ctx.fillText('REFERRAL CODE', infoX, px(122))
+
+                      // Ref code
+                      ctx.fillStyle = '#22d3ee'
+                      ctx.font = `800 ${px(15)}px monospace`
+                      ctx.fillText(refCode, infoX, px(140))
+
+                      // Dot + instruction
+                      ctx.fillStyle = '#fbbf24'
+                      ctx.beginPath()
+                      ctx.arc(infoX + px(2), px(155), px(3), 0, 2 * Math.PI)
+                      ctx.fill()
+                      ctx.fillStyle = '#9ca3af'
+                      ctx.font = `500 ${px(8)}px system-ui`
+                      ctx.fillText('Scan QR or use code to join', infoX + px(10), px(158))
+
+                      // Footer line
+                      ctx.strokeStyle = 'rgba(255,255,255,0.05)'
+                      ctx.lineWidth = 1
+                      ctx.beginPath()
+                      ctx.moveTo(baseX, px(178))
+                      ctx.lineTo(canvas.width - baseX, px(178))
+                      ctx.stroke()
+
+                      ctx.fillStyle = '#4b5563'
+                      ctx.font = `500 ${px(8)}px system-ui`
+                      ctx.fillText('bharosexchange.com', baseX, px(192))
+
+                      ctx.textAlign = 'right'
+                      ctx.fillText('Trustworthy Crypto for Everyone', canvas.width - baseX, px(192))
+                      ctx.textAlign = 'left'
+
+                      // Download
+                      const a = document.createElement('a')
+                      a.href = canvas.toDataURL('image/png')
+                      a.download = `bharos-referral-${refCode}.png`
+                      a.click()
+                    }
+                    qrImg.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)))
+                  }
+                }}
+                className="w-full py-3 rounded-xl font-bold text-sm text-black bg-gradient-to-r from-purple-400 via-cyan-400 to-yellow-400 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-purple-500/20"
+              >
+                📥 Download Referral Card
+              </button>
             </div>
           </div>
 
