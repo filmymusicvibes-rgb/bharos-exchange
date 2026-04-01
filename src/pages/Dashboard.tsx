@@ -922,46 +922,50 @@ export default function Dashboard() {
                     ctx.fillText('★  W H Y   J O I N   B H A R O S ?  ★', cx, benefitsY + 8)
 
                     const benefits = [
-                      { icon: '🪙', title: '150 BRS Welcome Bonus', desc: 'Get free BRS coins instantly on signup', color: '#fbbf24' },
-                      { icon: '📈', title: 'Staking Rewards', desc: 'Stake BRS and earn daily passive income', color: '#10b981' },
-                      { icon: '👥', title: '12-Level Referral Income', desc: 'Earn commissions from 12 levels deep', color: '#8b5cf6' },
-                      { icon: '🎰', title: 'Daily Spin & Rewards', desc: 'Spin the wheel and win BRS coins daily', color: '#ef4444' },
-                      { icon: '🌍', title: 'International Trip Rewards', desc: 'Build your team & win trips abroad', color: '#06b6d4' },
-                      { icon: '💹', title: 'Bharos Futures Trading', desc: 'Trade crypto futures with low fees', color: '#ec4899' },
-                      { icon: '🏆', title: 'Leaderboard & Badges', desc: 'Compete for top spots & earn badges', color: '#f59e0b' },
-                      { icon: '🔒', title: 'Bank-Grade Security', desc: 'Your assets are fully protected 24/7', color: '#6366f1' },
+                      { icon: '🪙', title: '150 BRS Welcome Bonus', desc: 'Free BRS coins on signup', color: '#fbbf24' },
+                      { icon: '📈', title: 'Staking Rewards', desc: 'Earn daily passive income', color: '#10b981' },
+                      { icon: '👥', title: '12-Level Referral Income', desc: 'Earn from 12 levels deep', color: '#8b5cf6' },
+                      { icon: '🎰', title: 'Daily Spin & Rewards', desc: 'Win BRS coins every day', color: '#ef4444' },
+                      { icon: '🌍', title: 'International Trips', desc: 'Win free trips abroad', color: '#06b6d4' },
+                      { icon: '💹', title: 'Bharos Futures', desc: 'Trade crypto futures', color: '#ec4899' },
+                      { icon: '🏆', title: 'Leaderboard & Badges', desc: 'Compete & earn badges', color: '#f59e0b' },
+                      { icon: '🔒', title: 'Bank-Grade Security', desc: 'Assets protected 24/7', color: '#6366f1' },
                     ]
 
-                    const colLeft = 90
-                    const colRight = cx + 20
+                    // 2-column centered layout
+                    const colW = 420
+                    const totalW = colW * 2 + 40
+                    const startX = (W - totalW) / 2
 
                     benefits.forEach((b, i) => {
-                      const col = i < 4 ? colLeft : colRight
-                      const row = i < 4 ? i : i - 4
-                      const y = benefitsY + 40 + row * 66
+                      const isRight = i >= 4
+                      const row = isRight ? i - 4 : i
+                      const colX = isRight ? startX + colW + 40 : startX
+                      const y = benefitsY + 40 + row * 62
 
-                      // Icon circle with glow
-                      ctx.fillStyle = b.color + '12'
+                      // Icon circle
+                      ctx.fillStyle = b.color + '10'
                       ctx.beginPath()
-                      ctx.arc(col + 22, y + 12, 22, 0, Math.PI * 2)
+                      ctx.arc(colX + 18, y + 10, 18, 0, Math.PI * 2)
                       ctx.fill()
-                      ctx.strokeStyle = b.color + '35'
+                      ctx.strokeStyle = b.color + '30'
                       ctx.lineWidth = 1.5
                       ctx.stroke()
 
-                      ctx.font = '22px system-ui'
+                      ctx.font = '18px system-ui'
                       ctx.textAlign = 'center'
-                      ctx.fillText(b.icon, col + 22, y + 20)
+                      ctx.fillText(b.icon, colX + 18, y + 17)
 
-                      // Text
+                      // Title
                       ctx.textAlign = 'left'
                       ctx.fillStyle = '#ffffff'
-                      ctx.font = '700 16px system-ui'
-                      ctx.fillText(b.title, col + 52, y + 6)
+                      ctx.font = '700 15px system-ui'
+                      ctx.fillText(b.title, colX + 44, y + 5)
 
+                      // Description
                       ctx.fillStyle = 'rgba(255,255,255,0.35)'
                       ctx.font = '400 12px system-ui'
-                      ctx.fillText(b.desc, col + 52, y + 24)
+                      ctx.fillText(b.desc, colX + 44, y + 22)
                     })
 
                     // ═══ CTA BUTTON — right below benefits ═══
