@@ -722,136 +722,233 @@ export default function Dashboard() {
               {/* Download Button */}
               <button
                 onClick={() => {
-                  const card = document.getElementById('referral-card-preview')
-                  if (!card) return
-
-                  const canvas = document.createElement('canvas')
-                  const scale = 3
-                  canvas.width = card.offsetWidth * scale
-                  canvas.height = card.offsetHeight * scale
-                  const ctx = canvas.getContext('2d')
-                  if (!ctx) return
-
-                  // Draw gradient background
-                  const bgGrad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height)
-                  bgGrad.addColorStop(0, '#0d0d2b')
-                  bgGrad.addColorStop(0.3, '#1a0a3e')
-                  bgGrad.addColorStop(0.6, '#0d1f3c')
-                  bgGrad.addColorStop(1, '#0a1628')
-                  ctx.fillStyle = bgGrad
-                  ctx.beginPath()
-                  ctx.roundRect(0, 0, canvas.width, canvas.height, 24 * scale)
-                  ctx.fill()
-
-                  // Border
-                  ctx.strokeStyle = 'rgba(139, 92, 246, 0.3)'
-                  ctx.lineWidth = 2 * scale
-                  ctx.stroke()
-
-                  // Decorative circles
-                  ctx.fillStyle = 'rgba(139, 92, 246, 0.08)'
-                  ctx.beginPath()
-                  ctx.arc(canvas.width - 20 * scale, -20 * scale, 80 * scale, 0, 2 * Math.PI)
-                  ctx.fill()
-
-                  ctx.fillStyle = 'rgba(6, 182, 212, 0.05)'
-                  ctx.beginPath()
-                  ctx.arc(-20 * scale, canvas.height + 10 * scale, 90 * scale, 0, 2 * Math.PI)
-                  ctx.fill()
-
-                  const px = (v: number) => v * scale
-                  const baseX = px(24)
-
-                  // "BHAROS" title
-                  ctx.fillStyle = '#ffffff'
-                  ctx.font = `900 ${px(20)}px system-ui`
-                  ctx.fillText('BHAROS', baseX, px(40))
-
-                  ctx.fillStyle = 'rgba(34, 211, 238, 0.5)'
-                  ctx.font = `700 ${px(8)}px system-ui`
-                  ctx.letterSpacing = '3px'
-                  ctx.fillText('EXCHANGE', baseX, px(52))
-
-                  // Active badge
-                  ctx.fillStyle = 'rgba(34, 197, 94, 0.15)'
-                  ctx.beginPath()
-                  ctx.roundRect(canvas.width - px(80), px(22), px(56), px(20), px(10))
-                  ctx.fill()
-                  ctx.strokeStyle = 'rgba(34, 197, 94, 0.3)'
-                  ctx.lineWidth = 1
-                  ctx.stroke()
-                  ctx.fillStyle = '#22c55e'
-                  ctx.font = `700 ${px(8)}px system-ui`
-                  ctx.fillText('● ACTIVE', canvas.width - px(74), px(36))
-
-                  // QR code as image
                   const qrContainer = document.getElementById('qr-card-container')
                   const svgEl = qrContainer?.querySelector('svg')
-                  if (svgEl) {
-                    const svgData = new XMLSerializer().serializeToString(svgEl)
-                    const qrImg = new Image()
-                    qrImg.onload = () => {
-                      // White QR background
-                      ctx.fillStyle = '#ffffff'
+                  if (!svgEl) return
+
+                  const svgData = new XMLSerializer().serializeToString(svgEl)
+                  const qrImg = new Image()
+                  qrImg.onload = () => {
+                    // 16:9 HD Card
+                    const W = 1920
+                    const H = 1080
+                    const canvas = document.createElement('canvas')
+                    canvas.width = W
+                    canvas.height = H
+                    const ctx = canvas.getContext('2d')!
+
+                    // ═══ BACKGROUND ═══
+                    const bg = ctx.createLinearGradient(0, 0, W, H)
+                    bg.addColorStop(0, '#050816')
+                    bg.addColorStop(0.3, '#0d0d2b')
+                    bg.addColorStop(0.6, '#0a1e3d')
+                    bg.addColorStop(1, '#050816')
+                    ctx.fillStyle = bg
+                    ctx.fillRect(0, 0, W, H)
+
+                    // Decorative ambient circles
+                    const drawGlow = (x: number, y: number, r: number, color: string) => {
+                      const g = ctx.createRadialGradient(x, y, 0, x, y, r)
+                      g.addColorStop(0, color)
+                      g.addColorStop(1, 'transparent')
+                      ctx.fillStyle = g
+                      ctx.fillRect(x - r, y - r, r * 2, r * 2)
+                    }
+                    drawGlow(W * 0.15, H * 0.2, 350, 'rgba(139, 92, 246, 0.08)')
+                    drawGlow(W * 0.85, H * 0.8, 400, 'rgba(6, 182, 212, 0.06)')
+                    drawGlow(W * 0.5, H * 0.1, 300, 'rgba(250, 204, 21, 0.04)')
+                    drawGlow(W * 0.7, H * 0.3, 250, 'rgba(236, 72, 153, 0.04)')
+
+                    // Subtle grid pattern
+                    ctx.strokeStyle = 'rgba(255,255,255,0.015)'
+                    ctx.lineWidth = 1
+                    for (let x = 0; x < W; x += 60) {
+                      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke()
+                    }
+                    for (let y = 0; y < H; y += 60) {
+                      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke()
+                    }
+
+                    // ═══ TOP BAR — BRANDING ═══
+                    // Left: BHAROS EXCHANGE
+                    ctx.fillStyle = '#ffffff'
+                    ctx.font = '900 42px system-ui'
+                    ctx.textAlign = 'left'
+                    ctx.fillText('BHAROS', 80, 75)
+                    ctx.fillStyle = 'rgba(34, 211, 238, 0.6)'
+                    ctx.font = '600 14px system-ui'
+                    ctx.fillText('E X C H A N G E', 82, 95)
+
+                    // Right: Website
+                    ctx.fillStyle = 'rgba(255,255,255,0.4)'
+                    ctx.font = '500 16px system-ui'
+                    ctx.textAlign = 'right'
+                    ctx.fillText('bharosexchange.com', W - 80, 75)
+
+                    // Top line
+                    ctx.strokeStyle = 'rgba(139, 92, 246, 0.2)'
+                    ctx.lineWidth = 1
+                    ctx.beginPath(); ctx.moveTo(80, 115); ctx.lineTo(W - 80, 115); ctx.stroke()
+
+                    // ═══ CENTER: QR CODE (BIG) ═══
+                    const qrSize = 320
+                    const qrX = (W - qrSize) / 2
+                    const qrY = 155
+
+                    // QR white background with rounded corners & shadow
+                    ctx.shadowColor = 'rgba(139, 92, 246, 0.3)'
+                    ctx.shadowBlur = 40
+                    ctx.fillStyle = '#ffffff'
+                    ctx.beginPath()
+                    ctx.roundRect(qrX - 20, qrY - 20, qrSize + 40, qrSize + 40, 24)
+                    ctx.fill()
+                    ctx.shadowBlur = 0
+
+                    // Purple border ring
+                    ctx.strokeStyle = 'rgba(139, 92, 246, 0.3)'
+                    ctx.lineWidth = 3
+                    ctx.stroke()
+
+                    // Draw QR
+                    ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize)
+
+                    // ═══ BELOW QR: MEMBER + REF CODE ═══
+                    const infoY = qrY + qrSize + 65
+
+                    // "SCAN TO JOIN" label
+                    ctx.fillStyle = 'rgba(255,255,255,0.25)'
+                    ctx.font = '600 13px system-ui'
+                    ctx.textAlign = 'center'
+                    ctx.fillText('▲  SCAN QR CODE TO JOIN  ▲', W / 2, qrY + qrSize + 35)
+
+                    // Member label
+                    ctx.fillStyle = 'rgba(255,255,255,0.4)'
+                    ctx.font = '600 14px system-ui'
+                    ctx.fillText('M E M B E R', W / 2, infoY)
+
+                    // Member Name
+                    ctx.fillStyle = '#ffffff'
+                    ctx.font = '900 36px system-ui'
+                    ctx.fillText((email?.split("@")[0] || 'User').toUpperCase(), W / 2, infoY + 42)
+
+                    // Divider dot
+                    ctx.fillStyle = '#fbbf24'
+                    ctx.beginPath(); ctx.arc(W / 2, infoY + 60, 4, 0, Math.PI * 2); ctx.fill()
+
+                    // Ref Code label
+                    ctx.fillStyle = 'rgba(255,255,255,0.4)'
+                    ctx.font = '600 14px system-ui'
+                    ctx.fillText('R E F E R R A L   C O D E', W / 2, infoY + 85)
+
+                    // Ref Code Value — BIG & CYAN
+                    ctx.fillStyle = '#22d3ee'
+                    ctx.font = '900 44px monospace'
+                    ctx.fillText(refCode, W / 2, infoY + 130)
+
+                    // ═══ LEFT SIDE: BENEFITS ═══
+                    const benefitsX = 80
+                    const benefitsStartY = 180
+                    const benefits = [
+                      { icon: '💰', title: '150 BRS Welcome', desc: 'Free tokens on signup' },
+                      { icon: '📈', title: 'Staking Rewards', desc: 'Earn daily returns' },
+                      { icon: '👥', title: 'Referral Bonus', desc: 'Earn from your team' },
+                      { icon: '🔒', title: 'Secure Platform', desc: 'Bank-grade security' },
+                    ]
+
+                    ctx.textAlign = 'left'
+                    ctx.fillStyle = 'rgba(255,255,255,0.3)'
+                    ctx.font = '700 11px system-ui'
+                    ctx.fillText('W H Y   J O I N ?', benefitsX, benefitsStartY)
+
+                    benefits.forEach((b, i) => {
+                      const y = benefitsStartY + 35 + i * 72
+
+                      // Icon bg
+                      ctx.fillStyle = 'rgba(139, 92, 246, 0.08)'
                       ctx.beginPath()
-                      ctx.roundRect(baseX, px(68), px(100), px(100), px(12))
+                      ctx.roundRect(benefitsX, y - 16, 44, 44, 10)
                       ctx.fill()
-                      ctx.drawImage(qrImg, baseX + px(8), px(76), px(84), px(84))
-
-                      // Member label
-                      const infoX = baseX + px(112)
-                      ctx.fillStyle = '#6b7280'
-                      ctx.font = `600 ${px(9)}px system-ui`
-                      ctx.fillText('MEMBER', infoX, px(82))
-
-                      // Member name
-                      ctx.fillStyle = '#ffffff'
-                      ctx.font = `800 ${px(16)}px system-ui`
-                      ctx.fillText(email?.split("@")[0] || 'User', infoX, px(100))
-
-                      // Ref code label
-                      ctx.fillStyle = '#6b7280'
-                      ctx.font = `600 ${px(9)}px system-ui`
-                      ctx.fillText('REFERRAL CODE', infoX, px(122))
-
-                      // Ref code
-                      ctx.fillStyle = '#22d3ee'
-                      ctx.font = `800 ${px(15)}px monospace`
-                      ctx.fillText(refCode, infoX, px(140))
-
-                      // Dot + instruction
-                      ctx.fillStyle = '#fbbf24'
-                      ctx.beginPath()
-                      ctx.arc(infoX + px(2), px(155), px(3), 0, 2 * Math.PI)
-                      ctx.fill()
-                      ctx.fillStyle = '#9ca3af'
-                      ctx.font = `500 ${px(8)}px system-ui`
-                      ctx.fillText('Scan QR or use code to join', infoX + px(10), px(158))
-
-                      // Footer line
-                      ctx.strokeStyle = 'rgba(255,255,255,0.05)'
+                      ctx.strokeStyle = 'rgba(139, 92, 246, 0.15)'
                       ctx.lineWidth = 1
-                      ctx.beginPath()
-                      ctx.moveTo(baseX, px(178))
-                      ctx.lineTo(canvas.width - baseX, px(178))
                       ctx.stroke()
 
-                      ctx.fillStyle = '#4b5563'
-                      ctx.font = `500 ${px(8)}px system-ui`
-                      ctx.fillText('bharosexchange.com', baseX, px(192))
+                      ctx.font = '24px system-ui'
+                      ctx.fillText(b.icon, benefitsX + 10, y + 14)
+
+                      ctx.fillStyle = '#ffffff'
+                      ctx.font = '700 15px system-ui'
+                      ctx.fillText(b.title, benefitsX + 56, y + 2)
+                      ctx.fillStyle = 'rgba(255,255,255,0.35)'
+                      ctx.font = '400 12px system-ui'
+                      ctx.fillText(b.desc, benefitsX + 56, y + 20)
+                    })
+
+                    // ═══ RIGHT SIDE: FEATURES ═══
+                    const featX = W - 80
+                    ctx.textAlign = 'right'
+                    ctx.fillStyle = 'rgba(255,255,255,0.3)'
+                    ctx.font = '700 11px system-ui'
+                    ctx.fillText('F E A T U R E S', featX, benefitsStartY)
+
+                    const features = [
+                      { icon: '🎰', title: 'Daily Rewards', desc: 'Spin & earn daily' },
+                      { icon: '🌍', title: 'Trip Rewards', desc: 'Win international trips' },
+                      { icon: '💱', title: 'Crypto Trading', desc: 'Trade BRS tokens' },
+                      { icon: '🏆', title: 'Leaderboard', desc: 'Compete & win prizes' },
+                    ]
+
+                    features.forEach((f, i) => {
+                      const y = benefitsStartY + 35 + i * 72
+
+                      ctx.fillStyle = 'rgba(6, 182, 212, 0.08)'
+                      ctx.beginPath()
+                      ctx.roundRect(featX - 44, y - 16, 44, 44, 10)
+                      ctx.fill()
+                      ctx.strokeStyle = 'rgba(6, 182, 212, 0.15)'
+                      ctx.lineWidth = 1
+                      ctx.stroke()
+
+                      ctx.textAlign = 'center'
+                      ctx.font = '24px system-ui'
+                      ctx.fillText(f.icon, featX - 22, y + 14)
 
                       ctx.textAlign = 'right'
-                      ctx.fillText('Trustworthy Crypto for Everyone', canvas.width - baseX, px(192))
-                      ctx.textAlign = 'left'
+                      ctx.fillStyle = '#ffffff'
+                      ctx.font = '700 15px system-ui'
+                      ctx.fillText(f.title, featX - 56, y + 2)
+                      ctx.fillStyle = 'rgba(255,255,255,0.35)'
+                      ctx.font = '400 12px system-ui'
+                      ctx.fillText(f.desc, featX - 56, y + 20)
+                    })
 
-                      // Download
-                      const a = document.createElement('a')
-                      a.href = canvas.toDataURL('image/png')
-                      a.download = `bharos-referral-${refCode}.png`
-                      a.click()
-                    }
-                    qrImg.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)))
+                    // ═══ BOTTOM BAR ═══
+                    const bottomY = H - 65
+                    ctx.strokeStyle = 'rgba(139, 92, 246, 0.15)'
+                    ctx.lineWidth = 1
+                    ctx.beginPath(); ctx.moveTo(80, bottomY); ctx.lineTo(W - 80, bottomY); ctx.stroke()
+
+                    // Tagline
+                    ctx.textAlign = 'center'
+                    ctx.fillStyle = 'rgba(255,255,255,0.5)'
+                    ctx.font = '500 16px system-ui'
+                    ctx.fillText('Join the future of crypto. Start earning today!', W / 2, bottomY + 30)
+
+                    // Bottom corners
+                    ctx.textAlign = 'left'
+                    ctx.fillStyle = 'rgba(255,255,255,0.2)'
+                    ctx.font = '400 12px system-ui'
+                    ctx.fillText('Trustworthy Crypto for Everyone', 80, bottomY + 30)
+
+                    ctx.textAlign = 'right'
+                    ctx.fillText('© 2025 Bharos Exchange', W - 80, bottomY + 30)
+
+                    // Download
+                    const a = document.createElement('a')
+                    a.href = canvas.toDataURL('image/png')
+                    a.download = `bharos-referral-${refCode}.png`
+                    a.click()
                   }
+                  qrImg.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)))
                 }}
                 className="w-full py-3 rounded-xl font-bold text-sm text-black bg-gradient-to-r from-purple-400 via-cyan-400 to-yellow-400 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-purple-500/20"
               >
