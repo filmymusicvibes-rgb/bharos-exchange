@@ -45,6 +45,7 @@ function Navbar() {
   const loggedInMenu = [
     { label: t('dashboard'), path: "/dashboard", icon: LayoutDashboard },
     { label: '🎁 Social Earn', path: "/social-earn", icon: Gift },
+    { label: '🎰 Daily Rewards', path: "/daily-rewards", icon: Gift },
     { label: t('network'), path: "/referral-network", icon: Network },
     { label: t('leaderboard'), path: "/leaderboard", icon: Trophy },
     { label: t('transactions'), path: "/transactions", icon: ArrowLeftRight },
