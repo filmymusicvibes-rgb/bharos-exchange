@@ -19,7 +19,14 @@ import { logTransaction, runFullActivation } from "../lib/commission"
 
 export default function AdminPanel() {
 
-  const [activeTab, setActiveTab] = useState<"deposits" | "withdraws" | "trips" | "brsWithdraws" | "announcements">("deposits")
+  const [activeTab, setActiveTab] = useState<"deposits" | "withdraws" | "trips" | "brsWithdraws" | "announcements" | "airdrops">("deposits")
+
+  // Airdrop states
+  const [airdrops, setAirdrops] = useState<any[]>([])
+  const [airdropTitle, setAirdropTitle] = useState("")
+  const [airdropDesc, setAirdropDesc] = useState("")
+  const [airdropAmount, setAirdropAmount] = useState("")
+  const [airdropExpiry, setAirdropExpiry] = useState("7")
 
   // Announcement states
   const [announcements, setAnnouncements] = useState<any[]>([])
@@ -228,6 +235,21 @@ export default function AdminPanel() {
       setAnnouncements(list)
     } catch (err) {
       console.log("No announcements yet")
+    }
+  }
+
+  const loadAirdrops = async () => {
+    try {
+      const snap = await getDocs(collection(db, "airdrops"))
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      list.sort((a: any, b: any) => {
+        const tA = a.createdAt?.seconds || 0
+        const tB = b.createdAt?.seconds || 0
+        return tB - tA
+      })
+      setAirdrops(list)
+    } catch (err) {
+      console.log("No airdrops yet")
     }
   }
   // Commission logic is now in shared module: src/lib/commission.ts
@@ -489,6 +511,17 @@ export default function AdminPanel() {
           }`}
         >
           📢 Announcements
+        </button>
+
+        <button
+          onClick={() => { setActiveTab("airdrops"); loadAirdrops() }}
+          className={`px-4 py-2 rounded ${
+            activeTab === "airdrops"
+              ? "bg-gradient-to-r from-yellow-400 to-amber-500 text-black font-bold"
+              : "bg-gray-700"
+          }`}
+        >
+          🎁 Airdrops
         </button>
 
       </div>
@@ -893,6 +926,178 @@ export default function AdminPanel() {
 
           {announcements.length === 0 && (
             <p className="text-gray-500 text-center py-8">No announcements yet. Create your first one above!</p>
+          )}
+        </>
+      )}
+
+      {/* ═══════════════════ AIRDROPS TAB ═══════════════════ */}
+      {activeTab === "airdrops" && (
+        <>
+          <h1 className="text-3xl mb-6 font-bold">🎁 Manage Airdrop Offers</h1>
+
+          {/* CREATE NEW AIRDROP */}
+          <div className="bg-[#1a1a2e] p-6 mb-6 rounded-xl border border-yellow-500/20">
+            <h3 className="text-lg font-bold text-yellow-400 mb-4">➕ Create New Offer</h3>
+            <div className="space-y-3">
+              <input
+                value={airdropTitle}
+                onChange={(e) => setAirdropTitle(e.target.value)}
+                placeholder="Offer Title (e.g. Diwali Festival Bonus 🎉)"
+                className="w-full p-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500"
+              />
+              <textarea
+                value={airdropDesc}
+                onChange={(e) => setAirdropDesc(e.target.value)}
+                placeholder="Description (e.g. Celebrate Diwali with free BRS tokens!)"
+                rows={2}
+                className="w-full p-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500 resize-none"
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">BRS Amount</label>
+                  <input
+                    type="number"
+                    value={airdropAmount}
+                    onChange={(e) => setAirdropAmount(e.target.value)}
+                    placeholder="25"
+                    min="1"
+                    className="w-full p-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">Expires In (Days)</label>
+                  <input
+                    type="number"
+                    value={airdropExpiry}
+                    onChange={(e) => setAirdropExpiry(e.target.value)}
+                    placeholder="7"
+                    min="1"
+                    className="w-full p-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500"
+                  />
+                </div>
+              </div>
+              <button
+                onClick={async () => {
+                  const amt = Number(airdropAmount)
+                  if (!airdropTitle.trim() || !airdropDesc.trim() || !amt || amt <= 0) {
+                    alert('Fill all fields with valid values'); return
+                  }
+                  const days = Number(airdropExpiry) || 7
+                  const expiresAt = new Date()
+                  expiresAt.setDate(expiresAt.getDate() + days)
+                  try {
+                    await addDoc(collection(db, "airdrops"), {
+                      title: airdropTitle.trim(),
+                      description: airdropDesc.trim(),
+                      amount: amt,
+                      status: "active",
+                      createdBy: getUser() || "admin",
+                      createdAt: serverTimestamp(),
+                      expiresAt: expiresAt,
+                      totalClaimed: 0
+                    })
+                    setAirdropTitle('')
+                    setAirdropDesc('')
+                    setAirdropAmount('')
+                    setAirdropExpiry('7')
+                    alert('✅ Airdrop offer created!')
+                    loadAirdrops()
+                  } catch (err) {
+                    alert('Error creating airdrop')
+                    console.error(err)
+                  }
+                }}
+                className="w-full py-3 bg-gradient-to-r from-yellow-400 to-amber-500 rounded-lg font-bold text-black hover:scale-[1.02] transition-all"
+              >
+                🎁 Create Airdrop Offer
+              </button>
+            </div>
+          </div>
+
+          {/* ACTIVE AIRDROPS LIST */}
+          <h3 className="text-lg font-bold text-white mb-3">Active Offers</h3>
+          {airdrops.filter(a => a.status === 'active').map((drop) => {
+            const expired = drop.expiresAt?.toDate ? drop.expiresAt.toDate() < new Date() : (drop.expiresAt && new Date(drop.expiresAt) < new Date())
+            return (
+              <div key={drop.id} className={`p-5 mb-3 rounded-xl border ${
+                expired ? 'bg-[#0f0f1a] border-red-500/20 opacity-60' : 'bg-[#1a1a2e] border-yellow-500/20'
+              }`}>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <h4 className="font-bold text-white">{drop.title}</h4>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-yellow-500/20 text-yellow-400">
+                        {drop.amount} BRS
+                      </span>
+                      {expired && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/20 text-red-400">⏰ Expired</span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-400">{drop.description}</p>
+                    <p className="text-xs text-gray-600 mt-1">
+                      Claimed: <span className="text-cyan-400 font-bold">{drop.totalClaimed || 0}</span> users
+                      {' | '}Expires: {drop.expiresAt?.toDate ? drop.expiresAt.toDate().toLocaleDateString() : (drop.expiresAt ? new Date(drop.expiresAt).toLocaleDateString() : 'N/A')}
+                    </p>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <button
+                      onClick={async () => {
+                        await updateDoc(doc(db, "airdrops", drop.id), { status: drop.status === 'active' ? 'expired' : 'active' })
+                        loadAirdrops()
+                      }}
+                      className={`px-3 py-1.5 rounded text-xs font-bold ${
+                        drop.status === 'active' ? 'bg-orange-500 text-white' : 'bg-green-500 text-white'
+                      }`}
+                    >
+                      {drop.status === 'active' ? '⏸ Disable' : '▶️ Enable'}
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (confirm('Delete this airdrop offer?')) {
+                          await deleteDoc(doc(db, "airdrops", drop.id))
+                          loadAirdrops()
+                        }
+                      }}
+                      className="px-3 py-1.5 rounded text-xs font-bold bg-red-500 text-white"
+                    >
+                      🗑
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+
+          {airdrops.filter(a => a.status === 'active').length === 0 && (
+            <p className="text-gray-500 text-center py-8">No active airdrop offers. Create one above!</p>
+          )}
+
+          {/* EXPIRED/DISABLED LIST */}
+          {airdrops.filter(a => a.status !== 'active').length > 0 && (
+            <>
+              <h3 className="text-lg font-bold text-gray-400 mb-3 mt-6">Expired / Disabled</h3>
+              {airdrops.filter(a => a.status !== 'active').map((drop) => (
+                <div key={drop.id} className="p-4 mb-2 rounded-xl bg-[#0f0f1a] border border-gray-700/30 opacity-50">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h4 className="font-bold text-gray-400 text-sm">{drop.title} — {drop.amount} BRS</h4>
+                      <p className="text-xs text-gray-600">Claimed: {drop.totalClaimed || 0} users</p>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        if (confirm('Delete?')) {
+                          await deleteDoc(doc(db, "airdrops", drop.id))
+                          loadAirdrops()
+                        }
+                      }}
+                      className="px-2 py-1 rounded text-xs bg-red-900 text-red-400"
+                    >
+                      🗑
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </>
           )}
         </>
       )}

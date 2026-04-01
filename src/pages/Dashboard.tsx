@@ -2,8 +2,8 @@ import { getUser } from "../lib/session"
 import { useEffect, useState } from "react"
 import { navigate } from "@/lib/router"
 import { db } from "../lib/firebase"
-import { doc, getDoc, updateDoc, addDoc, collection, getDocs, query, where, orderBy, limit } from "firebase/firestore"
-import { Users, Trophy, ArrowUpRight, ArrowDownLeft, Activity, Target, Grid3X3, Plane, ChevronRight, User, Coins, Copy, Share2, MessageCircle, Send, Check } from "lucide-react"
+import { doc, getDoc, updateDoc, addDoc, collection, getDocs, query, where, orderBy, limit, increment } from "firebase/firestore"
+import { Users, Trophy, ArrowUpRight, ArrowDownLeft, Activity, Target, Grid3X3, Plane, ChevronRight, User, Coins, Copy, Share2, MessageCircle, Send, Check, Gift, Sparkles, Clock } from "lucide-react"
 
 import Navbar from "../components/Navbar"
 import LoginPopup from "../components/LoginPopup"
@@ -43,6 +43,12 @@ export default function Dashboard() {
   const [matrixAchieved, setMatrixAchieved] = useState(false)
   const [tripMilestone, setTripMilestone] = useState(false)
   const [refCode, setRefCode] = useState("")
+
+  // AIRDROP STATES
+  const [activeAirdrops, setActiveAirdrops] = useState<any[]>([])
+  const [claimedAirdrops, setClaimedAirdrops] = useState<Record<string, boolean>>({})
+  const [claimingId, setClaimingId] = useState<string | null>(null)
+  const [justClaimedId, setJustClaimedId] = useState<string | null>(null)
   
   const email = getUser()
 
@@ -105,6 +111,35 @@ export default function Dashboard() {
       }
     }
     loadExtras()
+  }, [])
+
+  // LOAD AIRDROPS
+  useEffect(() => {
+    const loadAirdrops = async () => {
+      const email = getUser()
+      if (!email) return
+      try {
+        const airdropSnap = await getDocs(collection(db, "airdrops"))
+        const now = new Date()
+        const active = airdropSnap.docs
+          .map(d => ({ id: d.id, ...d.data() } as any))
+          .filter(a => {
+            if (a.status !== 'active') return false
+            const exp = a.expiresAt?.toDate ? a.expiresAt.toDate() : (a.expiresAt ? new Date(a.expiresAt) : null)
+            return !exp || exp > now
+          })
+        setActiveAirdrops(active)
+
+        // Get claimed status
+        const userSnap = await getDoc(doc(db, "users", email))
+        if (userSnap.exists()) {
+          setClaimedAirdrops(userSnap.data()?.claimedAirdrops || {})
+        }
+      } catch (err) {
+        console.log("Airdrops load:", err)
+      }
+    }
+    loadAirdrops()
   }, [])
 
   useEffect(() => {
@@ -274,6 +309,153 @@ export default function Dashboard() {
 
           {/* 📢 ANNOUNCEMENTS */}
           <AnnouncementBanner />
+
+          {/* 🎁 AIRDROP OFFERS */}
+          {activeAirdrops.filter(a => !claimedAirdrops[a.id]).length > 0 && (
+            <div className="mb-6 space-y-3">
+              {activeAirdrops.map(drop => {
+                const isClaimed = claimedAirdrops[drop.id]
+                const isClaiming = claimingId === drop.id
+                const justClaimed = justClaimedId === drop.id
+                const exp = drop.expiresAt?.toDate ? drop.expiresAt.toDate() : (drop.expiresAt ? new Date(drop.expiresAt) : null)
+                const hoursLeft = exp ? Math.max(0, Math.round((exp.getTime() - Date.now()) / (1000 * 60 * 60))) : null
+
+                if (isClaimed && !justClaimed) return null
+
+                return (
+                  <div key={drop.id} className={`relative group ${justClaimed ? 'scale-[1.02]' : ''} transition-all duration-500`}>
+                    {/* Animated glow border */}
+                    <div className={`absolute -inset-[1px] rounded-2xl blur-sm transition-all ${
+                      justClaimed
+                        ? 'bg-gradient-to-r from-green-500/40 to-emerald-500/40 animate-pulse'
+                        : 'bg-gradient-to-r from-yellow-500/25 via-amber-500/20 to-orange-500/25 group-hover:blur-md'
+                    }`} />
+
+                    <div className={`relative bg-[#0d1117]/95 backdrop-blur-xl border rounded-2xl p-5 overflow-hidden ${
+                      justClaimed ? 'border-green-500/30' : 'border-yellow-500/20'
+                    }`}>
+
+                      {/* Floating sparkles */}
+                      <div className="absolute top-3 right-6 w-2 h-2 bg-yellow-400/20 rounded-full animate-bounce" style={{ animationDelay: '0s' }} />
+                      <div className="absolute top-8 right-16 w-1.5 h-1.5 bg-amber-400/30 rounded-full animate-bounce" style={{ animationDelay: '0.7s' }} />
+                      <div className="absolute bottom-4 right-10 w-1 h-1 bg-orange-400/40 rounded-full animate-bounce" style={{ animationDelay: '1.4s' }} />
+
+                      <div className="flex items-center gap-4">
+                        {/* Gift icon */}
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 relative ${
+                          justClaimed
+                            ? 'bg-green-500/15 border border-green-500/30'
+                            : 'bg-gradient-to-br from-yellow-500/15 to-amber-500/10 border border-yellow-500/25'
+                        }`}>
+                          <div className={`absolute inset-0 rounded-2xl ${
+                            justClaimed ? '' : 'bg-yellow-400/5 animate-pulse'
+                          }`} />
+                          {justClaimed ? (
+                            <Check className="w-7 h-7 text-green-400 relative z-10" />
+                          ) : (
+                            <Gift className="w-7 h-7 text-yellow-400 relative z-10" />
+                          )}
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                            <h3 className={`font-bold text-sm ${
+                              justClaimed ? 'text-green-400' : 'text-white'
+                            }`}>
+                              {justClaimed ? '✅ Claimed!' : drop.title}
+                            </h3>
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              justClaimed
+                                ? 'bg-green-500/15 border border-green-500/25 text-green-400'
+                                : 'bg-yellow-500/15 border border-yellow-500/25 text-yellow-400'
+                            }`}>
+                              {drop.amount} BRS
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-500 line-clamp-1">{drop.description}</p>
+                          {hoursLeft !== null && !justClaimed && (
+                            <div className="flex items-center gap-1 mt-1.5">
+                              <Clock className="w-3 h-3 text-orange-400" />
+                              <span className="text-[10px] text-orange-400 font-medium">
+                                {hoursLeft > 24 ? `${Math.floor(hoursLeft / 24)}d ${hoursLeft % 24}h left` : `${hoursLeft}h left`}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Claim Button */}
+                        <div className="shrink-0">
+                          {justClaimed ? (
+                            <div className="px-4 py-2.5 rounded-xl bg-green-500/10 border border-green-500/20 text-xs text-green-400 font-bold">
+                              +{drop.amount} BRS ✨
+                            </div>
+                          ) : (
+                            <button
+                              disabled={isClaiming || status !== 'active'}
+                              onClick={async () => {
+                                if (!email || isClaiming) return
+                                setClaimingId(drop.id)
+                                try {
+                                  await updateDoc(doc(db, "users", email), {
+                                    brsBalance: increment(drop.amount),
+                                    [`claimedAirdrops.${drop.id}`]: true
+                                  })
+                                  await updateDoc(doc(db, "airdrops", drop.id), {
+                                    totalClaimed: increment(1)
+                                  })
+                                  await addDoc(collection(db, "transactions"), {
+                                    userId: email,
+                                    amount: drop.amount,
+                                    currency: "BRS",
+                                    type: "AIRDROP",
+                                    description: `Airdrop Claimed: ${drop.title}`,
+                                    createdAt: new Date()
+                                  })
+                                  setBrs(prev => prev + drop.amount)
+                                  setClaimedAirdrops(prev => ({ ...prev, [drop.id]: true }))
+                                  setJustClaimedId(drop.id)
+                                  setTimeout(() => setJustClaimedId(null), 4000)
+                                } catch (err) {
+                                  console.error("Claim error:", err)
+                                  alert("Failed to claim. Try again!")
+                                }
+                                setClaimingId(null)
+                              }}
+                              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-black transition-all shadow-lg ${
+                                status !== 'active'
+                                  ? 'bg-gray-600 cursor-not-allowed opacity-50'
+                                  : 'bg-gradient-to-r from-yellow-400 via-amber-400 to-orange-400 hover:scale-105 active:scale-95 shadow-yellow-500/20'
+                              } ${isClaiming ? 'opacity-60' : ''}`}
+                            >
+                              {isClaiming ? (
+                                <>
+                                  <div className="w-3.5 h-3.5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                                  <span>Claiming...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Sparkles className="w-3.5 h-3.5" />
+                                  <span>Claim {drop.amount} BRS</span>
+                                </>
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Just claimed celebration overlay */}
+                      {justClaimed && (
+                        <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
+                          <div className="absolute inset-0 bg-gradient-to-r from-green-500/5 via-transparent to-green-500/5 animate-pulse" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
 
           {/* 🏅 USER BADGE */}
           <UserBadgeCard brsBalance={brs} />
