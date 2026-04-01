@@ -964,8 +964,9 @@ export default function Dashboard() {
                       ctx.fillText(b.desc, col + 52, y + 24)
                     })
 
-                    // ═══ CTA BUTTON ═══
-                    const ctaY = H - 170
+                    // ═══ CTA BUTTON — right below benefits ═══
+                    const lastBenefitY = benefitsY + 40 + 3 * 66 // bottom of 4th row
+                    const ctaY = lastBenefitY + 65
                     const ctaW2 = 650
                     const ctaH2 = 72
                     const ctaX2 = cx - ctaW2 / 2
@@ -990,10 +991,59 @@ export default function Dashboard() {
                     ctx.textAlign = 'center'
                     ctx.fillText('🚀  Join Now & Start Earning!', cx, ctaY + 46)
 
+                    // ═══ COMING SOON — App Stores ═══
+                    const storeY = ctaY + ctaH2 + 50
+
+                    ctx.fillStyle = 'rgba(255,255,255,0.3)'
+                    ctx.font = '600 14px system-ui'
+                    ctx.fillText('C O M I N G   S O O N', cx, storeY)
+
+                    // Play Store badge
+                    const badgeW = 180
+                    const badgeH = 52
+                    const gap = 20
+                    const playX = cx - badgeW - gap / 2
+                    const appX = cx + gap / 2
+                    const badgeY = storeY + 18
+
+                    // Play Store
+                    ctx.fillStyle = 'rgba(255,255,255,0.06)'
+                    ctx.beginPath()
+                    ctx.roundRect(playX, badgeY, badgeW, badgeH, 12)
+                    ctx.fill()
+                    ctx.strokeStyle = 'rgba(255,255,255,0.12)'
+                    ctx.lineWidth = 1
+                    ctx.stroke()
+
+                    ctx.fillStyle = 'rgba(255,255,255,0.5)'
+                    ctx.font = '400 10px system-ui'
+                    ctx.textAlign = 'center'
+                    ctx.fillText('GET IT ON', playX + badgeW / 2, badgeY + 18)
+                    ctx.fillStyle = '#ffffff'
+                    ctx.font = '700 16px system-ui'
+                    ctx.fillText('▶ Google Play', playX + badgeW / 2, badgeY + 38)
+
+                    // App Store
+                    ctx.fillStyle = 'rgba(255,255,255,0.06)'
+                    ctx.beginPath()
+                    ctx.roundRect(appX, badgeY, badgeW, badgeH, 12)
+                    ctx.fill()
+                    ctx.strokeStyle = 'rgba(255,255,255,0.12)'
+                    ctx.lineWidth = 1
+                    ctx.stroke()
+
+                    ctx.fillStyle = 'rgba(255,255,255,0.5)'
+                    ctx.font = '400 10px system-ui'
+                    ctx.fillText('DOWNLOAD ON', appX + badgeW / 2, badgeY + 18)
+                    ctx.fillStyle = '#ffffff'
+                    ctx.font = '700 16px system-ui'
+                    ctx.fillText(' App Store', appX + badgeW / 2, badgeY + 38)
+
                     // ═══ FOOTER ═══
                     ctx.fillStyle = 'rgba(255,255,255,0.25)'
                     ctx.font = '500 14px system-ui'
-                    ctx.fillText('bharosexchange.com  •  © 2025 Bharos Exchange', cx, H - 55)
+                    ctx.textAlign = 'center'
+                    ctx.fillText('bharosexchange.com  •  © 2026 Bharos Exchange', cx, H - 55)
 
                     ctx.fillStyle = 'rgba(255,255,255,0.15)'
                     ctx.font = '400 12px system-ui'
