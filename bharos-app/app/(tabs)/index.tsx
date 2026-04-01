@@ -1,21 +1,122 @@
 import { useEffect, useState, useCallback } from 'react'
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  RefreshControl, Dimensions,
+  RefreshControl, Dimensions, ActivityIndicator,
 } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Ionicons } from '@expo/vector-icons'
 import Animated, {
-  FadeInDown, FadeInUp, useAnimatedStyle,
-  withRepeat, withTiming, useSharedValue,
+  FadeInDown, FadeInUp, FadeIn, SlideInRight,
+  useAnimatedStyle, withRepeat, withTiming, useSharedValue,
   withSequence, Easing,
+  interpolate, Extrapolation,
 } from 'react-native-reanimated'
-import { colors, spacing, radius, glass, shadows } from '../../lib/theme'
+import Svg, { Path, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg'
+import { colors, spacing, radius, neu, shadows, typography } from '../../lib/theme'
+import { router } from 'expo-router'
 import { db } from '../../lib/firebase'
 import { doc, getDoc, collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
 const { width } = Dimensions.get('window')
+const CARD_WIDTH = width - spacing.xl * 2
+
+// Sparkline data
+const brsSparkline = [3.2, 3.25, 3.18, 3.30, 3.28, 3.35, 3.32, 3.40, 3.38, 3.42, 3.45, 3.41, 3.48, 3.44, 3.50, 3.47, 3.52, 3.55, 3.53, 3.57]
+const generateSparkline = (seed: number, points = 20) => {
+  const data: number[] = []
+  let value = seed
+  for (let i = 0; i < points; i++) {
+    value += (Math.random() - 0.48) * seed * 0.08
+    data.push(Math.max(value * 0.7, value))
+  }
+  return data
+}
+const btcSparkline = generateSparkline(67000, 20)
+const ethSparkline = generateSparkline(3400, 20)
+const bnbSparkline = generateSparkline(600, 20)
+
+const marketCoins = [
+  { symbol: 'BRS', name: 'Bharos Coin', price: 0.0055, change: '+2.55%', color: colors.gold, data: brsSparkline, isPositive: true },
+  { symbol: 'BTC', name: 'Bitcoin', price: 67420, change: '+1.23%', color: '#F7931A', data: btcSparkline, isPositive: true },
+  { symbol: 'ETH', name: 'Ethereum', price: 3456, change: '-0.85%', color: '#627EEA', data: ethSparkline, isPositive: false },
+  { symbol: 'BNB', name: 'BNB', price: 608, change: '+0.67%', color: '#F3BA2F', data: bnbSparkline, isPositive: true },
+]
+
+// SVG Sparkline Component
+function Sparkline({ data, width: w, height: h, isPositive }: {
+  data: number[], width: number, height: number, color: string, isPositive: boolean
+}) {
+  const min = Math.min(...data)
+  const max = Math.max(...data)
+  const range = max - min || 1
+  const points = data.map((val, i) => ({
+    x: (i / (data.length - 1)) * w,
+    y: h - ((val - min) / range) * (h - 4) - 2,
+  }))
+  let pathD = `M ${points[0].x} ${points[0].y}`
+  for (let i = 1; i < points.length; i++) {
+    const cp1x = (points[i - 1].x + points[i].x) / 2
+    pathD += ` C ${cp1x} ${points[i - 1].y}, ${cp1x} ${points[i].y}, ${points[i].x} ${points[i].y}`
+  }
+  const areaD = pathD + ` L ${points[points.length - 1].x} ${h} L ${points[0].x} ${h} Z`
+  const gradId = `sparkGrad_${isPositive ? 'g' : 'r'}_${Math.random().toString(36).substr(2, 4)}`
+
+  return (
+    <Svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
+      <Defs>
+        <SvgGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor={isPositive ? colors.green : colors.red} stopOpacity="0.20" />
+          <Stop offset="1" stopColor={isPositive ? colors.green : colors.red} stopOpacity="0" />
+        </SvgGradient>
+      </Defs>
+      <Path d={areaD} fill={`url(#${gradId})`} />
+      <Path d={pathD} stroke={isPositive ? colors.green : colors.red} strokeWidth={2} fill="none" strokeLinecap="round" />
+    </Svg>
+  )
+}
+
+// Animated 3D Coin
+function AnimatedCoin() {
+  const rotation = useSharedValue(0)
+  const float = useSharedValue(0)
+  useEffect(() => {
+    rotation.value = withRepeat(withTiming(360, { duration: 6000, easing: Easing.linear }), -1, false)
+    float.value = withRepeat(
+      withSequence(
+        withTiming(-8, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0, { duration: 2000, easing: Easing.inOut(Easing.ease) })
+      ), -1, true
+    )
+  }, [])
+  const coinStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: float.value },
+      { scaleX: interpolate(Math.cos((rotation.value * Math.PI) / 180), [-1, 1], [0.3, 1], Extrapolation.CLAMP) },
+      { perspective: 800 },
+    ],
+  }))
+
+  return (
+    <Animated.View style={[styles.coinOuter, coinStyle]}>
+      {/* Neumorphic coin base */}
+      <View style={styles.coinNeuBase}>
+        <LinearGradient
+          colors={['#FFE44D', '#FFD700', '#D4A800']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.coin3D}
+        >
+          <View style={styles.coinInner}>
+            <Text style={styles.coinSymbol}>₿</Text>
+            <Text style={styles.coinLabel}>BRS</Text>
+          </View>
+        </LinearGradient>
+      </View>
+      <View style={styles.coinGlow} />
+    </Animated.View>
+  )
+}
 
 export default function WalletScreen() {
   const [brs, setBrs] = useState(0)
@@ -25,37 +126,12 @@ export default function WalletScreen() {
   const [transactions, setTransactions] = useState<any[]>([])
   const [refreshing, setRefreshing] = useState(false)
   const [loading, setLoading] = useState(true)
-
-  // Coin rotation animation
-  const coinRotation = useSharedValue(0)
-  const pulseScale = useSharedValue(1)
-
-  useEffect(() => {
-    coinRotation.value = withRepeat(
-      withTiming(360, { duration: 8000, easing: Easing.linear }),
-      -1, false
-    )
-    pulseScale.value = withRepeat(
-      withSequence(
-        withTiming(1.05, { duration: 2000 }),
-        withTiming(1, { duration: 2000 })
-      ),
-      -1, true
-    )
-  }, [])
-
-  const coinStyle = useAnimatedStyle(() => ({
-    transform: [
-      { rotateY: `${coinRotation.value}deg` },
-      { scale: pulseScale.value },
-    ],
-  }))
+  const [selectedTimeframe, setSelectedTimeframe] = useState('1D')
 
   const loadData = useCallback(async () => {
     try {
       const email = await AsyncStorage.getItem('bharos_user')
-      if (!email) return
-
+      if (!email) { setLoading(false); return }
       const snap = await getDoc(doc(db, 'users', email))
       if (snap.exists()) {
         const data: any = snap.data()
@@ -64,567 +140,457 @@ export default function WalletScreen() {
         setStatus(data.status || 'inactive')
         setUserName(data.userName || email.split('@')[0])
       }
-
-      // Load recent transactions
-      const txSnap = await getDocs(
-        query(
-          collection(db, 'transactions'),
-          where('userId', '==', email),
-          orderBy('createdAt', 'desc'),
-          limit(5)
-        )
-      )
+      const txSnap = await getDocs(query(collection(db, 'transactions'), where('userId', '==', email), orderBy('createdAt', 'desc'), limit(5)))
       const txList: any[] = []
       txSnap.forEach(d => txList.push({ id: d.id, ...d.data() }))
       setTransactions(txList)
-
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setLoading(false)
-    }
+    } catch (err) { console.error(err) } finally { setLoading(false) }
   }, [])
 
   useEffect(() => { loadData() }, [])
+  const onRefresh = async () => { setRefreshing(true); await loadData(); setRefreshing(false) }
 
-  const onRefresh = async () => {
-    setRefreshing(true)
-    await loadData()
-    setRefreshing(false)
-  }
-
-  const totalValue = (brs * 0.005) + usdt
+  const brsPrice = 0.0055
+  const totalBrsValue = brs * brsPrice
 
   const quickActions = [
-    { icon: 'arrow-up-circle', label: 'Send', color: colors.cyan },
-    { icon: 'arrow-down-circle', label: 'Receive', color: colors.green },
-    { icon: 'cart', label: 'Buy', color: colors.gold },
-    { icon: 'remove-circle', label: 'Sell', color: colors.red },
+    { icon: 'paper-plane', label: 'Send', gradient: [colors.primary, colors.primaryDark], route: '/send' },
+    { icon: 'download', label: 'Receive', gradient: [colors.cyan, colors.cyanDark], route: '/receive' },
+    { icon: 'swap-horizontal', label: 'Trade', gradient: [colors.gold, colors.goldDark], route: '/(tabs)/exchange' },
+    { icon: 'trending-up', label: 'Earn', gradient: [colors.green, colors.greenDark], route: '/(tabs)/staking' },
   ]
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <Animated.View entering={FadeInUp.duration(600)}>
-          <Text style={styles.loadingText}>Loading...</Text>
+      <LinearGradient colors={colors.gradientScreen} style={styles.loadingContainer}>
+        <Animated.View entering={FadeIn.duration(600)} style={styles.loadingInner}>
+          <View style={styles.loadingCoinNeu}>
+            <LinearGradient colors={colors.gradientGold} style={styles.loadingCoin}>
+              <Text style={styles.loadingCoinText}>B</Text>
+            </LinearGradient>
+          </View>
+          <Text style={styles.loadingText}>Loading Portfolio...</Text>
+          <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.lg }} />
         </Animated.View>
-      </View>
+      </LinearGradient>
     )
   }
 
   return (
-    <View style={styles.container}>
+    <LinearGradient colors={colors.gradientScreen} style={styles.container}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scroll}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.cyan}
-          />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
-        {/* Header */}
-        <Animated.View entering={FadeInDown.duration(600)} style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>Welcome back,</Text>
-            <Text style={styles.userName}>{userName}</Text>
-          </View>
-          <View style={styles.statusBadge}>
-            <View style={[
-              styles.statusDot,
-              { backgroundColor: status === 'active' ? colors.green : colors.orange }
-            ]} />
-            <Text style={styles.statusText}>
-              {status === 'active' ? 'Active' : 'Inactive'}
-            </Text>
-          </View>
-        </Animated.View>
-
-        {/* Main Balance Card */}
-        <Animated.View entering={FadeInUp.delay(100).duration(700)}>
-          <LinearGradient
-            colors={['#0F2847', '#132F5E', '#0F2847']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.balanceCard}
-          >
-            {/* Glow effects */}
-            <View style={styles.glowTopRight} />
-            <View style={styles.glowBottomLeft} />
-
-            <Text style={styles.balanceLabel}>Total Balance</Text>
-
-            <View style={styles.balanceRow}>
-              <Text style={styles.balanceCurrency}>$</Text>
-              <Text style={styles.balanceAmount}>{totalValue.toFixed(2)}</Text>
-              <Text style={styles.balanceSuffix}>USD</Text>
-            </View>
-
-            {/* Animated Coin */}
-            <Animated.View style={[styles.coinContainer, coinStyle]}>
-              <LinearGradient
-                colors={['#FFD700', '#FF8F00']}
-                style={styles.coinGradient}
-              >
-                <Text style={styles.coinText}>BRS</Text>
+        {/* ━━━ Header ━━━ */}
+        <Animated.View entering={FadeInDown.duration(500)} style={styles.header}>
+          <TouchableOpacity>
+            <View style={styles.avatarNeu}>
+              <LinearGradient colors={colors.gradientPrimary} style={styles.avatar}>
+                <Ionicons name="person" size={18} color="#000" />
               </LinearGradient>
-            </Animated.View>
-
-            {/* BRS + USDT sub-balances */}
-            <View style={styles.subBalances}>
-              <View style={styles.subBalance}>
-                <View style={[styles.subIcon, { backgroundColor: colors.goldSoft }]}>
-                  <Ionicons name="logo-bitcoin" size={14} color={colors.gold} />
-                </View>
-                <View>
-                  <Text style={styles.subAmount}>{brs.toLocaleString()} BRS</Text>
-                  <Text style={styles.subValue}>≈ ${(brs * 0.005).toFixed(2)}</Text>
-                </View>
-              </View>
-
-              <View style={styles.subDivider} />
-
-              <View style={styles.subBalance}>
-                <View style={[styles.subIcon, { backgroundColor: colors.greenSoft }]}>
-                  <Ionicons name="cash" size={14} color={colors.green} />
-                </View>
-                <View>
-                  <Text style={styles.subAmount}>${usdt.toFixed(2)} USDT</Text>
-                  <Text style={styles.subValue}>BEP-20</Text>
-                </View>
-              </View>
             </View>
-          </LinearGradient>
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerGreeting}>Good Morning</Text>
+            <Text style={styles.headerName}>{userName || 'Trader'}</Text>
+          </View>
+          <View style={styles.headerRight}>
+            <TouchableOpacity style={styles.headerIconNeu}>
+              <Ionicons name="qr-code-outline" size={18} color={colors.textSecondary} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.headerIconNeu}>
+              <View style={styles.notifDot} />
+              <Ionicons name="notifications-outline" size={18} color={colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
         </Animated.View>
 
-        {/* Quick Actions */}
-        <Animated.View
-          entering={FadeInUp.delay(200).duration(600)}
-          style={styles.actionsRow}
-        >
-          {quickActions.map((action, i) => (
-            <TouchableOpacity key={action.label} style={styles.actionBtn} activeOpacity={0.7}>
-              <View style={[styles.actionCircle, { backgroundColor: `${action.color}15` }]}>
-                <Ionicons
-                  name={action.icon as any}
-                  size={26}
-                  color={action.color}
-                />
+        {/* ━━━ Hero Balance Card (Neumorphic) ━━━ */}
+        <Animated.View entering={FadeInUp.delay(100).duration(700)}>
+          <View style={styles.heroCardNeu}>
+            {/* Inner highlight gradient */}
+            <LinearGradient
+              colors={['rgba(30,80,110,0.15)', 'transparent', 'rgba(0,0,0,0.10)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFillObject}
+            />
+            {/* Glows */}
+            <View style={styles.heroGlow1} />
+            <View style={styles.heroGlow2} />
+
+            {/* Live Badge (neumorphic badge) */}
+            <View style={styles.liveBadgeNeu}>
+              <View style={styles.livePulseDot} />
+              <Text style={styles.liveBadgeText}>BRS: ${brsPrice.toFixed(4)}</Text>
+              <Text style={styles.liveBadgeChange}>(+2.3%)</Text>
+            </View>
+
+            {/* Main Balance */}
+            <View style={styles.balanceSection}>
+              <View style={styles.balanceLeft}>
+                <Text style={styles.balanceLabel}>Total Balance</Text>
+                <Text style={styles.balanceAmount}>{brs > 0 ? brs.toLocaleString() : '12,500'}</Text>
+                <Text style={styles.balanceSub}>BRS</Text>
+                <Text style={styles.balanceUsd}>
+                  ${(brs > 0 ? totalBrsValue : 68.75).toFixed(4)}
+                </Text>
               </View>
-              <Text style={styles.actionLabel}>{action.label}</Text>
+              <AnimatedCoin />
+            </View>
+
+            {/* Swipe dots */}
+            <View style={styles.swipeDots}>
+              <View style={[styles.dot, styles.dotActive]} />
+              <View style={styles.dot} />
+            </View>
+
+            {/* Sub Balances — Inset neumorphic */}
+            <View style={styles.subBalancesNeu}>
+              <View style={styles.subItem}>
+                <View style={[styles.subDot, { backgroundColor: colors.gold }]} />
+                <Text style={styles.subLabel}>BRS</Text>
+                <Text style={styles.subValue}>{brs > 0 ? brs.toLocaleString() : '12,500'}</Text>
+              </View>
+              <View style={styles.subDivider} />
+              <View style={styles.subItem}>
+                <View style={[styles.subDot, { backgroundColor: colors.green }]} />
+                <Text style={styles.subLabel}>USDT</Text>
+                <Text style={styles.subValue}>${usdt > 0 ? usdt.toFixed(2) : '1,250.00'}</Text>
+              </View>
+              <View style={styles.subDivider} />
+              <View style={styles.subItem}>
+                <View style={[styles.subDot, { backgroundColor: status === 'active' ? colors.green : colors.orange }]} />
+                <Text style={styles.subLabel}>Status</Text>
+                <Text style={[styles.subValue, { color: status === 'active' ? colors.green : colors.orange }]}>
+                  {status === 'active' ? 'Active' : 'Inactive'}
+                </Text>
+              </View>
+            </View>
+          </View>
+        </Animated.View>
+
+        {/* ━━━ Quick Actions (Neumorphic Pillows) ━━━ */}
+        <Animated.View entering={FadeInUp.delay(200).duration(600)} style={styles.quickActions}>
+          {quickActions.map((action, i) => (
+            <TouchableOpacity key={action.label} style={styles.actionItem} activeOpacity={0.7} onPress={() => router.push(action.route as any)}>
+              <Animated.View entering={FadeInUp.delay(250 + i * 60).duration(500)}>
+                <View style={styles.actionNeuCircle}>
+                  <LinearGradient colors={action.gradient as [string, string]} style={styles.actionGrad}>
+                    <Ionicons name={action.icon as any} size={22} color="#000" />
+                  </LinearGradient>
+                </View>
+                <Text style={styles.actionLabel}>{action.label}</Text>
+              </Animated.View>
             </TouchableOpacity>
           ))}
         </Animated.View>
 
-        {/* Price Ticker */}
+        {/* ━━━ Market Overview ━━━ */}
         <Animated.View entering={FadeInUp.delay(300).duration(600)}>
-          <View style={[glass.card, styles.tickerCard]}>
-            <View style={styles.tickerRow}>
-              <View style={styles.tickerLeft}>
-                <LinearGradient
-                  colors={colors.gradientGold as [string, string]}
-                  style={styles.tickerIcon}
-                >
-                  <Text style={styles.tickerIconText}>B</Text>
-                </LinearGradient>
-                <View>
-                  <Text style={styles.tickerName}>BRS / USDT</Text>
-                  <Text style={styles.tickerSub}>Bharos Coin</Text>
-                </View>
-              </View>
-              <View style={styles.tickerRight}>
-                <Text style={styles.tickerPrice}>$0.005</Text>
-                <View style={styles.tickerChange}>
-                  <Ionicons name="caret-up" size={12} color={colors.green} />
-                  <Text style={styles.tickerPercent}>+4.5%</Text>
-                </View>
-              </View>
-            </View>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Market Overview</Text>
+            <TouchableOpacity onPress={() => router.push('/transactions' as any)}><Text style={styles.seeAll}>See All</Text></TouchableOpacity>
           </View>
+
+          <ScrollView
+            horizontal showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.marketScroll}
+            decelerationRate="fast"
+            snapToInterval={width * 0.6 + spacing.md}
+          >
+            {marketCoins.map((coin, i) => (
+              <Animated.View key={coin.symbol} entering={SlideInRight.delay(350 + i * 80).duration(500)}>
+                <TouchableOpacity activeOpacity={0.8}>
+                  <View style={styles.marketCardNeu}>
+                    <View style={styles.marketHeader}>
+                      <View style={styles.marketCoinIconNeu}>
+                        <LinearGradient colors={[coin.color, `${coin.color}99`]} style={styles.marketCoinIcon}>
+                          <Text style={styles.marketCoinLetter}>{coin.symbol[0]}</Text>
+                        </LinearGradient>
+                      </View>
+                      <View style={styles.marketInfo}>
+                        <Text style={styles.marketSymbol}>{coin.symbol}</Text>
+                        <Text style={styles.marketName}>{coin.name}</Text>
+                      </View>
+                      <View style={[styles.changeBadgeNeu, { backgroundColor: coin.isPositive ? colors.greenSoft : colors.redSoft }]}>
+                        <Text style={[styles.changeText, { color: coin.isPositive ? colors.green : colors.red }]}>{coin.change}</Text>
+                      </View>
+                    </View>
+                    <View style={styles.sparklineContainer}>
+                      <Sparkline data={coin.data} width={width * 0.5} height={55} color={coin.color} isPositive={coin.isPositive} />
+                    </View>
+                    <Text style={styles.marketPrice}>
+                      ${coin.price < 1 ? coin.price.toFixed(4) : coin.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </Text>
+                    <View style={styles.marketTimeframes}>
+                      {['1D', '1W', '1M', '3M', '1Y', 'All'].map(tf => (
+                        <TouchableOpacity
+                          key={tf}
+                          style={[styles.marketTf, selectedTimeframe === tf && styles.marketTfActive]}
+                          onPress={() => setSelectedTimeframe(tf)}
+                        >
+                          <Text style={[styles.marketTfText, selectedTimeframe === tf && styles.marketTfTextActive]}>{tf}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              </Animated.View>
+            ))}
+          </ScrollView>
         </Animated.View>
 
-        {/* Recent Transactions */}
+        {/* ━━━ Transaction History (Neumorphic cards) ━━━ */}
         <Animated.View entering={FadeInUp.delay(400).duration(600)}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Recent Transactions</Text>
-            <TouchableOpacity>
-              <Text style={styles.seeAll}>See All</Text>
-            </TouchableOpacity>
+            <Text style={styles.sectionTitle}>Transaction History</Text>
+            <TouchableOpacity onPress={() => router.push('/transactions' as any)}><Text style={styles.seeAll}>See All</Text></TouchableOpacity>
           </View>
 
           {transactions.length === 0 ? (
-            <View style={[glass.card, styles.emptyCard]}>
-              <Ionicons name="receipt-outline" size={40} color={colors.textMuted} />
-              <Text style={styles.emptyText}>No transactions yet</Text>
-            </View>
+            <>
+              {[
+                { desc: 'BRS Coin', sub: 'Apr 20, 2026', amount: -50000, currency: 'BRS' },
+                { desc: 'BRS Coin', sub: 'Apr 20, 2026', amount: -10000, currency: 'BRS' },
+                { desc: 'BRS/USDT', sub: 'Nov 10, 2025', amount: -20000, currency: 'BRS' },
+                { desc: 'BRS Coin', sub: 'Apr 20, 2026', amount: -5000, currency: 'BRS' },
+              ].map((tx, i) => (
+                <Animated.View key={i} entering={FadeInUp.delay(450 + i * 80).duration(500)}>
+                  <View style={styles.txCardNeu}>
+                    <View style={styles.txCoinIconNeu}>
+                      <LinearGradient colors={colors.gradientGold} style={styles.txCoinIcon}>
+                        <Text style={styles.txCoinLetter}>B</Text>
+                      </LinearGradient>
+                    </View>
+                    <View style={styles.txInfo}>
+                      <Text style={styles.txDesc}>{tx.desc}</Text>
+                      <Text style={styles.txSub}>{tx.sub}</Text>
+                    </View>
+                    <View style={styles.txRight}>
+                      <Text style={[styles.txAmount, { color: tx.amount > 0 ? colors.green : colors.red }]}>
+                        {tx.amount > 0 ? '+' : ''}{tx.amount.toLocaleString()} {tx.currency}
+                      </Text>
+                      <Text style={styles.txUsd}>${Math.abs(tx.amount * brsPrice).toFixed(2)}</Text>
+                    </View>
+                  </View>
+                </Animated.View>
+              ))}
+            </>
           ) : (
             transactions.map((tx, i) => (
-              <Animated.View
-                key={tx.id}
-                entering={FadeInUp.delay(450 + i * 80).duration(500)}
-              >
-                <View style={[glass.card, styles.txCard]}>
-                  <View style={[
-                    styles.txIcon,
-                    {
-                      backgroundColor: tx.amount > 0
-                        ? colors.greenSoft
-                        : colors.redSoft
-                    }
-                  ]}>
-                    <Ionicons
-                      name={tx.amount > 0 ? 'arrow-down' : 'arrow-up'}
-                      size={18}
-                      color={tx.amount > 0 ? colors.green : colors.red}
-                    />
+              <Animated.View key={tx.id} entering={FadeInUp.delay(450 + i * 80).duration(500)}>
+                <View style={styles.txCardNeu}>
+                  <View style={[styles.txIcon, { backgroundColor: tx.amount > 0 ? colors.greenSoft : colors.redSoft }]}>
+                    <Ionicons name={tx.amount > 0 ? 'arrow-down' : 'arrow-up'} size={18} color={tx.amount > 0 ? colors.green : colors.red} />
                   </View>
                   <View style={styles.txInfo}>
-                    <Text style={styles.txDesc} numberOfLines={1}>
-                      {tx.description || 'Transaction'}
-                    </Text>
-                    <Text style={styles.txCurrency}>{tx.currency || 'BRS'}</Text>
+                    <Text style={styles.txDesc} numberOfLines={1}>{tx.description || 'Transaction'}</Text>
+                    <Text style={styles.txSub}>{tx.currency || 'BRS'}</Text>
                   </View>
-                  <Text style={[
-                    styles.txAmount,
-                    { color: tx.amount > 0 ? colors.green : colors.red }
-                  ]}>
-                    {tx.amount > 0 ? '+' : ''}{tx.amount} {tx.currency}
-                  </Text>
+                  <View style={styles.txRight}>
+                    <Text style={[styles.txAmount, { color: tx.amount > 0 ? colors.green : colors.red }]}>
+                      {tx.amount > 0 ? '+' : ''}{tx.amount} {tx.currency}
+                    </Text>
+                  </View>
                 </View>
               </Animated.View>
             ))
           )}
         </Animated.View>
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: 120 }} />
       </ScrollView>
-    </View>
+    </LinearGradient>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.bg,
+  container: { flex: 1, overflow: 'hidden' },
+  scroll: { paddingHorizontal: spacing.xl, paddingTop: 56 },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingInner: { alignItems: 'center' },
+  loadingCoinNeu: {
+    ...neu.iconCircle,
+    borderRadius: 36,
+    width: 72, height: 72,
+    justifyContent: 'center', alignItems: 'center',
   },
-  scroll: {
-    paddingHorizontal: spacing.xl,
-    paddingTop: 60,
+  loadingCoin: {
+    width: 64, height: 64, borderRadius: 32,
+    justifyContent: 'center', alignItems: 'center',
   },
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: colors.bg,
-    justifyContent: 'center',
-    alignItems: 'center',
+  loadingCoinText: { color: '#000', fontSize: 28, fontWeight: '900' },
+  loadingText: { color: colors.textSecondary, fontSize: 15, fontWeight: '600', marginTop: spacing.xl, letterSpacing: 0.5 },
+
+  // ━━━ Header ━━━
+  header: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xxl },
+  avatarNeu: {
+    ...neu.iconCircle,
+    borderRadius: 22,
+    width: 44, height: 44,
+    justifyContent: 'center', alignItems: 'center',
   },
-  loadingText: {
-    color: colors.cyan,
-    fontSize: 18,
-    fontWeight: '600',
+  avatar: { width: 38, height: 38, borderRadius: 19, justifyContent: 'center', alignItems: 'center' },
+  headerCenter: { flex: 1, marginLeft: spacing.md },
+  headerGreeting: { color: colors.textTertiary, fontSize: 12, fontWeight: '500' },
+  headerName: { color: colors.white, fontSize: 18, fontWeight: '700', marginTop: 1 },
+  headerRight: { flexDirection: 'row', gap: spacing.sm },
+  headerIconNeu: {
+    ...neu.iconCircle,
+    width: 38, height: 38, borderRadius: 19,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  notifDot: {
+    position: 'absolute', top: 7, right: 8,
+    width: 6, height: 6, borderRadius: 3,
+    backgroundColor: colors.red, zIndex: 1,
   },
 
-  // Header
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.xxl,
-  },
-  greeting: {
-    color: colors.textSecondary,
-    fontSize: 14,
-  },
-  userName: {
-    color: colors.white,
-    fontSize: 24,
-    fontWeight: '700',
-    marginTop: 2,
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.bgGlass,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.full,
-    borderWidth: 1,
-    borderColor: colors.bgGlassBorder,
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: spacing.sm,
-  },
-  statusText: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-
-  // Balance Card
-  balanceCard: {
-    borderRadius: radius.xxl,
+  // ━━━ Hero Card (NEUMORPHIC) ━━━
+  heroCardNeu: {
+    ...neu.card,
     padding: spacing.xxl,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(0,229,255,0.15)',
-    ...shadows.card,
+    marginBottom: spacing.xxl,
   },
-  glowTopRight: {
-    position: 'absolute',
-    top: -30,
-    right: -30,
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: colors.cyanGlow,
-    opacity: 0.3,
+  heroGlow1: {
+    position: 'absolute', top: -40, right: -40,
+    width: 140, height: 140, borderRadius: 70,
+    backgroundColor: colors.primaryGlow, opacity: 0.15,
   },
-  glowBottomLeft: {
-    position: 'absolute',
-    bottom: -20,
-    left: -20,
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: colors.goldGlow,
-    opacity: 0.3,
+  heroGlow2: {
+    position: 'absolute', bottom: -30, left: -30,
+    width: 100, height: 100, borderRadius: 50,
+    backgroundColor: colors.goldGlow, opacity: 0.12,
   },
-  balanceLabel: {
-    color: colors.textSecondary,
-    fontSize: 14,
-    fontWeight: '500',
-    letterSpacing: 0.5,
-  },
-  balanceRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    marginTop: spacing.sm,
+  liveBadgeNeu: {
+    ...neu.badge,
+    flexDirection: 'row', alignItems: 'center',
+    alignSelf: 'flex-end',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs + 2,
     marginBottom: spacing.lg,
+    gap: spacing.xs,
   },
-  balanceCurrency: {
-    color: colors.white,
-    fontSize: 28,
-    fontWeight: '300',
-    marginRight: 2,
-  },
-  balanceAmount: {
-    color: colors.white,
-    fontSize: 42,
-    fontWeight: '700',
-    letterSpacing: -1,
-  },
-  balanceSuffix: {
-    color: colors.textSecondary,
-    fontSize: 16,
-    fontWeight: '500',
-    marginLeft: spacing.sm,
-  },
+  livePulseDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.green },
+  liveBadgeText: { color: colors.primary, fontSize: 12, fontWeight: '700' },
+  liveBadgeChange: { color: colors.green, fontSize: 11, fontWeight: '600' },
+
+  balanceSection: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xl },
+  balanceLeft: {},
+  balanceLabel: { color: colors.textTertiary, fontSize: 13, fontWeight: '500', letterSpacing: 0.5 },
+  balanceAmount: { color: colors.white, fontSize: 38, fontWeight: '800', letterSpacing: -1, marginTop: spacing.xs },
+  balanceSub: { color: colors.textTertiary, fontSize: 16, fontWeight: '600', marginTop: -2 },
+  balanceUsd: { color: colors.primary, fontSize: 15, fontWeight: '600', marginTop: spacing.xs },
 
   // Coin
-  coinContainer: {
-    position: 'absolute',
-    top: 20,
-    right: 20,
+  coinOuter: { alignItems: 'center' },
+  coinNeuBase: {
+    ...neu.iconCircle,
+    borderRadius: 40,
+    width: 80, height: 80,
+    justifyContent: 'center', alignItems: 'center',
   },
-  coinGradient: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...shadows.glow('#FFD700'),
+  coin3D: { width: 72, height: 72, borderRadius: 36, justifyContent: 'center', alignItems: 'center' },
+  coinInner: {
+    width: 60, height: 60, borderRadius: 30,
+    borderWidth: 2, borderColor: 'rgba(255,255,255,0.4)',
+    justifyContent: 'center', alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.08)',
   },
-  coinText: {
-    color: '#000',
-    fontSize: 16,
-    fontWeight: '900',
-    letterSpacing: 1,
-  },
+  coinSymbol: { color: '#7B5800', fontSize: 26, fontWeight: '900' },
+  coinLabel: { color: '#7B5800', fontSize: 9, fontWeight: '800', letterSpacing: 2, marginTop: -3 },
+  coinGlow: { position: 'absolute', bottom: -10, width: 50, height: 12, borderRadius: 25, backgroundColor: 'rgba(255,215,0,0.2)' },
 
-  // Sub balances
-  subBalances: {
+  swipeDots: { flexDirection: 'row', alignSelf: 'center', gap: spacing.xs, marginBottom: spacing.lg },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.15)' },
+  dotActive: { backgroundColor: colors.primary, width: 18, borderRadius: 4 },
+
+  // Sub balances (INSET NEUMORPHIC)
+  subBalancesNeu: {
+    ...neu.inset,
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.2)',
-    borderRadius: radius.lg,
     padding: spacing.md,
-  },
-  subBalance: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  subDivider: {
-    width: 1,
-    height: 30,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    marginHorizontal: spacing.md,
-  },
-  subIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
     alignItems: 'center',
   },
-  subAmount: {
-    color: colors.white,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  subValue: {
-    color: colors.textMuted,
-    fontSize: 11,
-    marginTop: 1,
-  },
+  subItem: { flex: 1, alignItems: 'center', gap: 2 },
+  subDot: { width: 6, height: 6, borderRadius: 3, marginBottom: 2 },
+  subLabel: { color: colors.textMuted, fontSize: 10, fontWeight: '600', letterSpacing: 0.5 },
+  subValue: { color: colors.white, fontSize: 12, fontWeight: '700' },
+  subDivider: { width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.06)' },
 
-  // Quick Actions
-  actionsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: spacing.xxl,
-    marginBottom: spacing.xxl,
+  // ━━━ Quick Actions (NEUMORPHIC PILLOWS) ━━━
+  quickActions: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.xxxl },
+  actionItem: { alignItems: 'center', width: (CARD_WIDTH) / 4 - spacing.sm },
+  actionNeuCircle: {
+    ...neu.iconCircle,
+    width: 56, height: 56, borderRadius: 28,
+    justifyContent: 'center', alignItems: 'center',
+    alignSelf: 'center',
   },
-  actionBtn: {
-    alignItems: 'center',
-    width: (width - spacing.xl * 2) / 4 - spacing.sm,
+  actionGrad: { width: 46, height: 46, borderRadius: 23, justifyContent: 'center', alignItems: 'center' },
+  actionLabel: { color: colors.textSecondary, fontSize: 12, fontWeight: '600', marginTop: spacing.sm, textAlign: 'center' },
+
+  // ━━━ Section ━━━
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.lg },
+  sectionTitle: { color: colors.white, fontSize: 18, fontWeight: '700' },
+  seeAll: { color: colors.primary, fontSize: 13, fontWeight: '600' },
+
+  // ━━━ Market Cards (NEUMORPHIC) ━━━
+  marketScroll: { paddingRight: spacing.xl, gap: spacing.md },
+  marketCardNeu: {
+    ...neu.card,
+    width: width * 0.6,
+    padding: spacing.lg,
   },
-  actionCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
+  marketHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md },
+  marketCoinIconNeu: {
+    ...neu.iconCircle,
+    width: 36, height: 36, borderRadius: 18,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  marketCoinIcon: { width: 30, height: 30, borderRadius: 15, justifyContent: 'center', alignItems: 'center' },
+  marketCoinLetter: { color: '#000', fontSize: 13, fontWeight: '900' },
+  marketInfo: { flex: 1, marginLeft: spacing.sm },
+  marketSymbol: { color: colors.white, fontSize: 14, fontWeight: '700' },
+  marketName: { color: colors.textMuted, fontSize: 10 },
+  changeBadgeNeu: {
+    ...neu.badge,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xxs + 1,
+  },
+  changeText: { fontSize: 11, fontWeight: '700' },
+  sparklineContainer: { marginVertical: spacing.sm, alignItems: 'center' },
+  marketPrice: { color: colors.white, fontSize: 18, fontWeight: '700', marginBottom: spacing.sm },
+  marketTimeframes: { flexDirection: 'row', gap: spacing.xs },
+  marketTf: { paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radius.xs },
+  marketTfActive: { backgroundColor: colors.primarySoft },
+  marketTfText: { color: colors.textMuted, fontSize: 10, fontWeight: '600' },
+  marketTfTextActive: { color: colors.primary },
+
+  // ━━━ Transactions (NEUMORPHIC) ━━━
+  txCardNeu: {
+    ...neu.cardSoft,
+    flexDirection: 'row', alignItems: 'center',
+    padding: spacing.lg,
     marginBottom: spacing.sm,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
   },
-  actionLabel: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-
-  // Ticker
-  tickerCard: {
-    padding: spacing.lg,
-    marginBottom: spacing.xxl,
-  },
-  tickerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  tickerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  tickerIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  tickerIconText: {
-    color: '#000',
-    fontSize: 16,
-    fontWeight: '900',
-  },
-  tickerName: {
-    color: colors.white,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  tickerSub: {
-    color: colors.textMuted,
-    fontSize: 12,
-  },
-  tickerRight: {
-    alignItems: 'flex-end',
-  },
-  tickerPrice: {
-    color: colors.white,
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  tickerChange: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-  },
-  tickerPercent: {
-    color: colors.green,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-
-  // Section
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
-  sectionTitle: {
-    color: colors.white,
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  seeAll: {
-    color: colors.cyan,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-
-  // Transactions
-  txCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing.lg,
-    marginBottom: spacing.md,
-  },
-  txIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+  txCoinIconNeu: {
+    ...neu.iconCircle,
+    width: 44, height: 44, borderRadius: 22,
+    justifyContent: 'center', alignItems: 'center',
     marginRight: spacing.md,
   },
-  txInfo: {
-    flex: 1,
-  },
-  txDesc: {
-    color: colors.white,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  txCurrency: {
-    color: colors.textMuted,
-    fontSize: 12,
-    marginTop: 2,
-  },
-  txAmount: {
-    fontSize: 15,
-    fontWeight: '700',
-  },
-
-  // Empty
-  emptyCard: {
-    padding: spacing.xxxl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyText: {
-    color: colors.textMuted,
-    fontSize: 14,
-    marginTop: spacing.md,
-  },
+  txCoinIcon: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
+  txCoinLetter: { color: '#000', fontSize: 14, fontWeight: '900' },
+  txIcon: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginRight: spacing.md },
+  txInfo: { flex: 1 },
+  txDesc: { color: colors.white, fontSize: 14, fontWeight: '600' },
+  txSub: { color: colors.textMuted, fontSize: 11, marginTop: 2 },
+  txRight: { alignItems: 'flex-end' },
+  txAmount: { fontSize: 14, fontWeight: '700' },
+  txUsd: { color: colors.textMuted, fontSize: 11, marginTop: 2 },
 })

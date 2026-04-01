@@ -1,7 +1,7 @@
 import { getUser, setUser, removeUser } from "@/lib/session"
 import { useState, useEffect } from 'react'
 import { navigate } from '@/lib/router'
-import { Menu, X, LayoutDashboard, Network, Trophy, ArrowLeftRight, User, LogOut, Home, Info, Zap, Coins, Map, Users } from 'lucide-react'
+import { Menu, X, LayoutDashboard, Network, Trophy, ArrowLeftRight, User, LogOut, Home, Info, Zap, Coins, Map, Users, Gift } from 'lucide-react'
 import LanguageSwitcher from './LanguageSwitcher'
 import NotificationBell from './NotificationBell'
 import { t } from '../lib/i18n'
@@ -44,6 +44,7 @@ function Navbar() {
   // Menu items for logged-in users
   const loggedInMenu = [
     { label: t('dashboard'), path: "/dashboard", icon: LayoutDashboard },
+    { label: '🎁 Social Earn', path: "/social-earn", icon: Gift },
     { label: t('network'), path: "/referral-network", icon: Network },
     { label: t('leaderboard'), path: "/leaderboard", icon: Trophy },
     { label: t('transactions'), path: "/transactions", icon: ArrowLeftRight },

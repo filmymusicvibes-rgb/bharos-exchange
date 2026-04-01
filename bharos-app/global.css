@@ -1,0 +1,54 @@
+/* Global CSS for Bharos Exchange - Remove browser default focus styles */
+* {
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Remove blue focus ring on all inputs and interactive elements */
+input, textarea, select, button, [contenteditable], a {
+  outline: none !important;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+input:focus, textarea:focus, select:focus, button:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove React Native Web default focus styles */
+[data-focusable="true"]:focus {
+  outline: none !important;
+}
+
+div[tabindex]:focus {
+  outline: none !important;
+}
+
+/* Prevent text selection on UI elements */
+[role="button"] {
+  outline: none !important;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ScrollView smooth scrolling */
+[data-testid="scroll-view"] {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+[data-testid="scroll-view"]::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbars globally for a mobile-like experience */
+::-webkit-scrollbar {
+  display: none;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+}

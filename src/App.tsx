@@ -24,6 +24,7 @@ const FAQs = lazy(() => import("./pages/FAQs"))
 const TermsOfService = lazy(() => import("./pages/TermsOfService"))
 const Staking = lazy(() => import("./pages/Staking"))
 const WithdrawBRS = lazy(() => import("./pages/WithdrawBRS"))
+const SocialEarn = lazy(() => import("./pages/SocialEarn"))
 
 function PageLoader() {
   return (
@@ -77,6 +78,7 @@ export default function App() {
   else if (path === "/terms-of-service") Page = <TermsOfService />
   else if (path === "/staking") Page = <Staking />
   else if (path === "/withdraw-brs") Page = <WithdrawBRS />
+  else if (path === "/social-earn") Page = <SocialEarn />
   else return <Home />
 
   const showChat = path !== "/admin" && path !== "/admin-login"

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Bharos Exchange",
     "slug": "bharos-app",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -15,7 +15,11 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.bharos.exchange"
+      "bundleIdentifier": "com.bharos.exchange",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Bharos Exchange uses Face ID to secure your account and transactions.",
+        "NSCameraUsageDescription": "Bharos Exchange needs camera access for QR code scanning."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -23,7 +27,16 @@
         "backgroundColor": "#0A1628"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.bharos.exchange"
+      "package": "com.bharos.exchange",
+      "permissions": [
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED",
+        "CAMERA",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -31,7 +44,30 @@
     },
     "plugins": [
       "expo-router",
-      "expo-font"
-    ]
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#00D4AA",
+          "defaultChannel": "default",
+          "sounds": []
+        }
+      ],
+      "expo-localization",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Bharos Exchange uses Face ID to secure your account."
+        }
+      ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "9b4a0627-f63d-47f2-b1bc-177dea407959"
+      }
+    },
+    "owner": "bharos"
   }
 }

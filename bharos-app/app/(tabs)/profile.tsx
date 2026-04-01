@@ -1,20 +1,41 @@
 import { useEffect, useState } from 'react'
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Ionicons } from '@expo/vector-icons'
-import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated'
-import { colors, spacing, radius, glass } from '../../lib/theme'
+import Animated, { FadeInDown, FadeInUp, FadeIn } from 'react-native-reanimated'
+import { colors, spacing, radius, neu, glass, shadows } from '../../lib/theme'
 import { db } from '../../lib/firebase'
 import { doc, getDoc } from 'firebase/firestore'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { router } from 'expo-router'
+import { checkBiometricSupport, setBiometricEnabled } from '../../lib/biometrics'
+import { getLanguage, setLanguage, availableLanguages, Language } from '../../lib/i18n'
 
-const menuItems = [
-  { icon: 'settings-outline', title: 'Account Settings', color: colors.cyan },
-  { icon: 'shield-checkmark-outline', title: 'Security', color: colors.green },
-  { icon: 'wallet-outline', title: 'Wallet Address', color: colors.gold },
-  { icon: 'people-outline', title: 'Referral Network', color: colors.purple },
-  { icon: 'document-text-outline', title: 'Transaction History', color: colors.orange },
-  { icon: 'help-circle-outline', title: 'Need Help? Contact Support', color: colors.cyan },
+const menuSections = [
+  {
+    title: 'Account',
+    items: [
+      { icon: 'settings-outline', title: 'Account Settings', color: colors.primary, hasArrow: true },
+      { icon: 'shield-checkmark-outline', title: 'Security', color: colors.green, hasArrow: true },
+      { icon: 'wallet-outline', title: 'Wallet Address', color: colors.gold, hasArrow: true },
+    ],
+  },
+  {
+    title: 'Network',
+    items: [
+      { icon: 'people-outline', title: 'Referral Network', color: colors.purple, hasArrow: true },
+      { icon: 'document-text-outline', title: 'Transaction History', color: colors.orange, hasArrow: true },
+      { icon: 'bar-chart-outline', title: 'Earnings Report', color: colors.cyan, hasArrow: true },
+    ],
+  },
+  {
+    title: 'Support',
+    items: [
+      { icon: 'help-circle-outline', title: 'Help Center', color: colors.primary, hasArrow: true },
+      { icon: 'chatbubble-outline', title: 'Live Chat Support', color: colors.green, hasArrow: true },
+      { icon: 'book-outline', title: 'Terms & Privacy', color: colors.textSecondary, hasArrow: true },
+    ],
+  },
 ]
 
 export default function ProfileScreen() {
@@ -22,6 +43,12 @@ export default function ProfileScreen() {
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState('inactive')
   const [referralCode, setReferralCode] = useState('')
+  const [biometricEnabled, setBiometricState] = useState(false)
+  const [biometricType, setBiometricType] = useState('Fingerprint')
+  const [biometricAvailable, setBiometricAvailable] = useState(false)
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true)
+  const [currentLang, setCurrentLang] = useState<Language>('en')
+  const [showLangPicker, setShowLangPicker] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -36,240 +63,570 @@ export default function ProfileScreen() {
         setStatus(data.status || 'inactive')
         setReferralCode(data.referralCode || '')
       }
+
+      // Load biometric status
+      const bioStatus = await checkBiometricSupport()
+      setBiometricAvailable(bioStatus.isAvailable)
+      setBiometricState(bioStatus.isEnabled)
+      setBiometricType(bioStatus.biometricType)
+
+      // Load language
+      const lang = await getLanguage()
+      setCurrentLang(lang)
+
+      // Notification pref
+      const notifPref = await AsyncStorage.getItem('bharos_notifications')
+      setNotificationsEnabled(notifPref !== 'false')
     }
     load()
   }, [])
 
+  const handleBiometricToggle = async (val: boolean) => {
+    setBiometricState(val)
+    await setBiometricEnabled(val)
+    Alert.alert(
+      val ? '🔐 Biometric Enabled' : '🔓 Biometric Disabled',
+      val ? `${biometricType} authentication is now active.` : 'Standard login will be used.'
+    )
+  }
+
+  const handleLanguageChange = async (lang: Language) => {
+    setCurrentLang(lang)
+    await setLanguage(lang)
+    setShowLangPicker(false)
+    Alert.alert('🌍 Language Changed', `App language set to ${availableLanguages.find(l => l.code === lang)?.name}`)
+  }
+
+  const handleNotificationToggle = async (val: boolean) => {
+    setNotificationsEnabled(val)
+    await AsyncStorage.setItem('bharos_notifications', val ? 'true' : 'false')
+  }
+
   return (
-    <View style={styles.container}>
+    <LinearGradient colors={colors.gradientScreen} style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
-        <Animated.View entering={FadeInDown.duration(600)}>
-          <Text style={styles.title}>Profile</Text>
+        {/* ━━━ Header ━━━ */}
+        <Animated.View entering={FadeInDown.duration(500)} style={styles.header}>
+          <Text style={styles.title}>Account</Text>
+          <TouchableOpacity style={styles.settingsBtn}>
+            <Ionicons name="settings-outline" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
         </Animated.View>
 
-        {/* Avatar Card */}
+        {/* ━━━ Profile Card ━━━ */}
         <Animated.View entering={FadeInUp.delay(100).duration(700)}>
           <LinearGradient
-            colors={['#132F5E', '#0F2847']}
-            style={styles.avatarCard}
+            colors={['#0D3B4F', '#0F4A5E', '#0D3B4F']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.profileCard}
           >
-            <View style={styles.avatarGlow} />
+            <View style={styles.profileGlow1} />
+            <View style={styles.profileGlow2} />
 
-            <View style={styles.avatarWrap}>
-              <LinearGradient
-                colors={colors.gradientCyan as [string, string]}
-                style={styles.avatarBorder}
-              >
-                <View style={styles.avatarInner}>
-                  <Text style={styles.avatarText}>
-                    {userName.charAt(0).toUpperCase() || 'B'}
-                  </Text>
-                </View>
-              </LinearGradient>
-            </View>
+            {/* Avatar */}
+            <View style={styles.avatarSection}>
+              <View style={styles.avatarOuter}>
+                <LinearGradient
+                  colors={colors.gradientPrimary}
+                  style={styles.avatarRing}
+                >
+                  <View style={styles.avatarInner}>
+                    <Text style={styles.avatarLetter}>
+                      {userName.charAt(0).toUpperCase() || 'B'}
+                    </Text>
+                  </View>
+                </LinearGradient>
+                {/* Online indicator */}
+                <View style={styles.onlineDot} />
+              </View>
 
-            <Text style={styles.profileName}>{userName}</Text>
-            <Text style={styles.profileSub}>BHAROS COIN User</Text>
-
-            {/* Verification Status */}
-            <View style={styles.verifyCard}>
-              <LinearGradient
-                colors={colors.gradientGold as [string, string]}
-                style={styles.verifyBadge}
-              >
-                <Text style={styles.verifyBadgeText}>BRS</Text>
-              </LinearGradient>
-              <View style={styles.verifyRow}>
-                <Text style={styles.verifyLabel}>KYC Verification Status</Text>
-                <View style={styles.verifiedTag}>
-                  <Ionicons name="checkmark-circle" size={14} color={colors.green} />
-                  <Text style={styles.verifiedText}>
-                    {status === 'active' ? 'Verified' : 'Pending'}
-                  </Text>
+              <View style={styles.profileInfo}>
+                <Text style={styles.profileName}>{userName || 'Bharos User'}</Text>
+                <Text style={styles.profileEmail}>{email || 'user@bharos.com'}</Text>
+                <View style={styles.statusRow}>
+                  <View style={[
+                    styles.statusBadge,
+                    { backgroundColor: status === 'active' ? colors.greenSoft : colors.orangeSoft }
+                  ]}>
+                    <View style={[
+                      styles.statusDot,
+                      { backgroundColor: status === 'active' ? colors.green : colors.orange }
+                    ]} />
+                    <Text style={[
+                      styles.statusText,
+                      { color: status === 'active' ? colors.green : colors.orange }
+                    ]}>
+                      {status === 'active' ? 'Active' : 'Inactive'}
+                    </Text>
+                  </View>
                 </View>
               </View>
-              <View style={styles.verifyProgress}>
-                <View style={[styles.verifyFill, { width: status === 'active' ? '100%' : '30%' }]} />
+            </View>
+
+            {/* KYC + Referral */}
+            <View style={styles.profileStats}>
+              <View style={styles.profileStatItem}>
+                <View style={styles.statIconWrap}>
+                  <Ionicons name="shield-checkmark" size={16} color={colors.green} />
+                </View>
+                <Text style={styles.statLabel}>KYC</Text>
+                <Text style={[styles.statValue, { color: status === 'active' ? colors.green : colors.orange }]}>
+                  {status === 'active' ? 'Verified' : 'Pending'}
+                </Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.profileStatItem}>
+                <View style={styles.statIconWrap}>
+                  <Ionicons name="people" size={16} color={colors.primary} />
+                </View>
+                <Text style={styles.statLabel}>Referral</Text>
+                <Text style={styles.statValue}>{referralCode || 'N/A'}</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.profileStatItem}>
+                <View style={styles.statIconWrap}>
+                  <Ionicons name="star" size={16} color={colors.gold} />
+                </View>
+                <Text style={styles.statLabel}>Tier</Text>
+                <Text style={[styles.statValue, { color: colors.gold }]}>Bronze</Text>
               </View>
             </View>
           </LinearGradient>
         </Animated.View>
 
-        {/* KYC Steps */}
+        {/* ━━━ KYC Verification ━━━ */}
         <Animated.View entering={FadeInUp.delay(200).duration(600)}>
-          <View style={[glass.card, styles.kycCard]}>
-            <Text style={styles.kycTitle}>KYC Verification</Text>
+          <View style={styles.kycCard}>
+            <View style={styles.kycHeader}>
+              <Text style={styles.kycTitle}>KYC Verification</Text>
+              <View style={styles.kycProgress}>
+                <View style={styles.kycProgressBar}>
+                  <LinearGradient
+                    colors={colors.gradientPrimary}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={[styles.kycProgressFill, { width: status === 'active' ? '100%' : '66%' }]}
+                  />
+                </View>
+                <Text style={styles.kycProgressText}>
+                  {status === 'active' ? '3/3' : '2/3'}
+                </Text>
+              </View>
+            </View>
 
             {[
-              { label: 'Identity Verification', status: 'Completed', done: true },
-              { label: 'Address Verification', status: 'Pending', done: false },
-              { label: 'Selfie Check', status: 'Completed', done: true },
+              { label: 'Identity Verification', done: true },
+              { label: 'Selfie Check', done: true },
+              { label: 'Address Verification', done: status === 'active' },
             ].map((item, i) => (
               <View key={i} style={styles.kycRow}>
                 <View style={[styles.kycDot, item.done && styles.kycDotDone]}>
-                  {item.done && <Ionicons name="checkmark" size={12} color="#fff" />}
+                  {item.done ? (
+                    <Ionicons name="checkmark" size={11} color="#000" />
+                  ) : (
+                    <View style={styles.kycDotPending} />
+                  )}
                 </View>
-                <Text style={styles.kycLabel}>{item.label}:</Text>
+                <Text style={styles.kycLabel}>{item.label}</Text>
                 <Text style={[
                   styles.kycStatus,
                   { color: item.done ? colors.green : colors.orange }
                 ]}>
-                  {item.status}
+                  {item.done ? 'Completed' : 'Pending'}
                 </Text>
               </View>
             ))}
 
-            <TouchableOpacity activeOpacity={0.8} style={{ marginTop: spacing.lg }}>
-              <LinearGradient
-                colors={colors.gradientCyan as [string, string]}
-                style={styles.uploadBtn}
-              >
-                <Ionicons name="cloud-upload" size={18} color="#000" />
-                <Text style={styles.uploadText}>Upload Documents</Text>
-              </LinearGradient>
-            </TouchableOpacity>
+            {status !== 'active' && (
+              <TouchableOpacity activeOpacity={0.8} style={{ marginTop: spacing.lg }}>
+                <LinearGradient
+                  colors={colors.gradientPrimary}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.uploadBtn}
+                >
+                  <Ionicons name="cloud-upload" size={16} color="#000" />
+                  <Text style={styles.uploadText}>Upload Documents</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
           </View>
         </Animated.View>
 
-        {/* Menu Items */}
-        <Animated.View entering={FadeInUp.delay(300).duration(600)}>
-          {menuItems.map((item, i) => (
-            <Animated.View
-              key={i}
-              entering={FadeInUp.delay(350 + i * 60).duration(500)}
+        {/* ━━━ Preferences ━━━ */}
+        <Animated.View entering={FadeInUp.delay(250).duration(600)}>
+          <Text style={styles.sectionLabel}>PREFERENCES</Text>
+          <View style={styles.menuGroup}>
+            {/* Biometric */}
+            <View style={[styles.menuRow, styles.menuRowBorder]}>
+              <View style={[styles.menuIcon, { backgroundColor: `${colors.cyan}12` }]}>
+                <Ionicons name="finger-print" size={20} color={colors.cyan} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.menuTitle}>{biometricType} Login</Text>
+                <Text style={styles.menuSub}>{biometricAvailable ? 'Available' : 'Not available on web'}</Text>
+              </View>
+              <Switch
+                value={biometricEnabled}
+                onValueChange={handleBiometricToggle}
+                trackColor={{ false: 'rgba(255,255,255,0.08)', true: colors.primarySoft }}
+                thumbColor={biometricEnabled ? colors.primary : colors.textMuted}
+                disabled={!biometricAvailable}
+              />
+            </View>
+
+            {/* Language */}
+            <TouchableOpacity
+              activeOpacity={0.7}
+              style={[styles.menuRow, styles.menuRowBorder]}
+              onPress={() => setShowLangPicker(!showLangPicker)}
             >
-              <TouchableOpacity activeOpacity={0.7}>
-                <View style={[glass.card, styles.menuCard]}>
-                  <View style={[styles.menuIcon, { backgroundColor: `${item.color}15` }]}>
-                    <Ionicons name={item.icon as any} size={22} color={item.color} />
-                  </View>
-                  <Text style={styles.menuTitle}>{item.title}</Text>
-                  <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-                </View>
-              </TouchableOpacity>
-            </Animated.View>
-          ))}
+              <View style={[styles.menuIcon, { backgroundColor: `${colors.gold}12` }]}>
+                <Ionicons name="language" size={20} color={colors.gold} />
+              </View>
+              <Text style={[styles.menuTitle, { flex: 1 }]}>Language</Text>
+              <Text style={styles.langBadge}>
+                {availableLanguages.find(l => l.code === currentLang)?.flag}{' '}
+                {availableLanguages.find(l => l.code === currentLang)?.nativeName}
+              </Text>
+              <Ionicons name={showLangPicker ? 'chevron-up' : 'chevron-down'} size={16} color={colors.textMuted} />
+            </TouchableOpacity>
+
+            {/* Language Picker */}
+            {showLangPicker && (
+              <View style={styles.langPicker}>
+                {availableLanguages.map(lang => (
+                  <TouchableOpacity
+                    key={lang.code}
+                    style={[styles.langOption, currentLang === lang.code && styles.langOptionActive]}
+                    onPress={() => handleLanguageChange(lang.code)}
+                  >
+                    <Text style={styles.langFlag}>{lang.flag}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.langName, currentLang === lang.code && { color: colors.primary }]}>{lang.name}</Text>
+                      <Text style={styles.langNative}>{lang.nativeName}</Text>
+                    </View>
+                    {currentLang === lang.code && (
+                      <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            {/* Notifications */}
+            <View style={styles.menuRow}>
+              <View style={[styles.menuIcon, { backgroundColor: `${colors.orange}12` }]}>
+                <Ionicons name="notifications" size={20} color={colors.orange} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.menuTitle}>Push Notifications</Text>
+                <Text style={styles.menuSub}>{notificationsEnabled ? 'Receiving alerts' : 'Disabled'}</Text>
+              </View>
+              <Switch
+                value={notificationsEnabled}
+                onValueChange={handleNotificationToggle}
+                trackColor={{ false: 'rgba(255,255,255,0.08)', true: colors.orangeSoft }}
+                thumbColor={notificationsEnabled ? colors.orange : colors.textMuted}
+              />
+            </View>
+          </View>
         </Animated.View>
 
-        {/* Logout */}
+        {/* ━━━ Menu Sections ━━━ */}
+        {menuSections.map((section, si) => (
+          <Animated.View key={si} entering={FadeInUp.delay(350 + si * 100).duration(600)}>
+            <Text style={styles.sectionLabel}>{section.title}</Text>
+            <View style={styles.menuGroup}>
+              {section.items.map((item, i) => (
+                <TouchableOpacity
+                  key={i}
+                  activeOpacity={0.7}
+                  style={[styles.menuRow, i < section.items.length - 1 && styles.menuRowBorder]}
+                  onPress={() => {
+                    if (item.title === 'Transaction History') router.push('/transactions' as any)
+                  }}
+                >
+                  <View style={[styles.menuIcon, { backgroundColor: `${item.color}12` }]}>
+                    <Ionicons name={item.icon as any} size={20} color={item.color} />
+                  </View>
+                  <Text style={styles.menuTitle}>{item.title}</Text>
+                  <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </Animated.View>
+        ))}
+
+        {/* ━━━ Logout ━━━ */}
         <Animated.View entering={FadeInUp.delay(700).duration(500)}>
           <TouchableOpacity
-            activeOpacity={0.8}
+            activeOpacity={0.7}
             style={styles.logoutBtn}
             onPress={async () => {
               await AsyncStorage.removeItem('bharos_user')
             }}
           >
-            <Ionicons name="log-out-outline" size={20} color={colors.red} />
-            <Text style={styles.logoutText}>Log Out</Text>
+            <View style={styles.logoutInner}>
+              <Ionicons name="log-out-outline" size={20} color={colors.red} />
+              <Text style={styles.logoutText}>Log Out</Text>
+            </View>
           </TouchableOpacity>
         </Animated.View>
 
-        <View style={{ height: 100 }} />
+        {/* App version */}
+        <Text style={styles.version}>Bharos Exchange v2.0.0</Text>
+
+        <View style={{ height: 120 }} />
       </ScrollView>
-    </View>
+    </LinearGradient>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
-  scroll: { paddingHorizontal: spacing.xl, paddingTop: 60 },
-  title: { color: colors.white, fontSize: 28, fontWeight: '700', marginBottom: spacing.xxl },
+  container: { flex: 1 },
+  scroll: { paddingHorizontal: spacing.xl, paddingTop: 56 },
 
-  // Avatar Card
-  avatarCard: {
-    borderRadius: radius.xxl, padding: spacing.xxl,
-    alignItems: 'center', overflow: 'hidden',
-    borderWidth: 1, borderColor: 'rgba(0,229,255,0.12)',
+  // Header
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: spacing.xxl,
   },
-  avatarGlow: {
-    position: 'absolute', top: -40, left: '50%', marginLeft: -50,
-    width: 100, height: 100, borderRadius: 50,
-    backgroundColor: colors.cyanGlow, opacity: 0.3,
+  title: { color: colors.white, fontSize: 22, fontWeight: '700' },
+  settingsBtn: {
+    ...neu.iconCircle,
+    width: 38, height: 38, borderRadius: 19,
+    justifyContent: 'center', alignItems: 'center',
   },
-  avatarWrap: { marginBottom: spacing.lg },
-  avatarBorder: {
+
+  // Profile Card
+  profileCard: {
+    borderRadius: radius.xxl,
+    padding: spacing.xxl,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(0,212,170,0.12)',
+    marginBottom: spacing.xxl,
+    ...shadows.elevated,
+  },
+  profileGlow1: {
+    position: 'absolute', top: -30, right: -30,
+    width: 100, height: 100, borderRadius: 50,
+    backgroundColor: colors.primaryGlow, opacity: 0.2,
+  },
+  profileGlow2: {
+    position: 'absolute', bottom: -20, left: -20,
     width: 80, height: 80, borderRadius: 40,
+    backgroundColor: colors.goldGlow, opacity: 0.1,
+  },
+
+  // Avatar
+  avatarSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.xl,
+  },
+  avatarOuter: {
+    position: 'relative',
+    marginRight: spacing.lg,
+  },
+  avatarRing: {
+    width: 68, height: 68, borderRadius: 34,
     justifyContent: 'center', alignItems: 'center',
   },
   avatarInner: {
-    width: 72, height: 72, borderRadius: 36,
+    width: 60, height: 60, borderRadius: 30,
     backgroundColor: colors.bg,
     justifyContent: 'center', alignItems: 'center',
   },
-  avatarText: { color: colors.cyan, fontSize: 28, fontWeight: '800' },
-  profileName: { color: colors.white, fontSize: 22, fontWeight: '700' },
-  profileSub: { color: colors.textSecondary, fontSize: 13, marginTop: 4, letterSpacing: 1 },
+  avatarLetter: {
+    color: colors.primary,
+    fontSize: 24,
+    fontWeight: '800',
+  },
+  onlineDot: {
+    position: 'absolute',
+    bottom: 2, right: 2,
+    width: 14, height: 14, borderRadius: 7,
+    backgroundColor: colors.green,
+    borderWidth: 2,
+    borderColor: colors.bg,
+  },
+  profileInfo: { flex: 1 },
+  profileName: { color: colors.white, fontSize: 20, fontWeight: '700' },
+  profileEmail: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
+  statusRow: { marginTop: spacing.sm },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xxs + 1,
+    borderRadius: radius.full,
+  },
+  statusDot: {
+    width: 6, height: 6, borderRadius: 3,
+  },
+  statusText: {
+    fontSize: 11, fontWeight: '700',
+  },
 
-  // Verify
-  verifyCard: {
-    width: '100%', marginTop: spacing.xl,
-    backgroundColor: 'rgba(0,0,0,0.2)',
-    borderRadius: radius.lg, padding: spacing.lg,
+  // Profile Stats
+  profileStats: {
+    ...neu.inset,
+    flexDirection: 'row',
+    padding: spacing.lg,
   },
-  verifyBadge: {
-    width: 50, height: 50, borderRadius: 25,
+  profileStatItem: {
+    flex: 1,
+    alignItems: 'center',
+    gap: spacing.xxs,
+  },
+  statIconWrap: {
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.04)',
     justifyContent: 'center', alignItems: 'center',
-    alignSelf: 'center', marginBottom: spacing.md,
+    marginBottom: 2,
   },
-  verifyBadgeText: { color: '#000', fontSize: 14, fontWeight: '900' },
-  verifyRow: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginBottom: spacing.sm,
-  },
-  verifyLabel: { color: colors.textSecondary, fontSize: 12 },
-  verifiedTag: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  verifiedText: { color: colors.green, fontSize: 12, fontWeight: '600' },
-  verifyProgress: {
-    height: 6, backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 3, overflow: 'hidden',
-  },
-  verifyFill: {
-    height: '100%', borderRadius: 3,
-    backgroundColor: colors.gold,
+  statLabel: { color: colors.textMuted, fontSize: 10, fontWeight: '600' },
+  statValue: { color: colors.white, fontSize: 12, fontWeight: '700' },
+  statDivider: {
+    width: 1, backgroundColor: 'rgba(255,255,255,0.06)',
   },
 
   // KYC
-  kycCard: { padding: spacing.xl, marginBottom: spacing.xxl },
-  kycTitle: { color: colors.white, fontSize: 16, fontWeight: '700', marginBottom: spacing.lg },
+  kycCard: {
+    ...neu.card,
+    padding: spacing.xl,
+    marginBottom: spacing.xxl,
+  },
+  kycHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  kycTitle: { color: colors.white, fontSize: 16, fontWeight: '700' },
+  kycProgress: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  kycProgressBar: {
+    width: 60, height: 4,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 2, overflow: 'hidden',
+  },
+  kycProgressFill: {
+    height: '100%', borderRadius: 2,
+  },
+  kycProgressText: {
+    color: colors.textMuted, fontSize: 10, fontWeight: '600',
+  },
   kycRow: {
     flexDirection: 'row', alignItems: 'center',
-    marginBottom: spacing.md, gap: spacing.sm,
+    paddingVertical: spacing.sm, gap: spacing.md,
   },
   kycDot: {
-    width: 20, height: 20, borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    width: 22, height: 22, borderRadius: 11,
+    backgroundColor: 'rgba(255,255,255,0.08)',
     justifyContent: 'center', alignItems: 'center',
   },
-  kycDotDone: { backgroundColor: colors.green },
+  kycDotDone: { backgroundColor: colors.primary },
+  kycDotPending: {
+    width: 8, height: 8, borderRadius: 4,
+    backgroundColor: colors.orange,
+  },
   kycLabel: { color: colors.textSecondary, fontSize: 13, flex: 1 },
-  kycStatus: { fontSize: 13, fontWeight: '600' },
+  kycStatus: { fontSize: 12, fontWeight: '600' },
   uploadBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: spacing.sm, paddingVertical: spacing.md,
     borderRadius: radius.lg,
   },
-  uploadText: { color: '#000', fontSize: 14, fontWeight: '800' },
+  uploadText: { color: '#000', fontSize: 14, fontWeight: '700' },
 
   // Menu
-  menuCard: {
-    flexDirection: 'row', alignItems: 'center',
-    padding: spacing.lg, marginBottom: spacing.md,
+  sectionLabel: {
+    color: colors.textMuted,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: spacing.sm,
+  },
+  menuGroup: {
+    ...neu.card,
+    padding: spacing.sm,
+    marginBottom: spacing.xl,
+  },
+  menuRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.md,
+    borderRadius: radius.lg,
+  },
+  menuRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.04)',
   },
   menuIcon: {
-    width: 40, height: 40, borderRadius: 20,
+    width: 36, height: 36, borderRadius: 18,
     justifyContent: 'center', alignItems: 'center',
     marginRight: spacing.md,
   },
-  menuTitle: { color: colors.white, fontSize: 15, fontWeight: '600', flex: 1 },
+  menuTitle: { color: colors.white, fontSize: 14, fontWeight: '600', flex: 1 },
+  menuSub: { color: colors.textMuted, fontSize: 11, marginTop: 1 },
+
+  // Language
+  langBadge: { color: colors.textSecondary, fontSize: 12, fontWeight: '600', marginRight: spacing.xs },
+  langPicker: {
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.sm,
+  },
+  langOption: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    padding: spacing.md,
+    borderRadius: radius.lg,
+    gap: spacing.md,
+    marginBottom: spacing.xxs,
+  },
+  langOptionActive: {
+    backgroundColor: 'rgba(0,212,170,0.08)',
+  },
+  langFlag: { fontSize: 22 },
+  langName: { color: colors.white, fontSize: 14, fontWeight: '600' as const },
+  langNative: { color: colors.textMuted, fontSize: 11 },
 
   // Logout
   logoutBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: spacing.sm, paddingVertical: spacing.lg,
-    marginTop: spacing.lg,
+    marginTop: spacing.md,
+    marginBottom: spacing.md,
+  },
+  logoutInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.lg,
+    backgroundColor: colors.redSoft,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: 'rgba(255,71,87,0.2)',
   },
   logoutText: { color: colors.red, fontSize: 15, fontWeight: '600' },
+
+  // Version
+  version: {
+    color: colors.textMuted,
+    fontSize: 11,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+  },
 })

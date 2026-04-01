@@ -519,7 +519,31 @@ export default function Dashboard() {
           {/* BRS PRICE CHART */}
           <BRSPriceCard />
 
-          {/* REFERRAL & SHARE */}
+          {/* 🎁 SOCIAL EARN CARD */}
+          <button onClick={() => navigate("/social-earn")} className="w-full relative mb-6 group text-left">
+              <div className="absolute -inset-[1px] bg-gradient-to-r from-yellow-500/30 via-purple-500/20 to-cyan-500/30 rounded-2xl blur-sm group-hover:blur-md transition-all animate-pulse" />
+              <div className="relative bg-[#0d1117]/90 backdrop-blur-xl border border-yellow-500/15 rounded-2xl p-5 overflow-hidden">
+                {/* Floating sparkle */}
+                <div className="absolute top-3 right-4 text-yellow-400/30 animate-bounce">✨</div>
+                <div className="absolute bottom-3 right-12 text-cyan-400/20 animate-bounce" style={{ animationDelay: '1s' }}>⭐</div>
+
+                <div className="flex items-center gap-4 relative z-10">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-yellow-500/20 to-amber-500/10 border border-yellow-500/20 flex items-center justify-center text-2xl">
+                    🎁
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <h3 className="font-bold text-white text-sm">Social Media Earn</h3>
+                      <span className="px-2 py-0.5 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-[9px] text-yellow-400 font-bold tracking-wider uppercase animate-pulse">
+                        NEW
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500">Follow us & earn <span className="text-yellow-400 font-semibold">50 BRS</span> coins!</p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-gray-500 group-hover:text-yellow-400 group-hover:translate-x-1 transition-all" />
+                </div>
+              </div>
+            </button>
           <div className="relative mb-6">
             <div className="absolute -inset-[1px] bg-gradient-to-r from-yellow-500/10 to-amber-500/10 rounded-xl blur-sm" />
             <div className="relative bg-[#0d1117]/90 backdrop-blur-xl border border-white/10 rounded-xl p-5">
