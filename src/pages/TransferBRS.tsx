@@ -1,9 +1,9 @@
-import { getUser, setUser, removeUser } from "../lib/session"
+import { getUser } from "../lib/session"
 import { useState } from "react"
 import { db } from "../lib/firebase"
-import { doc, getDoc, updateDoc, addDoc, collection, getDocs, increment } from "firebase/firestore"
+import { doc, getDoc, updateDoc, addDoc, collection, increment } from "firebase/firestore"
 import { navigate } from "../lib/router"
-import { Send, Hash, Coins, ArrowLeft, AlertTriangle, Zap, Shield, Info } from "lucide-react"
+import { Send, Coins, ArrowLeft, AlertTriangle, Zap, Shield, Info } from "lucide-react"
 
 export default function TransferBRS() {
 

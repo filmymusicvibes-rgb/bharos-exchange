@@ -1,4 +1,4 @@
-import { getUser, setUser, removeUser } from "../lib/session"
+import { getUser } from "../lib/session"
 import { useState, useEffect } from "react"
 import { db } from "../lib/firebase"
 import { collection, addDoc, doc, getDoc, updateDoc, increment } from "firebase/firestore"

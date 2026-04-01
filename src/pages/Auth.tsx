@@ -1,4 +1,4 @@
-import { getUser, setUser, removeUser } from "../lib/session"
+import { getUser, setUser } from "../lib/session"
 import { useState, useEffect } from "react"
 import { Eye, EyeOff, Mail, Lock, User, Phone, Link2, Shield, Check, Circle, MailCheck, Send, ArrowRight, AlertCircle, ChevronLeft } from "lucide-react"
 import coin from "../assets/brs.png"
