@@ -414,11 +414,11 @@ export default function Dashboard() {
                 <div className="flex justify-between items-start mb-5">
                   <div>
                     <p className="text-xs text-gray-500 mb-0.5">BRS Coin</p>
-                    <h3 className="text-3xl font-bold text-white">{brs} <span className="text-lg text-yellow-400">BRS</span></h3>
+                    <h3 className="text-2xl md:text-3xl font-bold text-white">{brs} <span className="text-base md:text-lg text-yellow-400">BRS</span></h3>
                   </div>
                   <div className="relative">
                     <div className="absolute -inset-2 bg-yellow-400/15 rounded-full blur-md" />
-                    <img src={brsLogo} className="relative w-12 h-12" />
+                    <img src={brsLogo} className="relative w-10 h-10" />
                   </div>
                 </div>
 
@@ -436,16 +436,16 @@ export default function Dashboard() {
                   <span className="text-[10px] text-cyan-300/70 relative z-10">Phase 3: Transfer to Trust Wallet</span>
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex gap-2">
                   <button
                     disabled
-                    className="flex-1 py-3 rounded-xl font-medium text-sm text-gray-500 border border-white/10 bg-white/[0.03] cursor-not-allowed opacity-50"
+                    className="flex-1 py-2.5 rounded-xl font-medium text-xs md:text-sm text-gray-500 border border-white/10 bg-white/[0.03] cursor-not-allowed opacity-50 whitespace-nowrap"
                   >
                     🔒 Withdraw (Phase 3)
                   </button>
                   <button
                     onClick={() => navigate("/transfer")}
-                    className="flex-1 py-3 rounded-xl font-semibold text-black bg-gradient-to-r from-yellow-400 to-amber-500 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-yellow-500/20"
+                    className="flex-1 py-2.5 rounded-xl font-semibold text-xs md:text-sm text-black bg-gradient-to-r from-yellow-400 to-amber-500 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-yellow-500/20 whitespace-nowrap"
                   >
                     Send BRS
                   </button>
@@ -462,11 +462,11 @@ export default function Dashboard() {
                 <div className="flex justify-between items-start mb-5">
                   <div>
                     <p className="text-xs text-gray-500 mb-0.5">USDT (BEP-20)</p>
-                    <h3 className="text-3xl font-bold text-white">${usdt.toFixed(2)}</h3>
+                    <h3 className="text-2xl md:text-3xl font-bold text-white">${usdt.toFixed(2)}</h3>
                   </div>
                   <div className="relative">
                     <div className="absolute -inset-2 bg-green-400/15 rounded-full blur-md" />
-                    <img src={usdtLogo} className="relative w-12 h-12" />
+                    <img src={usdtLogo} className="relative w-10 h-10" />
                   </div>
                 </div>
 
@@ -487,15 +487,15 @@ export default function Dashboard() {
                   <span className="text-[10px] text-cyan-300/70 relative z-10">Phase 3: Deposits Live Soon</span>
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex gap-2">
                   <button
-                    className="flex-1 py-3 rounded-xl font-medium text-sm text-gray-400 border border-white/10 bg-white/[0.03] hover:bg-white/8 hover:text-white transition-all"
+                    className="flex-1 py-2.5 rounded-xl font-medium text-xs md:text-sm text-gray-400 border border-white/10 bg-white/[0.03] hover:bg-white/8 hover:text-white transition-all whitespace-nowrap"
                   >
                     Deposit
                   </button>
                   <button
                     onClick={() => navigate("/withdraw")}
-                    className="flex-1 py-3 rounded-xl font-semibold text-black bg-gradient-to-r from-green-400 to-emerald-500 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-green-500/20"
+                    className="flex-1 py-2.5 rounded-xl font-semibold text-xs md:text-sm text-black bg-gradient-to-r from-green-400 to-emerald-500 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-green-500/20 whitespace-nowrap"
                   >
                     Withdraw
                   </button>

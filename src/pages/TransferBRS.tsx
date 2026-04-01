@@ -228,7 +228,7 @@ export default function TransferBRS() {
                         </div>
                         <div className="flex items-center gap-2 text-red-400">
                             <Info className="w-3.5 h-3.5" />
-                            <span>Wrong referral code may result in loss</span>
+                            <span>Wrong email address may result in loss</span>
                         </div>
                     </div>
                 </div>
