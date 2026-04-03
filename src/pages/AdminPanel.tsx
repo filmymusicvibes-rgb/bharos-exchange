@@ -87,32 +87,38 @@ export default function AdminPanel() {
     return () => unsubscribe()
   }, [])
 
-  // LOAD DEPOSITS
+  // LOAD DEPOSITS (OPTIMIZED — single batch fetch)
 
   const loadDeposits = async () => {
 
-    const snap = await getDocs(collection(db, "deposits"))
+    // 🔥 Fetch deposits + all users in PARALLEL (fast!)
+    const [depositsSnap, usersSnap] = await Promise.all([
+      getDocs(collection(db, "deposits")),
+      getDocs(collection(db, "users"))
+    ])
 
-    const list: any[] = []
-
-    snap.forEach((d) => {
-      list.push({ id: d.id, ...d.data() })
+    // Build user lookup map (email → name)
+    const userMap: Record<string, { fullName: string, userName: string }> = {}
+    usersSnap.forEach((d) => {
+      const data: any = d.data()
+      userMap[d.id] = {
+        fullName: data.fullName || '',
+        userName: data.userName || ''
+      }
     })
 
-    // Fetch user names for each deposit
-    const userNames: Record<string, string> = {}
-    for (const dep of list) {
-      if (dep.userId && !userNames[dep.userId]) {
-        try {
-          const userSnap = await getDoc(doc(db, "users", dep.userId))
-          if (userSnap.exists()) {
-            const userData: any = userSnap.data()
-            userNames[dep.userId] = userData.fullName || userData.userName || ''
-          }
-        } catch { }
-      }
-      dep.userName = userNames[dep.userId] || ''
-    }
+    const list: any[] = []
+    depositsSnap.forEach((d) => {
+      const data = d.data()
+      const userId = (data as any).userId || ''
+      const user = userMap[userId] || { fullName: '', userName: '' }
+      list.push({
+        id: d.id,
+        ...data,
+        fullName: user.fullName,
+        userName: user.userName
+      })
+    })
 
     const getTime = (t: any) =>
       t?.seconds ? t.seconds * 1000 : 0
@@ -120,7 +126,6 @@ export default function AdminPanel() {
     list.sort((a, b) => {
       if (a.status === "pending" && b.status !== "pending") return -1
       if (a.status !== "pending" && b.status === "pending") return 1
-
       return getTime(b.createdAt) - getTime(a.createdAt)
     })
 
@@ -576,51 +581,82 @@ export default function AdminPanel() {
       {activeTab === "deposits" && (
         <>
           <h1 className="text-3xl mb-8 font-bold">
-            Deposit Requests
+            Deposit Requests ({deposits.length})
           </h1>
 
           {dataLoading && <p className="text-cyan-400 animate-pulse mb-4">⏳ Loading deposits...</p>}
 
           {deposits.map((d) => (
-            <div key={d.id} className="bg-[#1a1a2e] p-6 mb-4 rounded-xl">
+            <div key={d.id} className={`bg-[#1a1a2e] p-5 mb-4 rounded-xl border ${
+              d.status === 'pending' ? 'border-yellow-500/30' :
+              d.status === 'approved' || d.status === 'verified' ? 'border-green-500/20' :
+              'border-white/5'
+            }`}>
 
-              <p>User: {d.userId}</p>
-              {d.userName && <p className="text-cyan-300 font-semibold">Name: {d.userName}</p>}
-              <p>Amount: {d.amount} USDT</p>
-              <p className="text-sm break-all">TXID: {d.txHash}</p>
+              {/* TOP ROW: Status Badge + Amount */}
+              <div className="flex items-center justify-between mb-4">
+                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                  d.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' :
+                  d.status === 'approved' || d.status === 'verified' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
+                  'bg-red-500/20 text-red-400 border border-red-500/30'
+                }`}>
+                  {d.status === 'pending' ? '⏳ Pending' :
+                   d.verifiedBy === 'blockchain-rpc' || d.verifiedBy === 'blockchain' ? '🔗 Auto-Verified' :
+                   d.status === 'approved' ? '✅ Approved' : d.status}
+                </span>
+                <span className="text-cyan-400 text-xl font-bold">{d.amount} USDT</span>
+              </div>
+
+              {/* USER INFO TABLE */}
+              <div className="bg-black/20 rounded-lg p-3 mb-3 space-y-2">
+                <div className="flex items-start gap-2">
+                  <span className="text-gray-500 text-xs w-20 shrink-0">👤 Name</span>
+                  <span className="text-white font-semibold text-sm">{d.fullName || d.userName || '—'}</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-gray-500 text-xs w-20 shrink-0">📧 Email</span>
+                  <span className="text-cyan-300 text-sm break-all">{d.userId}</span>
+                </div>
+                {d.txHash && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-gray-500 text-xs w-20 shrink-0">🔗 TXID</span>
+                    <span className="text-yellow-300/80 text-[11px] font-mono break-all">{d.txHash}</span>
+                  </div>
+                )}
+                {d.fromAddress && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-gray-500 text-xs w-20 shrink-0">📤 From</span>
+                    <span className="text-gray-400 text-[11px] font-mono break-all">{d.fromAddress}</span>
+                  </div>
+                )}
+                {d.createdAt && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-gray-500 text-xs w-20 shrink-0">📅 Date</span>
+                    <span className="text-gray-400 text-xs">
+                      {d.createdAt?.toDate ? d.createdAt.toDate().toLocaleString('en-IN') : ''}
+                    </span>
+                  </div>
+                )}
+              </div>
 
               {d.screenshot && (
                 <button
                   onClick={() => setPreviewImage(d.screenshot)}
-                  className="text-cyan-400 hover:underline"
+                  className="text-cyan-400 hover:underline text-sm mb-2"
                 >
                   📷 View Screenshot
                 </button>
               )}
 
-              {/* 🔗 Blockchain Verification Badge */}
-              {d.verifiedBy === "blockchain" ? (
-                <p className="mt-2">
-                  <span className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-semibold">
-                    🔗 Blockchain Verified
-                  </span>
-                </p>
-              ) : (
-                <p>Status: {d.status}</p>
-              )}
-
+              {/* APPROVE BUTTON */}
               {d.status === "pending" && (
                 <button
                   disabled={processingId === d.id}
                   onClick={() => approveDeposit(d.id, d.userId)}
-                  className="bg-green-500 px-4 py-2 mt-3 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-green-500 hover:bg-green-400 px-4 py-2.5 mt-2 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm"
                 >
-                  {processingId === d.id ? "⏳ Processing..." : "✅ Approve"}
+                  {processingId === d.id ? "⏳ Activating..." : "✅ Approve & Activate"}
                 </button>
-              )}
-
-              {(d.status === "verified" || d.status === "approved") && d.verifiedBy === "blockchain" && (
-                <p className="text-green-400 text-sm mt-2">✅ Auto-activated</p>
               )}
 
             </div>
