@@ -8,14 +8,15 @@ import { logTransaction, runFullActivation } from "../lib/commission"
 import qrBharos from "../assets/qr-bharos.jpeg"
 import { AlertTriangle, CheckCircle, XCircle, Search, Copy, Zap, PartyPopper, X, ArrowLeft, Shield } from "lucide-react"
 
-type PaymentStep = "send" | "waiting" | "activating" | "done" | "failed"
+type PaymentStep = "scanning" | "activating" | "done" | "failed"
 
 function ActivateMembership() {
 
-  const [step, setStep] = useState<PaymentStep>("send")
+  const [step, setStep] = useState<PaymentStep>("scanning")
   const [pollCount, setPollCount] = useState(0)
   const [verifiedAmount, setVerifiedAmount] = useState(0)
   const [showWarning, setShowWarning] = useState(true)
+  const [copied, setCopied] = useState(false)
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const maxPolls = 30 // 30 × 10 sec = 5 minutes
@@ -50,6 +51,13 @@ function ActivateMembership() {
     return () => { if (pollRef.current) clearInterval(pollRef.current) }
   }, [])
 
+  // 🚀 Auto-start scanning when warning is dismissed
+  useEffect(() => {
+    if (!showWarning && step === "scanning" && !pollRef.current) {
+      startPolling()
+    }
+  }, [showWarning])
+
   // 🔒 Reset user status back to inactive
   const resetUserStatus = async () => {
     const email = getUser()
@@ -61,12 +69,12 @@ function ActivateMembership() {
     }
   }
 
-  // 🔍 Start auto-detection
+  // 🔴 Start auto-detection
   const startPolling = async () => {
     const email = getUser()
     if (!email) return
 
-    setStep("waiting")
+    setStep("scanning")
     setPollCount(0)
 
     // Save state
@@ -131,8 +139,15 @@ function ActivateMembership() {
   // ❌ Cancel scanning
   const cancelScanning = async () => {
     if (pollRef.current) clearInterval(pollRef.current)
+    pollRef.current = null
     await resetUserStatus()
-    setStep("send")
+    setPollCount(0)
+  }
+
+  // 🔄 Restart scanning
+  const restartScanning = async () => {
+    setStep("scanning")
+    startPolling()
   }
 
   // ✅ ACTIVATE
@@ -314,20 +329,22 @@ function ActivateMembership() {
                   <p className="text-[11px] text-gray-400">• Wrong wallet address</p>
                 </div>
 
+                <p className="text-gray-400 text-xs mb-4">5 minutes lo payment detect kaaledu. Try again!</p>
+
                 <button
-                  onClick={() => setStep("send")}
-                  className="w-full py-3 rounded-xl font-semibold text-sm text-black bg-gradient-to-r from-cyan-400 to-blue-500 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-cyan-500/20"
+                  onClick={restartScanning}
+                  className="w-full py-3.5 rounded-xl font-semibold text-sm text-black bg-gradient-to-r from-cyan-400 to-blue-500 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-cyan-500/20"
                 >
-                  Try Again
+                  🔄 Scan Again
                 </button>
               </div>
             </div>
           )}
 
-          {/* 📤 SEND & DETECT */}
-          {(step === "send" || step === "waiting") && (
+          {/* 📤 PAYMENT + AUTO-SCAN (Combined View) */}
+          {step === "scanning" && (
             <>
-              {/* STEP 1: SEND */}
+              {/* PAYMENT DETAILS */}
               <div className="relative mb-5">
                 <div className="absolute -inset-[1px] bg-gradient-to-r from-cyan-500/10 to-blue-500/10 rounded-xl blur-sm" />
                 <div className="relative bg-[#0d1117]/90 backdrop-blur-xl border border-white/10 rounded-xl p-6">
@@ -364,12 +381,17 @@ function ActivateMembership() {
                       onClick={async () => {
                         try {
                           await navigator.clipboard.writeText("0xCD72FfF7F22eC409FCAcED1A06AEC227da6C1A56")
-                          alert("Address copied!")
+                          setCopied(true)
+                          setTimeout(() => setCopied(false), 2000)
                         } catch { alert("Copy failed") }
                       }}
-                      className="px-5 py-3 rounded-xl text-sm font-semibold text-black bg-gradient-to-r from-cyan-400 to-blue-500 hover:scale-105 transition-all shadow-lg shadow-cyan-500/20 flex items-center gap-1.5 whitespace-nowrap"
+                      className={`px-5 py-3 rounded-xl text-sm font-semibold text-black transition-all shadow-lg flex items-center gap-1.5 whitespace-nowrap ${
+                        copied
+                          ? 'bg-gradient-to-r from-green-400 to-emerald-500 shadow-green-500/20'
+                          : 'bg-gradient-to-r from-cyan-400 to-blue-500 hover:scale-105 shadow-cyan-500/20'
+                      }`}
                     >
-                      <Copy className="w-3.5 h-3.5" /> Copy
+                      {copied ? <><CheckCircle className="w-3.5 h-3.5" /> Copied!</> : <><Copy className="w-3.5 h-3.5" /> Copy</>}
                     </button>
                   </div>
 
@@ -381,74 +403,44 @@ function ActivateMembership() {
                 </div>
               </div>
 
-              {/* STEP 2: AUTO-DETECT */}
+              {/* 🔍 AUTO-SCANNING INDICATOR */}
               <div className="relative mb-5">
-                <div className="absolute -inset-[1px] bg-gradient-to-r from-green-500/10 to-cyan-500/10 rounded-xl blur-sm" />
-                <div className="relative bg-[#0d1117]/90 backdrop-blur-xl border border-white/10 rounded-xl p-6">
-                  <h2 className="text-lg mb-5 flex items-center gap-2.5 font-semibold">
-                    <span className="bg-gradient-to-r from-green-400 to-emerald-500 text-black w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold">2</span>
-                    {step === "waiting" ? "Detecting Payment..." : "Confirm Payment"}
-                  </h2>
-
-                  {step === "waiting" && (
-                    <div className="text-center space-y-4">
-                      <div className="relative mx-auto w-16 h-16">
-                        <div className="absolute inset-0 rounded-full border-[3px] border-cyan-500/20"></div>
-                        <div className="absolute inset-0 rounded-full border-[3px] border-transparent border-t-cyan-400 animate-spin"></div>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <Search className="w-5 h-5 text-cyan-400" />
-                        </div>
+                <div className="absolute -inset-[1px] bg-gradient-to-r from-green-500/15 to-cyan-500/15 rounded-xl blur-sm" />
+                <div className="relative bg-[#0d1117]/90 backdrop-blur-xl border border-cyan-500/20 rounded-xl p-5">
+                  <div className="flex items-center gap-4">
+                    {/* Spinning scanner icon */}
+                    <div className="relative w-12 h-12 shrink-0">
+                      <div className="absolute inset-0 rounded-full border-[2.5px] border-cyan-500/20"></div>
+                      <div className="absolute inset-0 rounded-full border-[2.5px] border-transparent border-t-cyan-400 animate-spin"></div>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <Search className="w-4 h-4 text-cyan-400" />
                       </div>
+                    </div>
 
-                      <p className="text-cyan-400 font-semibold text-sm">Scanning Blockchain...</p>
-                      <p className="text-gray-500 text-xs">Looking for your payment (minimum 12 USDT)</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-cyan-400 font-semibold text-sm">Auto-Scanning Blockchain...</p>
+                      <p className="text-gray-500 text-[10px] mt-0.5">Payment will be detected automatically after you send</p>
 
-                      <div className="bg-green-500/5 border border-green-500/15 rounded-lg p-2.5">
-                        <p className="text-green-400 text-[10px] flex items-center justify-center gap-1.5">
-                          <CheckCircle className="w-3 h-3" /> Safe to close — verification resumes when you return
-                        </p>
-                      </div>
-
-                      <div className="w-full bg-white/5 rounded-full h-2 border border-white/5">
+                      {/* Progress bar */}
+                      <div className="mt-2 w-full bg-white/5 rounded-full h-1.5 border border-white/5">
                         <div
                           className="bg-gradient-to-r from-cyan-400 to-blue-500 h-full rounded-full transition-all duration-1000"
                           style={{ width: `${Math.min((pollCount / maxPolls) * 100, 100)}%` }}
                         ></div>
                       </div>
-
-                      <p className="text-gray-600 text-[10px]">Elapsed: {formatTime(pollCount)} / 5:00</p>
-
-                      <button
-                        onClick={cancelScanning}
-                        className="text-red-400/60 text-xs hover:text-red-400 transition"
-                      >
-                        Cancel
-                      </button>
+                      <p className="text-gray-600 text-[9px] mt-1">{formatTime(pollCount)} / 5:00</p>
                     </div>
-                  )}
+                  </div>
 
-                  {step === "send" && (
-                    <>
-                      <p className="text-gray-400 text-xs mb-4">
-                        After sending <span className="text-yellow-400 font-bold">12 USDT</span> (+ network fee), click below. Payment will be <b className="text-cyan-400">automatically detected</b> on blockchain.
-                      </p>
-
-                      <button
-                        onClick={startPolling}
-                        className="w-full py-3.5 rounded-xl font-semibold text-sm text-black bg-gradient-to-r from-cyan-400 to-blue-500 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-cyan-500/20"
-                      >
-                        I Have Sent Payment
-                      </button>
-
-                      <p className="text-center text-gray-600 text-[10px] mt-3">
-                        Payment is automatically detected on BSC blockchain
-                      </p>
-                    </>
-                  )}
+                  <div className="mt-3 bg-green-500/5 border border-green-500/15 rounded-lg p-2">
+                    <p className="text-green-400 text-[10px] flex items-center justify-center gap-1.5">
+                      <CheckCircle className="w-3 h-3" /> Safe to switch to your wallet — we'll detect when you return
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              {/* READ AGAIN */}
+              {/* WARNINGS */}
               <button
                 onClick={() => setShowWarning(true)}
                 className="w-full py-2.5 rounded-xl text-[10px] text-gray-500 hover:text-amber-400 transition border border-white/5 bg-white/[0.02] hover:border-amber-500/20 flex items-center justify-center gap-1.5 mb-5"
