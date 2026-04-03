@@ -79,7 +79,7 @@ export default function Auth() {
     try {
       const user = auth.currentUser
       if (user) {
-        await sendEmailVerification(user)
+        await sendEmailVerification(user, { url: "https://bharosexchange.com/email-verified" })
         setSuccess("Verification email sent again! Check inbox & spam folder.")
         setResendTimer(60)
       }
@@ -190,7 +190,7 @@ export default function Auth() {
         }
 
         // 📧 Send verification email
-        await sendEmailVerification(userCredential.user)
+        await sendEmailVerification(userCredential.user, { url: "https://bharosexchange.com/email-verified" })
 
         // Generate unique referral code
         let myReferral = ""
@@ -249,6 +249,13 @@ export default function Auth() {
               try {
                 const newCred = await createUserWithEmailAndPassword(auth, cleanEmail, password)
                 void newCred
+                // 🔐 Auto-detect admin on migration
+                try {
+                  const adminSnap = await getDoc(doc(db, "admins", cleanEmail))
+                  if (adminSnap.exists()) {
+                    localStorage.setItem("bharos_admin", "true")
+                  }
+                } catch { /* skip */ }
                 // Migration successful — log them in directly
                 setUser(cleanEmail)
                 navigate("/dashboard", true)
@@ -287,11 +294,23 @@ export default function Auth() {
 
           // New user (has emailVerificationRequired flag) — must verify email first
           if (userData.emailVerificationRequired && !userCredential.user.emailVerified) {
-            await sendEmailVerification(userCredential.user)
+            await sendEmailVerification(userCredential.user, { url: "https://bharosexchange.com/email-verified" })
             setStep("verify-email")
             setResendTimer(60)
             setLoading(false)
             return
+          }
+
+          // 🔐 Auto-detect admin — check if this user is in admins collection
+          try {
+            const adminSnap = await getDoc(doc(db, "admins", cleanEmail))
+            if (adminSnap.exists()) {
+              localStorage.setItem("bharos_admin", "true")
+            } else {
+              localStorage.removeItem("bharos_admin")
+            }
+          } catch {
+            // Silent — non-admin users just skip this
           }
 
           // Old user (no flag) OR verified new user — login directly
@@ -302,7 +321,7 @@ export default function Auth() {
 
         // New user (registered with email verification flow) — must verify email
         if (!userCredential.user.emailVerified) {
-          await sendEmailVerification(userCredential.user)
+          await sendEmailVerification(userCredential.user, { url: "https://bharosexchange.com/email-verified" })
           setStep("verify-email")
           setResendTimer(60)
           setLoading(false)

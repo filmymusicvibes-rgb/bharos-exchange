@@ -98,7 +98,7 @@ function ActivateMembership() {
     const immediateResult = await detectPayment(PAYMENT_AMOUNT, usedHashes)
     if (immediateResult.verified) {
       setVerifiedAmount(immediateResult.amount!)
-      await activateUser(immediateResult.amount!, email, immediateResult.from!)
+      await activateUser(immediateResult.amount!, email, immediateResult.from!, immediateResult.txHash || '')
       return
     }
 
@@ -120,7 +120,7 @@ function ActivateMembership() {
         if (result.verified) {
           if (pollRef.current) clearInterval(pollRef.current)
           setVerifiedAmount(result.amount!)
-          await activateUser(result.amount!, email, result.from!)
+          await activateUser(result.amount!, email, result.from!, result.txHash || '')
         }
       } catch (err) {
         console.error("Poll error:", err)
@@ -136,13 +136,14 @@ function ActivateMembership() {
   }
 
   // ✅ ACTIVATE
-  const activateUser = async (amount: number, email: string, fromAddress: string) => {
+  const activateUser = async (amount: number, email: string, fromAddress: string, txHash: string) => {
     setStep("activating")
 
     try {
       await addDoc(collection(db, "deposits"), {
         userId: email,
         amount: amount,
+        txHash: txHash || null,
         status: "verified",
         verifiedBy: "blockchain-rpc",
         fromAddress: fromAddress,

@@ -12,8 +12,9 @@ export default function Withdraw() {
     const [loading, setLoading] = useState(false)
     const [profileWallet, setProfileWallet] = useState("")
     const [walletError, setWalletError] = useState("")
+    const [cooldownRemaining, setCooldownRemaining] = useState(0) // seconds remaining
 
-    // Load user's profile wallet address
+    // Load user's profile wallet address + check 24hr cooldown
     useEffect(() => {
         const loadProfileWallet = async () => {
             const email = getUser()
@@ -26,11 +27,44 @@ export default function Withdraw() {
                     setProfileWallet(data.walletAddress)
                     setAddress(data.walletAddress)
                 }
+                // Check 24hr cooldown
+                if (data.lastWithdrawalAt) {
+                    const lastTime = data.lastWithdrawalAt.seconds
+                        ? data.lastWithdrawalAt.seconds * 1000
+                        : new Date(data.lastWithdrawalAt).getTime()
+                    const diff = Date.now() - lastTime
+                    const cooldownMs = 24 * 60 * 60 * 1000 // 24 hours
+                    if (diff < cooldownMs) {
+                        setCooldownRemaining(Math.ceil((cooldownMs - diff) / 1000))
+                    }
+                }
             }
         }
         loadProfileWallet()
     }, [])
 
+    // Countdown timer
+    useEffect(() => {
+        if (cooldownRemaining <= 0) return
+        const timer = setInterval(() => {
+            setCooldownRemaining(prev => {
+                if (prev <= 1) {
+                    clearInterval(timer)
+                    return 0
+                }
+                return prev - 1
+            })
+        }, 1000)
+        return () => clearInterval(timer)
+    }, [cooldownRemaining])
+
+    // Format countdown
+    const formatCooldown = (seconds: number) => {
+        const h = Math.floor(seconds / 3600)
+        const m = Math.floor((seconds % 3600) / 60)
+        const s = seconds % 60
+        return `${h}h ${m.toString().padStart(2, '0')}m ${s.toString().padStart(2, '0')}s`
+    }
     // Validate address matches profile
     const validateAddress = (inputAddress: string) => {
         setAddress(inputAddress)
@@ -42,6 +76,12 @@ export default function Withdraw() {
     }
 
     const submitWithdraw = async () => {
+
+        // 🔒 24hr cooldown check
+        if (cooldownRemaining > 0) {
+            alert(`⏰ Withdrawal locked! Please wait ${formatCooldown(cooldownRemaining)} before your next withdrawal.`)
+            return
+        }
 
         const email = getUser()
 
@@ -118,6 +158,14 @@ export default function Withdraw() {
                 createdAt: new Date()
             })
 
+            // 🔒 Save withdrawal timestamp for 24hr cooldown
+            await updateDoc(userRef, {
+                lastWithdrawalAt: new Date()
+            })
+
+            // Set cooldown for 24 hours
+            setCooldownRemaining(24 * 60 * 60)
+
             alert("✅ Withdraw request submitted")
 
             setAmount("")
@@ -162,6 +210,23 @@ export default function Withdraw() {
                     </h1>
                     <p className="text-gray-500 text-sm mt-1">Withdraw to your BEP20 wallet</p>
                 </div>
+
+                {/* 🔒 24HR COOLDOWN WARNING */}
+                {cooldownRemaining > 0 && (
+                    <div className="relative mb-4">
+                        <div className="absolute -inset-[1px] bg-gradient-to-r from-red-500/20 to-orange-500/20 rounded-xl blur-sm animate-pulse" />
+                        <div className="relative bg-[#0d1117]/95 backdrop-blur-xl border border-red-500/25 rounded-xl p-4 text-center">
+                            <div className="flex items-center justify-center gap-2 mb-2">
+                                <Lock className="w-5 h-5 text-red-400" />
+                                <span className="text-red-400 font-bold text-sm">Withdrawal Locked</span>
+                            </div>
+                            <p className="text-2xl font-bold text-orange-400 font-mono mb-1">
+                                {formatCooldown(cooldownRemaining)}
+                            </p>
+                            <p className="text-[10px] text-gray-500">You can withdraw once every 24 hours</p>
+                        </div>
+                    </div>
+                )}
 
                 {/* FORM CARD */}
                 <div className="relative">
@@ -230,13 +295,18 @@ export default function Withdraw() {
                         {/* BUTTON */}
                         <button
                             onClick={submitWithdraw}
-                            disabled={loading || !!walletError}
+                            disabled={loading || !!walletError || cooldownRemaining > 0}
                             className="w-full py-3.5 rounded-xl font-semibold text-black bg-gradient-to-r from-green-400 via-emerald-400 to-cyan-400 transition-all duration-300 hover:shadow-[0_0_30px_rgba(34,197,94,0.3)] hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
                         >
                             {loading ? (
                                 <span className="flex items-center gap-2">
                                     <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
                                     Submitting...
+                                </span>
+                            ) : cooldownRemaining > 0 ? (
+                                <span className="flex items-center gap-2 text-gray-800">
+                                    <Lock className="w-4 h-4" />
+                                    🔒 Locked — {formatCooldown(cooldownRemaining)}
                                 </span>
                             ) : (
                                 <span className="flex items-center gap-2">
@@ -260,6 +330,10 @@ export default function Withdraw() {
                         <div className="flex items-center gap-2 text-cyan-400">
                             <Clock className="w-3.5 h-3.5 flex-shrink-0" />
                             <span>Processing time: <b>Within 24 hours</b></span>
+                        </div>
+                        <div className="flex items-center gap-2 text-orange-400">
+                            <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+                            <span>Withdrawal limit: <b>1 time per 24 hours</b></span>
                         </div>
                         <div className="flex items-center gap-2 text-blue-400">
                             <Shield className="w-3.5 h-3.5 flex-shrink-0" />

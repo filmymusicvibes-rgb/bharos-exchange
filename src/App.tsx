@@ -1,6 +1,7 @@
 import { useEffect, useState, lazy, Suspense } from "react"
 import { getCurrentPath } from "./lib/router"
 import SupportChat from "./components/SupportChat"
+import MaintenanceMode from "./pages/MaintenanceMode"
 
 import Home from "./pages/Home"
 import Auth from "./pages/Auth"
@@ -26,6 +27,9 @@ const Staking = lazy(() => import("./pages/Staking"))
 const WithdrawBRS = lazy(() => import("./pages/WithdrawBRS"))
 const SocialEarn = lazy(() => import("./pages/SocialEarn"))
 const DailyRewards = lazy(() => import("./pages/DailyRewards"))
+const EmailVerified = lazy(() => import("./pages/EmailVerified"))
+
+
 
 function PageLoader() {
   return (
@@ -39,6 +43,18 @@ function PageLoader() {
 }
 
 export default function App() {
+
+  // 🔒 Maintenance Mode — blocks all visitors on production
+  // To enable: Set VITE_MAINTENANCE_MODE=true in Vercel Environment Variables
+  // To bypass: Add ?admin=true to the URL (for owner testing only)
+  const isMaintenanceMode = import.meta.env.VITE_MAINTENANCE_MODE === "true"
+  const adminBypass = new URLSearchParams(window.location.search).get("admin") === "true"
+
+  if (isMaintenanceMode && !adminBypass) {
+    return <MaintenanceMode />
+  }
+
+
 
   const [path, setPath] = useState(getCurrentPath())
 
@@ -81,6 +97,7 @@ export default function App() {
   else if (path === "/withdraw-brs") Page = <WithdrawBRS />
   else if (path === "/social-earn") Page = <SocialEarn />
   else if (path === "/daily-rewards") Page = <DailyRewards />
+  else if (path === "/email-verified") Page = <EmailVerified />
   else return <Home />
 
   const showChat = path !== "/admin" && path !== "/admin-login"

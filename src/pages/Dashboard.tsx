@@ -43,6 +43,7 @@ export default function Dashboard() {
   const [matrixAchieved, setMatrixAchieved] = useState(false)
   const [tripMilestone, setTripMilestone] = useState(false)
   const [refCode, setRefCode] = useState("")
+  const [isCompanyDirect, setIsCompanyDirect] = useState(false)
 
   // AIRDROP STATES
   const [activeAirdrops, setActiveAirdrops] = useState<any[]>([])
@@ -162,6 +163,9 @@ export default function Dashboard() {
         // ✅ TRIP STATUS
         setTripAchieved(data.tripAchieved || false)
         setTripContactSubmitted(data.tripContactSubmitted || false)
+
+        // 🏢 COMPANY DIRECT CHECK
+        setIsCompanyDirect(data.isCompanyDirect || false)
 
         // ✅ BALANCES (SAFE)
         setUsdt(Number(data.usdtBalance || 0))
@@ -309,6 +313,40 @@ export default function Dashboard() {
 
           {/* 📢 ANNOUNCEMENTS */}
           <AnnouncementBanner />
+
+          {/* 🏢 COMPANY DIRECT MEMBER BANNER */}
+          {isCompanyDirect && (
+            <div className="relative mb-5 group">
+              <div className="absolute -inset-[1px] bg-gradient-to-r from-amber-500/25 via-yellow-500/15 to-amber-500/25 rounded-xl blur-sm" />
+              <div className="relative bg-[#0d1117]/90 backdrop-blur-xl border border-amber-500/20 rounded-xl p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-xl">👑</div>
+                <div>
+                  <p className="text-sm font-bold text-amber-400">Company Direct Member</p>
+                  <p className="text-[10px] text-amber-400/50">Joined directly under Bharos Exchange</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 🔐 ADMIN QUICK ACCESS */}
+          {localStorage.getItem("bharos_admin") === "true" && (
+            <button
+              onClick={() => navigate("/admin")}
+              className="w-full mb-5 relative group text-left"
+            >
+              <div className="absolute -inset-[1px] bg-gradient-to-r from-red-500/25 via-pink-500/15 to-purple-500/25 rounded-xl blur-sm group-hover:blur-md transition-all" />
+              <div className="relative bg-[#0d1117]/90 backdrop-blur-xl border border-red-500/20 rounded-xl px-5 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center text-lg">🔐</div>
+                  <div>
+                    <p className="font-bold text-white text-sm">Admin Panel</p>
+                    <p className="text-[10px] text-gray-500">Manage deposits, withdrawals, airdrops & more</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-gray-500 group-hover:text-red-400 group-hover:translate-x-1 transition-all" />
+              </div>
+            </button>
+          )}
 
           {/* 🎁 AIRDROP OFFERS */}
           {activeAirdrops.filter(a => !claimedAirdrops[a.id]).length > 0 && (

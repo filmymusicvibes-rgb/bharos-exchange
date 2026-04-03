@@ -163,7 +163,7 @@ export default function Profile() {
       <div className="relative z-10 p-6 max-w-lg mx-auto">
 
         {/* HEADER */}
-        <div className="flex items-center gap-3 mb-8">
+        <div className="flex items-center gap-3 mb-4">
           <div className="p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20">
             <User className="w-6 h-6 text-cyan-400" />
           </div>
@@ -171,6 +171,19 @@ export default function Profile() {
             My Profile
           </h1>
         </div>
+
+        {/* 🏢 COMPANY DIRECT MEMBER BADGE */}
+        {user?.isCompanyDirect && (
+          <div className="mb-6 p-3.5 rounded-xl bg-gradient-to-r from-amber-500/10 via-yellow-500/5 to-amber-500/10 border border-amber-500/20 flex items-center gap-3">
+            <span className="text-2xl">👑</span>
+            <div>
+              <p className="text-sm font-bold text-amber-400">Company Direct Member</p>
+              <p className="text-[10px] text-amber-400/60">
+                You joined directly under the company — a proud first-generation member!
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* CARD */}
         <div className="relative">

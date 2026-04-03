@@ -2,6 +2,7 @@ import { getUser } from "../lib/session"
 import { useEffect, useState } from "react"
 import { navigate } from "../lib/router"
 import { db, auth } from "../lib/firebase"
+import { onAuthStateChanged } from "firebase/auth"
 import {
   collection,
   getDocs,
@@ -19,7 +20,7 @@ import { logTransaction, runFullActivation } from "../lib/commission"
 
 export default function AdminPanel() {
 
-  const [activeTab, setActiveTab] = useState<"deposits" | "withdraws" | "trips" | "brsWithdraws" | "announcements" | "airdrops">("deposits")
+  const [activeTab, setActiveTab] = useState<"deposits" | "withdraws" | "trips" | "brsWithdraws" | "announcements" | "airdrops" | "launchNotify">("deposits")
 
   // Airdrop states
   const [airdrops, setAirdrops] = useState<any[]>([])
@@ -46,6 +47,10 @@ export default function AdminPanel() {
 
   const [dataLoading, setDataLoading] = useState(true)
 
+  // Launch Notify states
+  const [notifyNumbers, setNotifyNumbers] = useState<any[]>([])
+  const [notifyLoading, setNotifyLoading] = useState(false)
+
   useEffect(() => {
     const email = getUser()
     const isAdmin = localStorage.getItem("bharos_admin")
@@ -56,19 +61,30 @@ export default function AdminPanel() {
       return
     }
 
-    setAuthorized(true)
-    setLoading(false)
+    // Wait for Firebase Auth to be ready
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        // Firebase Auth is active — good to go!
+        setAuthorized(true)
+        setLoading(false)
 
-    // Load all data
-    const loadAll = async () => {
-      try {
-        await Promise.all([loadDeposits(), loadWithdraws(), loadTripUsers()])
-      } catch (e) {
-        console.warn("Data load:", e)
+        // Load all data
+        try {
+          await Promise.all([loadDeposits(), loadWithdraws(), loadTripUsers()])
+        } catch (e) {
+          console.warn("Data load:", e)
+        }
+        setDataLoading(false)
+      } else {
+        // Firebase Auth session expired — must re-login
+        console.warn("Firebase Auth not active. Redirecting to login...")
+        alert("⚠️ Session expired! Please login again.")
+        localStorage.removeItem("bharos_admin")
+        navigate("/auth", true)
       }
-      setDataLoading(false)
-    }
-    loadAll()
+    })
+
+    return () => unsubscribe()
   }, [])
 
   // LOAD DEPOSITS
@@ -252,6 +268,24 @@ export default function AdminPanel() {
       console.log("No airdrops yet")
     }
   }
+
+  const loadNotifyNumbers = async () => {
+    setNotifyLoading(true)
+    try {
+      const snap = await getDocs(collection(db, "launch_notify"))
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      list.sort((a: any, b: any) => {
+        const tA = a.createdAt?.seconds || 0
+        const tB = b.createdAt?.seconds || 0
+        return tB - tA
+      })
+      setNotifyNumbers(list)
+    } catch (err) {
+      console.log("No notify numbers yet")
+    }
+    setNotifyLoading(false)
+  }
+
   // Commission logic is now in shared module: src/lib/commission.ts
 
   // APPROVE DEPOSIT (OPTIMIZED — uses shared commission engine)
@@ -456,7 +490,9 @@ export default function AdminPanel() {
       {/* ADMIN OVERVIEW */}
       <AdminStats />
 
-      <div className="flex gap-4 mb-6 mt-8">
+
+
+      <div className="flex gap-4 mb-6 mt-8 flex-wrap">
 
         <button
           onClick={() => setActiveTab("deposits")}
@@ -522,6 +558,17 @@ export default function AdminPanel() {
           }`}
         >
           🎁 Airdrops
+        </button>
+
+        <button
+          onClick={() => { setActiveTab("launchNotify"); loadNotifyNumbers() }}
+          className={`px-4 py-2 rounded ${
+            activeTab === "launchNotify"
+              ? "bg-gradient-to-r from-green-400 to-emerald-500 text-black font-bold"
+              : "bg-gray-700"
+          }`}
+        >
+          📱 Launch Notify ({notifyNumbers.length})
         </button>
 
       </div>
@@ -853,6 +900,12 @@ export default function AdminPanel() {
                 onClick={async () => {
                   if (!annTitle.trim() || !annMessage.trim()) { alert('Fill title and message'); return }
                   try {
+                    // Ensure Firebase Auth is active
+                    if (!auth.currentUser) {
+                      alert('⚠️ Session expired! Please login again.')
+                      navigate('/auth', true)
+                      return
+                    }
                     await addDoc(collection(db, "announcements"), {
                       title: annTitle.trim(),
                       message: annMessage.trim(),
@@ -864,8 +917,9 @@ export default function AdminPanel() {
                     setAnnMessage('')
                     alert('✅ Announcement posted!')
                     loadAnnouncements()
-                  } catch (err) {
-                    alert('Error posting announcement')
+                  } catch (err: any) {
+                    console.error('Announcement error:', err)
+                    alert('Error posting announcement: ' + (err?.message || 'Permission denied. Re-login from /admin-login'))
                   }
                 }}
                 className="w-full py-3 bg-gradient-to-r from-pink-500 to-purple-600 rounded-lg font-bold text-white hover:scale-[1.02] transition-all"
@@ -986,6 +1040,12 @@ export default function AdminPanel() {
                   const expiresAt = new Date()
                   expiresAt.setDate(expiresAt.getDate() + days)
                   try {
+                    // Ensure Firebase Auth is active
+                    if (!auth.currentUser) {
+                      alert('⚠️ Session expired! Please login again.')
+                      navigate('/auth', true)
+                      return
+                    }
                     await addDoc(collection(db, "airdrops"), {
                       title: airdropTitle.trim(),
                       description: airdropDesc.trim(),
@@ -1002,9 +1062,9 @@ export default function AdminPanel() {
                     setAirdropExpiry('7')
                     alert('✅ Airdrop offer created!')
                     loadAirdrops()
-                  } catch (err) {
-                    alert('Error creating airdrop')
-                    console.error(err)
+                  } catch (err: any) {
+                    console.error('Airdrop error:', err)
+                    alert('Error creating airdrop: ' + (err?.message || 'Permission denied. Re-login from /admin-login'))
                   }
                 }}
                 className="w-full py-3 bg-gradient-to-r from-yellow-400 to-amber-500 rounded-lg font-bold text-black hover:scale-[1.02] transition-all"
@@ -1098,6 +1158,49 @@ export default function AdminPanel() {
                 </div>
               ))}
             </>
+          )}
+        </>
+      )}
+
+      {/* ===== LAUNCH NOTIFY TAB ===== */}
+      {activeTab === "launchNotify" && (
+        <>
+          <h1 className="text-3xl mb-4 font-bold">📱 Launch Notification List</h1>
+          <p className="text-gray-400 text-sm mb-6">
+            WhatsApp numbers collected from countdown page. Total: <span className="text-green-400 font-bold">{notifyNumbers.length}</span>
+          </p>
+
+          {notifyNumbers.length > 0 && (
+            <button
+              onClick={() => {
+                const allNumbers = notifyNumbers.map((n: any) => n.phone).join("\n")
+                navigator.clipboard.writeText(allNumbers)
+                alert(`✅ ${notifyNumbers.length} numbers copied to clipboard!`)
+              }}
+              className="mb-6 px-5 py-2.5 rounded-lg bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold text-sm hover:scale-[1.02] transition"
+            >
+              📋 Copy All Numbers ({notifyNumbers.length})
+            </button>
+          )}
+
+          {notifyLoading ? (
+            <p className="text-gray-500">Loading...</p>
+          ) : notifyNumbers.length === 0 ? (
+            <p className="text-gray-500">No numbers collected yet</p>
+          ) : (
+            <div className="space-y-2">
+              {notifyNumbers.map((n: any, i: number) => (
+                <div key={n.id} className="flex items-center justify-between p-3 rounded-lg bg-[#1a1a2e] border border-white/5">
+                  <div className="flex items-center gap-3">
+                    <span className="text-gray-500 text-xs w-6">{i + 1}.</span>
+                    <span className="text-white font-mono text-sm">{n.phone}</span>
+                  </div>
+                  <span className="text-gray-500 text-xs">
+                    {n.createdAt?.toDate?.()?.toLocaleString?.("en-IN") || "Unknown"}
+                  </span>
+                </div>
+              ))}
+            </div>
           )}
         </>
       )}

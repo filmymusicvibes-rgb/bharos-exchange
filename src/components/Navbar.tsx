@@ -1,4 +1,4 @@
-import { getUser, setUser, removeUser } from "@/lib/session"
+import { getUser, removeUser } from "@/lib/session"
 import { useState, useEffect } from 'react'
 import { navigate } from '@/lib/router'
 import { Menu, X, LayoutDashboard, Network, Trophy, ArrowLeftRight, User, LogOut, Home, Info, Zap, Coins, Map, Users, Gift } from 'lucide-react'

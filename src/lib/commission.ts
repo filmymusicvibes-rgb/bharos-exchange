@@ -56,6 +56,13 @@ export const distributeReferral = async (userData: any, allUsers: any[]) => {
 
     if (!uplineUser || !uplineUser.email) break
 
+    // 🏢 SKIP company account — no commissions needed for company
+    if (uplineUser.role === "company" || uplineUser.referralCode === "BRS44447") {
+      console.log(`🏢 Skipped Level ${i + 1} — company account (${uplineUser.email})`)
+      currentRef = uplineUser.referredBy
+      continue
+    }
+
     // 🔒 ONLY distribute to ACTIVE users — skip inactive/pending
     if (uplineUser.status === "active") {
 
@@ -183,6 +190,12 @@ export const checkUplineRewards = async (activatedUser: any, allUsers: any[]) =>
 
     if (!uplineUser || !uplineUser.email) break
 
+    // 🏢 Skip company account — no rewards needed
+    if (uplineUser.role === "company" || uplineUser.referralCode === "BRS44447") {
+      currentRef = uplineUser.referredBy
+      continue
+    }
+
     await checkSpecialRewards(uplineUser.email, uplineUser, allUsers)
 
     currentRef = uplineUser.referredBy
@@ -192,6 +205,9 @@ export const checkUplineRewards = async (activatedUser: any, allUsers: any[]) =>
 }
 
 // 🚀 Full Activation Engine — runs everything after deposit approval
+
+// Company Ref Code
+const COMPANY_REF_CODE = "BRS44447"
 
 export const runFullActivation = async (userEmail: string) => {
 
@@ -219,6 +235,18 @@ export const runFullActivation = async (userEmail: string) => {
       await updateTokenPhase(totalUsers)
     } catch (phaseErr) {
       console.warn("Token phase update skipped:", phaseErr)
+    }
+
+    // 🏢 COMPANY DIRECT MEMBER — mark users who join under company code
+    try {
+      if (userData.referredBy === COMPANY_REF_CODE && !userData.isCompanyDirect) {
+        await updateDoc(doc(db, "users", userEmail), {
+          isCompanyDirect: true,
+        })
+        console.log(`🏢 Company Direct member marked: ${userEmail}`)
+      }
+    } catch (cdErr) {
+      console.warn("Company Direct marking skipped:", cdErr)
     }
 
     console.log(`✅ Full activation + commissions complete for ${userEmail}`)

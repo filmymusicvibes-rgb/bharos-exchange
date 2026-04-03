@@ -1,4 +1,4 @@
-import { getUser, setUser } from "../lib/session"
+import { setUser } from "../lib/session"
 import { useState } from "react"
 import { db, auth } from "../lib/firebase"
 import { doc, getDoc } from "firebase/firestore"
@@ -43,12 +43,27 @@ export default function AdminLogin() {
         return
       }
 
-      // ✅ Admin verified — set admin flag & login
+      // ✅ Admin verified — sign into Firebase Auth (REQUIRED for Firestore writes)
       const userEmail = adminData.userEmail || cleanEmail
       try {
         await signInWithEmailAndPassword(auth, userEmail, password)
-      } catch (authErr) {
-        console.warn("Firebase Auth optional:", authErr)
+      } catch (authErr: any) {
+        // If user doesn't exist in Firebase Auth, create them
+        if (authErr.code === 'auth/user-not-found' || authErr.code === 'auth/invalid-credential') {
+          try {
+            const { createUserWithEmailAndPassword } = await import('firebase/auth')
+            await createUserWithEmailAndPassword(auth, userEmail, password)
+          } catch (createErr: any) {
+            // If already exists but wrong password, try with a fallback
+            if (createErr.code === 'auth/email-already-in-use') {
+              console.warn("Firebase Auth user exists but password mismatch. Admin functions may have limited write access.")
+            } else {
+              console.error("Firebase Auth setup failed:", createErr)
+            }
+          }
+        } else {
+          console.error("Firebase Auth sign-in failed:", authErr)
+        }
       }
 
       localStorage.setItem("bharos_admin", "true")

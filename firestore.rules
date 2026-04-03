@@ -105,5 +105,24 @@ service cloud.firestore {
       allow delete: if request.auth != null;
     }
 
+    // ═══════════════════════════════════════════
+    // 🎁 AIRDROPS — Read: open, Write/Delete: authenticated
+    // ═══════════════════════════════════════════
+    match /airdrops/{id} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null;
+      allow delete: if request.auth != null;
+    }
+
+    // ═══════════════════════════════════════════
+    // 🔔 LAUNCH NOTIFY — Open write for countdown page signup
+    // ═══════════════════════════════════════════
+    match /launch_notify/{id} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if false;
+    }
+
   }
 }

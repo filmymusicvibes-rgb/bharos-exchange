@@ -8,6 +8,13 @@ import Navbar from "@/components/Navbar"
 
 export default function Leaderboard() {
 
+    // 🔒 Mask username for privacy: "Ramana2" → "Ra***2"
+    const maskName = (name: string) => {
+        if (!name) return "***"
+        if (name.length <= 3) return name[0] + "**"
+        return name.slice(0, 2) + "***" + name.slice(-1)
+    }
+
     const [referrers, setReferrers] = useState<any[]>([])
     const [myReferrals, setMyReferrals] = useState(0)
     const [myRank, setMyRank] = useState(0)
@@ -170,7 +177,7 @@ export default function Leaderboard() {
                                         <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
                                             {getRankIcon(i)}
                                         </div>
-                                        <span className="font-medium text-white">{item.name}</span>
+                                        <span className="font-medium text-white">{maskName(item.name)}</span>
                                     </div>
 
                                     <span className="font-bold text-yellow-400 text-sm">
