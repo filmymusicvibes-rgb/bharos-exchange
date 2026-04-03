@@ -19,6 +19,7 @@ function ActivateMembership() {
   const [copied, setCopied] = useState(false)
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const activatingRef = useRef(false) // 🔒 Prevent duplicate activation
   const maxPolls = 30 // 30 × 10 sec = 5 minutes
 
   const PAYMENT_AMOUNT = 12
@@ -104,7 +105,10 @@ function ActivateMembership() {
 
     // Immediate check
     const immediateResult = await detectPayment(PAYMENT_AMOUNT, usedHashes)
-    if (immediateResult.verified) {
+    if (immediateResult.verified && !activatingRef.current) {
+      activatingRef.current = true
+      if (pollRef.current) clearInterval(pollRef.current)
+      pollRef.current = null
       setVerifiedAmount(immediateResult.amount!)
       await activateUser(immediateResult.amount!, email, immediateResult.from!, immediateResult.txHash || '')
       return
@@ -125,8 +129,10 @@ function ActivateMembership() {
 
       try {
         const result = await detectPayment(PAYMENT_AMOUNT, usedHashes)
-        if (result.verified) {
+        if (result.verified && !activatingRef.current) {
+          activatingRef.current = true
           if (pollRef.current) clearInterval(pollRef.current)
+          pollRef.current = null
           setVerifiedAmount(result.amount!)
           await activateUser(result.amount!, email, result.from!, result.txHash || '')
         }
@@ -150,11 +156,23 @@ function ActivateMembership() {
     startPolling()
   }
 
-  // ✅ ACTIVATE
+  // ✅ ACTIVATE (with duplicate protection)
   const activateUser = async (amount: number, email: string, fromAddress: string, txHash: string) => {
     setStep("activating")
 
     try {
+      // 🔒 CRITICAL: Check if already active before crediting
+      const userSnap = await getDoc(doc(db, "users", email))
+      if (userSnap.exists()) {
+        const userData: any = userSnap.data()
+        if (userData.status === "active") {
+          console.log("⚠️ User already active — skipping duplicate activation")
+          setStep("done")
+          setTimeout(() => navigate("/dashboard"), 2000)
+          return
+        }
+      }
+
       await addDoc(collection(db, "deposits"), {
         userId: email,
         amount: amount,
@@ -179,6 +197,7 @@ function ActivateMembership() {
       setTimeout(() => navigate("/dashboard"), 3000)
     } catch (err) {
       console.error(err)
+      activatingRef.current = false
       await resetUserStatus()
       setStep("failed")
     }
