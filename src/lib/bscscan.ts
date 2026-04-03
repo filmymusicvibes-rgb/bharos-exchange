@@ -126,7 +126,7 @@ export async function detectPayment(
 
       // Parse amount
       const amountWei = BigInt(log.data)
-      const amountUsdt = Number(amountWei) / Math.pow(10, USDT_DECIMALS)
+      const amountUsdt = Math.floor(Number(amountWei) / Math.pow(10, USDT_DECIMALS) * 100) / 100
 
       // Check amount >= 12 USDT
       if (amountUsdt >= minAmount) {
@@ -193,7 +193,7 @@ export async function verifyTransaction(txHash: string): Promise<VerifyResult> {
     const toAddress = "0x" + transferLog.topics[2].slice(26).toLowerCase()
 
     const amountWei = BigInt(transferLog.data)
-    const amountUsdt = Number(amountWei) / Math.pow(10, USDT_DECIMALS)
+    const amountUsdt = Math.floor(Number(amountWei) / Math.pow(10, USDT_DECIMALS) * 100) / 100
 
     if (toAddress !== RECEIVING_WALLET) {
       return { verified: false, error: "USDT was sent to wrong address." }
