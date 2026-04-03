@@ -3,6 +3,7 @@ import { useState } from "react"
 import { db, auth } from "../lib/firebase"
 import { doc, getDoc } from "firebase/firestore"
 import { signInWithEmailAndPassword } from "firebase/auth"
+import { resetAdminPassword } from "../lib/resetAdmin"
 
 export default function AdminLogin() {
 
@@ -10,6 +11,7 @@ export default function AdminLogin() {
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [resetMsg, setResetMsg] = useState("")
 
   const login = async () => {
 
@@ -114,6 +116,18 @@ export default function AdminLogin() {
         <p className="text-xs text-gray-500 text-center">
           Multi-device admin access enabled
         </p>
+
+        {/* 🔧 TEMPORARY — Remove after password reset! */}
+        <button
+          onClick={async () => {
+            const result = await resetAdminPassword()
+            setResetMsg(result)
+          }}
+          className="w-full mt-3 py-2 rounded text-[10px] text-gray-600 hover:text-yellow-400 border border-white/5 hover:border-yellow-500/20 transition-all"
+        >
+          🔧 Reset Admin Password
+        </button>
+        {resetMsg && <p className="text-xs text-center mt-1 text-yellow-400">{resetMsg}</p>}
 
       </div>
 
