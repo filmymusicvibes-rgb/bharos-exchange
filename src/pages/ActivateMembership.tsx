@@ -175,7 +175,7 @@ function ActivateMembership() {
 
       await addDoc(collection(db, "deposits"), {
         userId: email,
-        amount: amount,
+        amount: PAYMENT_AMOUNT, // 💰 Always record official membership fee ($12) — NOT blockchain amount
         txHash: txHash || null,
         status: "verified",
         verifiedBy: "blockchain-rpc",
