@@ -79,7 +79,7 @@ export default function Auth() {
     try {
       const user = auth.currentUser
       if (user) {
-        await sendEmailVerification(user, { url: "https://bharosexchange.com/email-verified" })
+        await sendEmailVerification(user, { url: "https://bharos-exchange.firebaseapp.com" })
         setSuccess("Verification email sent again! Check inbox & spam folder.")
         setResendTimer(60)
       }
@@ -211,7 +211,7 @@ export default function Auth() {
         }
 
         // 📧 Send verification email
-        await sendEmailVerification(userCredential.user, { url: "https://bharosexchange.com/email-verified" })
+        await sendEmailVerification(userCredential.user, { url: "https://bharos-exchange.firebaseapp.com" })
 
         // Generate unique referral code
         let myReferral = ""
@@ -315,7 +315,7 @@ export default function Auth() {
 
           // New user (has emailVerificationRequired flag) — must verify email first
           if (userData.emailVerificationRequired && !userCredential.user.emailVerified) {
-            await sendEmailVerification(userCredential.user, { url: "https://bharosexchange.com/email-verified" })
+            await sendEmailVerification(userCredential.user, { url: "https://bharos-exchange.firebaseapp.com" })
             setStep("verify-email")
             setResendTimer(60)
             setLoading(false)
