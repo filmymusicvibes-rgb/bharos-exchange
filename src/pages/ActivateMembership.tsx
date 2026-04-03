@@ -20,7 +20,7 @@ function ActivateMembership() {
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const activatingRef = useRef(false) // 🔒 Prevent duplicate activation
-  const maxPolls = 30 // 30 × 10 sec = 5 minutes
+  const maxPolls = 90 // 90 × 10 sec = 15 minutes
 
   const PAYMENT_AMOUNT = 12
 
@@ -348,7 +348,7 @@ function ActivateMembership() {
                   <p className="text-[11px] text-gray-400">• Wrong wallet address</p>
                 </div>
 
-                <p className="text-gray-400 text-xs mb-4">5 minutes lo payment detect kaaledu. Try again!</p>
+                <p className="text-gray-400 text-xs mb-4">15 minutes lo payment detect kaaledu. Already sent? Click Scan Again!</p>
 
                 <button
                   onClick={restartScanning}
@@ -447,7 +447,7 @@ function ActivateMembership() {
                           style={{ width: `${Math.min((pollCount / maxPolls) * 100, 100)}%` }}
                         ></div>
                       </div>
-                      <p className="text-gray-600 text-[9px] mt-1">{formatTime(pollCount)} / 5:00</p>
+                      <p className="text-gray-600 text-[9px] mt-1">{formatTime(pollCount)} / 15:00 — Take your time, no rush!</p>
                     </div>
                   </div>
 
