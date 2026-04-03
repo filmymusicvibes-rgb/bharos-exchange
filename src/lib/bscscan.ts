@@ -124,9 +124,10 @@ export async function detectPayment(
       // Skip already used
       if (usedTxHashes.includes(txHash)) continue
 
-      // Parse amount
+      // Parse amount — use BigInt division to avoid Number precision loss
       const amountWei = BigInt(log.data)
-      const amountUsdt = Math.floor(Number(amountWei) / Math.pow(10, USDT_DECIMALS) * 100) / 100
+      const amountCents = Number(amountWei / BigInt(10 ** (USDT_DECIMALS - 2)))
+      const amountUsdt = amountCents / 100
 
       // Check amount >= 12 USDT
       if (amountUsdt >= minAmount) {
@@ -200,8 +201,10 @@ export async function verifyTransaction(txHash: string): Promise<VerifyResult> {
     const fromAddress = "0x" + transferLog.topics[1].slice(26).toLowerCase()
     const toAddress = "0x" + transferLog.topics[2].slice(26).toLowerCase()
 
+    // Parse amount — use BigInt division to avoid Number precision loss
     const amountWei = BigInt(transferLog.data)
-    const amountUsdt = Math.floor(Number(amountWei) / Math.pow(10, USDT_DECIMALS) * 100) / 100
+    const amountCents = Number(amountWei / BigInt(10 ** (USDT_DECIMALS - 2)))
+    const amountUsdt = amountCents / 100
 
     if (toAddress !== RECEIVING_WALLET) {
       return { verified: false, error: "USDT was sent to wrong address." }
