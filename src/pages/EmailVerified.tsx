@@ -133,17 +133,15 @@ export default function EmailVerified() {
                 Welcome to <span style={{ color: "#22d3ee", fontWeight: 600 }}>Bharos Exchange!</span>
               </p>
 
-              {/* BRS Coin */}
+              {/* BRS Logo */}
               <div style={{
                 width: 64, height: 64, margin: "0 auto 28px",
                 borderRadius: "50%",
-                background: "linear-gradient(135deg, #fbbf24, #f59e0b)",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 28, fontWeight: 900, color: "#78350f",
                 boxShadow: "0 0 30px rgba(250,204,21,0.3)",
                 animation: "coinGlow 3s ease-in-out infinite",
               }}>
-                B
+                <img src="/brs.png" alt="BRS" style={{ width: 64, height: 64, borderRadius: "50%" }} />
               </div>
 
               <a
