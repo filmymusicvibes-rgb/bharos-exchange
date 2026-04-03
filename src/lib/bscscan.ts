@@ -142,6 +142,14 @@ export async function detectPayment(
           txHash: txHash
         }
       }
+
+      // ⚠️ Payment found but below minimum — inform user
+      if (amountUsdt > 0 && amountUsdt < minAmount) {
+        return {
+          verified: false,
+          error: `Payment detected: ${amountUsdt} USDT — Minimum required: ${minAmount} USDT. Please send at least ${minAmount} USDT.`
+        }
+      }
     }
 
     return { verified: false, error: "Waiting for payment..." }
