@@ -177,16 +177,37 @@ export default function Auth() {
           userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, password)
         } catch (authErr: any) {
           if (authErr.code === "auth/email-already-in-use") {
-            setError("This email is already registered. Please sign in.")
+            // 🔄 Check if user exists in Firestore — if not, it's a leftover from data reset
+            const existingUser = await getDoc(doc(db, "users", cleanEmail))
+            if (!existingUser.exists()) {
+              // Old Firebase Auth account exists but Firestore was cleared
+              // Try signing in with the new password to reuse the account
+              try {
+                userCredential = await signInWithEmailAndPassword(auth, cleanEmail, password)
+              } catch {
+                // Password mismatch — user must use "Forgot Password" to reset
+                setError("This email was previously registered. Please use 'Forgot Password' to reset your password, then Sign In.")
+                setLoading(false)
+                return
+              }
+            } else {
+              setError("This email is already registered. Please sign in.")
+              setLoading(false)
+              return
+            }
           } else if (authErr.code === "auth/weak-password") {
             setError("Password is too weak. Follow the requirements below.")
+            setLoading(false)
+            return
           } else if (authErr.code === "auth/invalid-email") {
             setError("Invalid email address.")
+            setLoading(false)
+            return
           } else {
             setError(authErr.message)
+            setLoading(false)
+            return
           }
-          setLoading(false)
-          return
         }
 
         // 📧 Send verification email
@@ -319,18 +340,11 @@ export default function Auth() {
           return
         }
 
-        // New user (registered with email verification flow) — must verify email
-        if (!userCredential.user.emailVerified) {
-          await sendEmailVerification(userCredential.user, { url: "https://bharosexchange.com/email-verified" })
-          setStep("verify-email")
-          setResendTimer(60)
-          setLoading(false)
-          return
-        }
-
-        // ✅ Verified new user — login
-        setUser(cleanEmail)
-        navigate("/dashboard", true)
+        // ⚠️ Firebase Auth exists but NO Firestore record (data was reset)
+        // Tell user to re-register
+        await auth.signOut() // Sign out the orphaned auth session
+        setError("Your account data was reset. Please create a new account using 'Sign Up'.")
+        setLoading(false)
         return
       }
 
