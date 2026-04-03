@@ -69,11 +69,11 @@ service cloud.firestore {
 
     // ═══════════════════════════════════════════
     // 🔐 ADMINS — Read: open (admin login check)
-    //             Write: BLOCKED
+    //             Write: TEMPORARILY OPEN FOR PASSWORD RESET — REVERT AFTER!
     // ═══════════════════════════════════════════
     match /admins/{id} {
       allow read: if true;
-      allow write: if false;
+      allow write: if request.auth != null;
     }
 
     // ═══════════════════════════════════════════
