@@ -20,7 +20,15 @@ import { logTransaction, runFullActivation } from "../lib/commission"
 
 export default function AdminPanel() {
 
-  const [activeTab, setActiveTab] = useState<"deposits" | "withdraws" | "trips" | "brsWithdraws" | "announcements" | "airdrops" | "launchNotify">("deposits")
+  const [activeTab, setActiveTab] = useState<"deposits" | "withdraws" | "trips" | "brsWithdraws" | "announcements" | "airdrops" | "launchNotify" | "pushNotifs">("deposits")
+
+  // Push Notification states
+  const [pushNotifs, setPushNotifs] = useState<any[]>([])
+  const [pushTitle, setPushTitle] = useState('')
+  const [pushMessage, setPushMessage] = useState('')
+  const [pushType, setPushType] = useState<'system' | 'reward' | 'promo' | 'team' | 'admin'>('admin')
+  const [pushIcon, setPushIcon] = useState('megaphone')
+  const [pushSending, setPushSending] = useState(false)
 
   // Airdrop states
   const [airdrops, setAirdrops] = useState<any[]>([])
@@ -289,6 +297,22 @@ export default function AdminPanel() {
       console.log("No notify numbers yet")
     }
     setNotifyLoading(false)
+  }
+
+  // LOAD PUSH NOTIFICATIONS
+  const loadPushNotifs = async () => {
+    try {
+      const snap = await getDocs(collection(db, "notifications"))
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      list.sort((a: any, b: any) => {
+        const tA = a.createdAt?.seconds || 0
+        const tB = b.createdAt?.seconds || 0
+        return tB - tA
+      })
+      setPushNotifs(list)
+    } catch (err) {
+      console.log("No push notifications yet")
+    }
   }
 
   // Commission logic is now in shared module: src/lib/commission.ts
@@ -574,6 +598,17 @@ export default function AdminPanel() {
           }`}
         >
           📱 Launch Notify ({notifyNumbers.length})
+        </button>
+
+        <button
+          onClick={() => { setActiveTab("pushNotifs"); loadPushNotifs() }}
+          className={`px-4 py-2 rounded ${
+            activeTab === "pushNotifs"
+              ? "bg-gradient-to-r from-red-500 to-orange-500 text-white font-bold"
+              : "bg-gray-700"
+          }`}
+        >
+          🔔 Notifications
         </button>
 
       </div>
@@ -1238,6 +1273,194 @@ export default function AdminPanel() {
               ))}
             </div>
           )}
+        </>
+      )}
+
+      {/* ═══════════════════ PUSH NOTIFICATIONS TAB ═══════════════════ */}
+      {activeTab === "pushNotifs" && (
+        <>
+          <h1 className="text-3xl mb-6 font-bold">🔔 Send Notifications</h1>
+          <p className="text-gray-400 text-sm mb-6">
+            Send notifications that appear in every user's notification bell. All active users will see these instantly.
+          </p>
+
+          {/* CREATE NOTIFICATION */}
+          <div className="bg-[#1a1a2e] p-6 mb-6 rounded-xl border border-red-500/20">
+            <h3 className="text-lg font-bold text-red-400 mb-4">➕ Send New Notification</h3>
+            <div className="space-y-3">
+              <input
+                value={pushTitle}
+                onChange={(e) => setPushTitle(e.target.value)}
+                placeholder="Notification Title (e.g. 🚀 Big Update!)"
+                className="w-full p-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500"
+              />
+              <textarea
+                value={pushMessage}
+                onChange={(e) => setPushMessage(e.target.value)}
+                placeholder="Message body (e.g. Phase 4 staking is now live! Earn up to 40% APY...)"
+                rows={3}
+                className="w-full p-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500 resize-none"
+              />
+
+              {/* Type Selection */}
+              <div>
+                <label className="text-xs text-gray-400 mb-2 block">Notification Type</label>
+                <div className="flex gap-2 flex-wrap">
+                  {(['admin', 'system', 'reward', 'promo', 'team'] as const).map(type => (
+                    <button
+                      key={type}
+                      onClick={() => setPushType(type)}
+                      className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                        pushType === type
+                          ? type === 'admin' ? 'bg-red-500 text-white'
+                            : type === 'system' ? 'bg-cyan-500 text-white'
+                            : type === 'reward' ? 'bg-green-500 text-white'
+                            : type === 'promo' ? 'bg-amber-500 text-black'
+                            : 'bg-purple-500 text-white'
+                          : 'bg-gray-700 text-gray-400'
+                      }`}
+                    >
+                      {type === 'admin' ? '🔴 Admin' : type === 'system' ? '🔵 System' : type === 'reward' ? '🟢 Reward' : type === 'promo' ? '🟡 Promo' : '🟣 Team'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Icon Selection */}
+              <div>
+                <label className="text-xs text-gray-400 mb-2 block">Icon</label>
+                <div className="flex gap-2 flex-wrap">
+                  {[
+                    { key: 'megaphone', label: '📢 Announce' },
+                    { key: 'gift', label: '🎁 Gift' },
+                    { key: 'coins', label: '🪙 Coins' },
+                    { key: 'trending', label: '📈 Trending' },
+                    { key: 'shield', label: '🛡 Security' },
+                    { key: 'sparkles', label: '✨ Sparkle' },
+                    { key: 'users', label: '👥 Team' },
+                    { key: 'alert', label: '⚠️ Alert' },
+                    { key: 'zap', label: '⚡ Zap' },
+                  ].map(ic => (
+                    <button
+                      key={ic.key}
+                      onClick={() => setPushIcon(ic.key)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                        pushIcon === ic.key
+                          ? 'bg-white/15 text-white border border-white/30'
+                          : 'bg-gray-700/50 text-gray-400 border border-transparent'
+                      }`}
+                    >
+                      {ic.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Preview */}
+              {pushTitle && (
+                <div className="bg-black/30 border border-white/5 rounded-xl p-4">
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-2">📱 Preview</p>
+                  <div className="flex gap-3 items-start">
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                      pushType === 'admin' ? 'bg-red-500/15 border border-red-500/25'
+                        : pushType === 'system' ? 'bg-cyan-500/15 border border-cyan-500/25'
+                        : pushType === 'reward' ? 'bg-green-500/15 border border-green-500/25'
+                        : pushType === 'promo' ? 'bg-amber-500/15 border border-amber-500/25'
+                        : 'bg-purple-500/15 border border-purple-500/25'
+                    }`}>
+                      <span className="text-sm">
+                        {pushIcon === 'megaphone' ? '📢' : pushIcon === 'gift' ? '🎁' : pushIcon === 'coins' ? '🪙'
+                          : pushIcon === 'trending' ? '📈' : pushIcon === 'shield' ? '🛡' : pushIcon === 'sparkles' ? '✨'
+                          : pushIcon === 'users' ? '👥' : pushIcon === 'alert' ? '⚠️' : '⚡'}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-white text-xs font-semibold">{pushTitle}</p>
+                      <p className="text-gray-500 text-[11px] mt-0.5">{pushMessage || 'Message preview...'}</p>
+                      <p className="text-gray-600 text-[9px] mt-1">Just now</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Send Button */}
+              <button
+                disabled={pushSending}
+                onClick={async () => {
+                  if (!pushTitle.trim() || !pushMessage.trim()) {
+                    alert('Fill title and message!'); return
+                  }
+                  if (!auth.currentUser) {
+                    alert('⚠️ Session expired! Please login again.')
+                    navigate('/auth', true)
+                    return
+                  }
+                  setPushSending(true)
+                  try {
+                    await addDoc(collection(db, "notifications"), {
+                      title: pushTitle.trim(),
+                      message: pushMessage.trim(),
+                      type: pushType,
+                      icon: pushIcon,
+                      createdBy: getUser() || 'admin',
+                      createdAt: serverTimestamp(),
+                    })
+                    setPushTitle('')
+                    setPushMessage('')
+                    alert('✅ Notification sent to all users!')
+                    loadPushNotifs()
+                  } catch (err: any) {
+                    console.error('Notification error:', err)
+                    alert('Error: ' + (err?.message || 'Permission denied'))
+                  }
+                  setPushSending(false)
+                }}
+                className="w-full py-3 bg-gradient-to-r from-red-500 to-orange-500 rounded-lg font-bold text-white hover:scale-[1.02] transition-all disabled:opacity-50 shadow-lg shadow-red-500/20"
+              >
+                {pushSending ? '⏳ Sending...' : '🔔 Send Notification to All Users'}
+              </button>
+            </div>
+          </div>
+
+          {/* SENT NOTIFICATIONS LIST */}
+          <h3 className="text-lg font-bold text-white mb-3">📜 Sent Notifications ({pushNotifs.length})</h3>
+          {pushNotifs.length === 0 && (
+            <p className="text-gray-500 text-center py-8">No notifications sent yet. Send your first one above!</p>
+          )}
+          {pushNotifs.map((notif: any) => (
+            <div key={notif.id} className="p-4 mb-3 rounded-xl bg-[#1a1a2e] border border-white/10">
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    <h4 className="font-bold text-white text-sm">{notif.title}</h4>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      notif.type === 'admin' ? 'bg-red-500/20 text-red-400'
+                        : notif.type === 'system' ? 'bg-cyan-500/20 text-cyan-400'
+                        : notif.type === 'reward' ? 'bg-green-500/20 text-green-400'
+                        : notif.type === 'promo' ? 'bg-amber-500/20 text-amber-400'
+                        : 'bg-purple-500/20 text-purple-400'
+                    }`}>{notif.type}</span>
+                  </div>
+                  <p className="text-xs text-gray-400">{notif.message}</p>
+                  <p className="text-[10px] text-gray-600 mt-1">
+                    Sent: {notif.createdAt?.toDate?.()?.toLocaleString?.('en-IN') || 'Unknown'}
+                    {notif.createdBy && <span className="ml-2">by {notif.createdBy}</span>}
+                  </p>
+                </div>
+                <button
+                  onClick={async () => {
+                    if (confirm('Delete this notification?')) {
+                      await deleteDoc(doc(db, "notifications", notif.id))
+                      loadPushNotifs()
+                    }
+                  }}
+                  className="px-3 py-1.5 rounded text-xs font-bold bg-red-500/20 text-red-400 hover:bg-red-500/30 transition shrink-0"
+                >
+                  🗑 Delete
+                </button>
+              </div>
+            </div>
+          ))}
         </>
       )}
 
