@@ -248,7 +248,7 @@ export default function Dashboard() {
 
   const [copied, setCopied] = useState(false)
 
-  const shareMessage = `🚀 Join Bharos Exchange — India's Trusted Crypto Platform!\n\n🪙 Get FREE 150 BRS Coins on signup\n💰 Earn USDT through referrals\n🔥 BRS Coin live on BSC Mainnet\n\n👉 Sign up now: ${referralLink}`
+  const shareMessage = `🚀 Join Bharos Exchange — The Most Trusted Crypto Platform!\n\n🪙 Get FREE 150 BRS Coins on signup\n💰 Earn USDT through referrals\n🔥 BRS Token live on BSC Mainnet (BEP-20)\n📈 Smart Contract verified on BNB Smart Chain\n🛡️ Secure, transparent & community-driven\n\n👉 Sign up now: ${referralLink}`
 
   const copyReferral = () => {
     navigator.clipboard.writeText(referralLink)
@@ -261,7 +261,7 @@ export default function Dashboard() {
   }
 
   const shareTelegram = () => {
-    window.open(`https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('🚀 Join Bharos Exchange — Get FREE 150 BRS Coins!')}`, '_blank')
+    window.open(`https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('🚀 Join Bharos Exchange — Get FREE 150 BRS Coins! 🔥 BRS Token live on BSC (BEP-20)')}`, '_blank')
   }
 
   const shareNative = async () => {
@@ -269,7 +269,7 @@ export default function Dashboard() {
       try {
         await navigator.share({
           title: 'Join Bharos Exchange',
-          text: '🚀 Get FREE 150 BRS Coins on signup! Join now:',
+          text: '🚀 Get FREE 150 BRS Coins on signup! BRS Token live on BSC (BEP-20) 🔥 Join now:',
           url: referralLink
         })
       } catch (err) {
