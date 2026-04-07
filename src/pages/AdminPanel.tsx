@@ -67,7 +67,10 @@ export default function AdminPanel() {
   const [userActionLoading, setUserActionLoading] = useState(false)
   const [allUsersCount, setAllUsersCount] = useState(0)
   const [recentUsers, setRecentUsers] = useState<any[]>([])
+  const [allUsersList, setAllUsersList] = useState<any[]>([])
   const [usersTabLoaded, setUsersTabLoaded] = useState(false)
+  const [searchSuggestions, setSearchSuggestions] = useState<any[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
 
   useEffect(() => {
     const email = getUser()
@@ -368,10 +371,30 @@ export default function AdminPanel() {
         const tB = b.createdAt?.seconds || 0
         return tB - tA
       })
+      setAllUsersList(list)
       setRecentUsers(list.slice(0, 20))
       setUsersTabLoaded(true)
     } catch (err) {
       console.error('Load users error:', err)
+    }
+  }
+
+  // AUTO-SUGGEST: filter users by name/email when typing 2+ chars
+  const handleSearchInput = (value: string) => {
+    setUserSearchEmail(value)
+    if (value.trim().length >= 2 && allUsersList.length > 0) {
+      const query = value.trim().toLowerCase()
+      const matches = allUsersList.filter(u => {
+        const email = (u.email || '').toLowerCase()
+        const name = (u.fullName || '').toLowerCase()
+        const username = email.split('@')[0]
+        return email.includes(query) || name.includes(query) || username.includes(query)
+      }).slice(0, 8)
+      setSearchSuggestions(matches)
+      setShowSuggestions(matches.length > 0)
+    } else {
+      setSearchSuggestions([])
+      setShowSuggestions(false)
     }
   }
 
@@ -1558,23 +1581,60 @@ export default function AdminPanel() {
         <>
           <h1 className="text-3xl mb-6 font-bold">👤 User Management</h1>
           <p className="text-gray-400 text-sm mb-6">
-            Search users by email to view their details, balances, and manage their account.
+            Search users by name, email, or username. Type 2+ letters for suggestions.
             Total Users: <span className="text-cyan-400 font-bold">{allUsersCount}</span>
           </p>
 
           {/* SEARCH BAR */}
           <div className="bg-[#1a1a2e] p-6 mb-6 rounded-xl border border-blue-500/20">
             <h3 className="text-lg font-bold text-blue-400 mb-4">🔍 Search User</h3>
-            <div className="flex gap-3">
-              <input
-                value={userSearchEmail}
-                onChange={(e) => setUserSearchEmail(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && searchUser(userSearchEmail)}
-                placeholder="Enter user email (e.g. user@gmail.com)"
-                className="flex-1 p-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:border-blue-400/50 outline-none"
-              />
+            <div className="flex gap-3 relative">
+              <div className="flex-1 relative">
+                <input
+                  value={userSearchEmail}
+                  onChange={(e) => handleSearchInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { setShowSuggestions(false); searchUser(userSearchEmail) } }}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                  onFocus={() => { if (searchSuggestions.length > 0) setShowSuggestions(true) }}
+                  placeholder="Search by name, email, or username..."
+                  className="w-full p-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:border-blue-400/50 outline-none"
+                />
+
+                {/* SUGGESTIONS DROPDOWN */}
+                {showSuggestions && searchSuggestions.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-[#1a1a2e] border border-blue-500/30 rounded-xl overflow-hidden z-50 shadow-2xl shadow-black/50 max-h-[300px] overflow-y-auto">
+                    {searchSuggestions.map((u: any) => (
+                      <div
+                        key={u.email}
+                        onMouseDown={() => {
+                          setUserSearchEmail(u.email)
+                          setShowSuggestions(false)
+                          searchUser(u.email)
+                        }}
+                        className="flex items-center justify-between px-4 py-3 hover:bg-blue-500/10 cursor-pointer border-b border-white/5 last:border-0 transition-all"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-white text-sm font-medium truncate">
+                            {u.fullName || u.email?.split('@')[0]}
+                          </p>
+                          <p className="text-gray-500 text-[10px] truncate">{u.email}</p>
+                          {u.phone && <p className="text-gray-600 text-[10px]">📱 {u.phone}</p>}
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0 ml-3">
+                          <span className="text-yellow-400 text-[10px] font-bold">{Number(u.brsBalance || 0)} BRS</span>
+                          <span className={`w-2 h-2 rounded-full ${
+                            u.status === 'active' ? 'bg-green-400'
+                              : u.status === 'blocked' ? 'bg-red-400'
+                              : 'bg-yellow-400'
+                          }`} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
               <button
-                onClick={() => searchUser(userSearchEmail)}
+                onClick={() => { setShowSuggestions(false); searchUser(userSearchEmail) }}
                 disabled={userSearching}
                 className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg font-bold text-white hover:scale-[1.02] transition-all disabled:opacity-50 whitespace-nowrap"
               >
@@ -1738,6 +1798,7 @@ export default function AdminPanel() {
                         {u.fullName || u.email?.split('@')[0]}
                       </p>
                       <p className="text-gray-500 text-[10px] truncate">{u.email}</p>
+                      {u.phone && <p className="text-gray-600 text-[10px]">📱 {u.phone}</p>}
                     </div>
                   </div>
                   <div className="flex items-center gap-4 shrink-0">
