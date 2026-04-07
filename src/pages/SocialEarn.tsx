@@ -58,7 +58,7 @@ const platforms: SocialPlatform[] = [
     name: "WhatsApp",
     description: "Follow our WhatsApp channel",
     icon: "💬",
-    url: "https://whatsapp.com/channel/bharos-exchange",
+    url: "https://whatsapp.com/channel/0029Vb8HgtnHltYGfWReeJ0j",
     gradient: "from-green-500 to-emerald-500",
     borderColor: "border-green-500/20",
     glowColor: "from-green-500/20 to-emerald-500/15",

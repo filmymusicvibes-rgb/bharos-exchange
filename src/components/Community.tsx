@@ -58,7 +58,7 @@ function Community() {
             subtitle="Official updates channel"
             delay="100ms"
             isVisible={isVisible}
-            link="https://whatsapp.com/channel/0029VbCxxpI3wtbHACYFBm3H"
+            link="https://whatsapp.com/channel/0029Vb8HgtnHltYGfWReeJ0j"
           />
 
           {/* WHITEPAPER */}
