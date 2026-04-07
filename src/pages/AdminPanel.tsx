@@ -20,7 +20,7 @@ import { logTransaction, runFullActivation } from "../lib/commission"
 
 export default function AdminPanel() {
 
-  const [activeTab, setActiveTab] = useState<"deposits" | "withdraws" | "trips" | "brsWithdraws" | "announcements" | "airdrops" | "launchNotify" | "pushNotifs">("deposits")
+  const [activeTab, setActiveTab] = useState<"deposits" | "withdraws" | "trips" | "brsWithdraws" | "announcements" | "airdrops" | "launchNotify" | "pushNotifs" | "users">("deposits")
 
   // Push Notification states
   const [pushNotifs, setPushNotifs] = useState<any[]>([])
@@ -58,6 +58,16 @@ export default function AdminPanel() {
   // Launch Notify states
   const [notifyNumbers, setNotifyNumbers] = useState<any[]>([])
   const [notifyLoading, setNotifyLoading] = useState(false)
+
+  // Users Management states
+  const [userSearchEmail, setUserSearchEmail] = useState('')
+  const [searchedUser, setSearchedUser] = useState<any>(null)
+  const [userSearching, setUserSearching] = useState(false)
+  const [userSearchError, setUserSearchError] = useState('')
+  const [userActionLoading, setUserActionLoading] = useState(false)
+  const [allUsersCount, setAllUsersCount] = useState(0)
+  const [recentUsers, setRecentUsers] = useState<any[]>([])
+  const [usersTabLoaded, setUsersTabLoaded] = useState(false)
 
   useEffect(() => {
     const email = getUser()
@@ -313,6 +323,74 @@ export default function AdminPanel() {
     } catch (err) {
       console.log("No push notifications yet")
     }
+  }
+
+  // SEARCH USER BY EMAIL
+  const searchUser = async (email: string) => {
+    if (!email.trim()) { setUserSearchError('Enter an email to search'); return }
+    setUserSearching(true)
+    setUserSearchError('')
+    setSearchedUser(null)
+    try {
+      const snap = await getDoc(doc(db, "users", email.trim().toLowerCase()))
+      if (snap.exists()) {
+        const data = snap.data()
+        // Get referral counts
+        const usersSnap = await getDocs(collection(db, "users"))
+        const allUsers = usersSnap.docs.map(d => d.data())
+        const myCode = data.referralCode || ''
+        const directRefs = allUsers.filter(u => u.referredBy === myCode && u.status === 'active')
+        setSearchedUser({
+          ...data,
+          email: email.trim().toLowerCase(),
+          directReferrals: directRefs.length,
+          totalUsers: allUsers.length
+        })
+      } else {
+        setUserSearchError('❌ User not found with this email')
+      }
+    } catch (err) {
+      console.error('User search error:', err)
+      setUserSearchError('Error searching user. Try again.')
+    }
+    setUserSearching(false)
+  }
+
+  // LOAD RECENT USERS (for Users tab)
+  const loadUsersTab = async () => {
+    if (usersTabLoaded) return
+    try {
+      const snap = await getDocs(collection(db, "users"))
+      setAllUsersCount(snap.docs.length)
+      const list = snap.docs.map(d => ({ email: d.id, ...d.data() }))
+      list.sort((a: any, b: any) => {
+        const tA = a.createdAt?.seconds || 0
+        const tB = b.createdAt?.seconds || 0
+        return tB - tA
+      })
+      setRecentUsers(list.slice(0, 20))
+      setUsersTabLoaded(true)
+    } catch (err) {
+      console.error('Load users error:', err)
+    }
+  }
+
+  // BLOCK / UNBLOCK / HOLD USER
+  const updateUserStatus = async (email: string, newStatus: string) => {
+    setUserActionLoading(true)
+    try {
+      await updateDoc(doc(db, "users", email), { status: newStatus })
+      alert(`✅ User ${email} status updated to: ${newStatus}`)
+      // Refresh searched user
+      if (searchedUser?.email === email) {
+        await searchUser(email)
+      }
+      setUsersTabLoaded(false)
+    } catch (err) {
+      console.error('User status update error:', err)
+      alert('❌ Failed to update user status')
+    }
+    setUserActionLoading(false)
   }
 
   // Commission logic is now in shared module: src/lib/commission.ts
@@ -609,6 +687,17 @@ export default function AdminPanel() {
           }`}
         >
           🔔 Notifications
+        </button>
+
+        <button
+          onClick={() => { setActiveTab("users"); loadUsersTab() }}
+          className={`px-4 py-2 rounded ${
+            activeTab === "users"
+              ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-bold"
+              : "bg-gray-700"
+          }`}
+        >
+          👤 Users ({allUsersCount || '...'})
         </button>
 
       </div>
@@ -1461,6 +1550,212 @@ export default function AdminPanel() {
               </div>
             </div>
           ))}
+        </>
+      )}
+
+      {/* ═══════════════════ USERS MANAGEMENT TAB ═══════════════════ */}
+      {activeTab === "users" && (
+        <>
+          <h1 className="text-3xl mb-6 font-bold">👤 User Management</h1>
+          <p className="text-gray-400 text-sm mb-6">
+            Search users by email to view their details, balances, and manage their account.
+            Total Users: <span className="text-cyan-400 font-bold">{allUsersCount}</span>
+          </p>
+
+          {/* SEARCH BAR */}
+          <div className="bg-[#1a1a2e] p-6 mb-6 rounded-xl border border-blue-500/20">
+            <h3 className="text-lg font-bold text-blue-400 mb-4">🔍 Search User</h3>
+            <div className="flex gap-3">
+              <input
+                value={userSearchEmail}
+                onChange={(e) => setUserSearchEmail(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && searchUser(userSearchEmail)}
+                placeholder="Enter user email (e.g. user@gmail.com)"
+                className="flex-1 p-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:border-blue-400/50 outline-none"
+              />
+              <button
+                onClick={() => searchUser(userSearchEmail)}
+                disabled={userSearching}
+                className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg font-bold text-white hover:scale-[1.02] transition-all disabled:opacity-50 whitespace-nowrap"
+              >
+                {userSearching ? '⏳ Searching...' : '🔍 Search'}
+              </button>
+            </div>
+
+            {userSearchError && (
+              <p className="text-red-400 text-sm mt-3">{userSearchError}</p>
+            )}
+          </div>
+
+          {/* SEARCHED USER DETAILS */}
+          {searchedUser && (
+            <div className="bg-[#1a1a2e] p-6 mb-6 rounded-xl border border-cyan-500/20">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-cyan-400">📋 User Details</h3>
+                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                  searchedUser.status === 'active' ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                    : searchedUser.status === 'blocked' ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                    : searchedUser.status === 'hold' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
+                    : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                }`}>
+                  {searchedUser.status === 'active' ? '🟢 Active'
+                    : searchedUser.status === 'blocked' ? '🔴 Blocked'
+                    : searchedUser.status === 'hold' ? '🟠 On Hold'
+                    : '🟡 Pending'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div className="bg-black/30 p-4 rounded-xl border border-white/5">
+                  <p className="text-xs text-gray-500 mb-1">Full Name</p>
+                  <p className="text-white font-bold text-lg">{searchedUser.fullName || 'Not Set'}</p>
+                </div>
+                <div className="bg-black/30 p-4 rounded-xl border border-white/5">
+                  <p className="text-xs text-gray-500 mb-1">Email</p>
+                  <p className="text-cyan-400 font-mono text-sm break-all">{searchedUser.email}</p>
+                </div>
+                <div className="bg-black/30 p-4 rounded-xl border border-white/5">
+                  <p className="text-xs text-gray-500 mb-1">Phone</p>
+                  <p className="text-white font-medium">{searchedUser.phone || 'Not Set'}</p>
+                </div>
+                <div className="bg-black/30 p-4 rounded-xl border border-white/5">
+                  <p className="text-xs text-gray-500 mb-1">Referral Code</p>
+                  <p className="text-yellow-400 font-mono font-bold">{searchedUser.referralCode || 'N/A'}</p>
+                </div>
+              </div>
+
+              {/* BALANCES */}
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="bg-gradient-to-br from-yellow-500/10 to-amber-500/5 p-4 rounded-xl border border-yellow-500/20">
+                  <p className="text-xs text-gray-500 mb-1">BRS Balance</p>
+                  <p className="text-2xl font-bold text-yellow-400">{Number(searchedUser.brsBalance || 0)} <span className="text-sm">BRS</span></p>
+                  <p className="text-xs text-gray-500 mt-1">≈ ${(Number(searchedUser.brsBalance || 0) * 0.005).toFixed(2)}</p>
+                </div>
+                <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/5 p-4 rounded-xl border border-green-500/20">
+                  <p className="text-xs text-gray-500 mb-1">USDT Balance</p>
+                  <p className="text-2xl font-bold text-green-400">${Number(searchedUser.usdtBalance || 0).toFixed(2)}</p>
+                  <p className="text-xs text-gray-500 mt-1">BEP-20</p>
+                </div>
+              </div>
+
+              {/* MORE INFO */}
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+                <div className="bg-black/30 p-3 rounded-lg border border-white/5">
+                  <p className="text-[10px] text-gray-500">Referred By</p>
+                  <p className="text-white text-sm font-medium">{searchedUser.referredBy || 'Direct / Company'}</p>
+                </div>
+                <div className="bg-black/30 p-3 rounded-lg border border-white/5">
+                  <p className="text-[10px] text-gray-500">Direct Referrals</p>
+                  <p className="text-cyan-400 text-sm font-bold">{searchedUser.directReferrals}</p>
+                </div>
+                <div className="bg-black/30 p-3 rounded-lg border border-white/5">
+                  <p className="text-[10px] text-gray-500">Company Direct</p>
+                  <p className="text-sm font-medium">{searchedUser.isCompanyDirect ? '👑 Yes' : 'No'}</p>
+                </div>
+                <div className="bg-black/30 p-3 rounded-lg border border-white/5">
+                  <p className="text-[10px] text-gray-500">Wallet Address</p>
+                  <p className="text-cyan-400 text-[10px] font-mono break-all">{searchedUser.walletAddress || 'Not Set'}</p>
+                </div>
+                <div className="bg-black/30 p-3 rounded-lg border border-white/5">
+                  <p className="text-[10px] text-gray-500">Joined Date</p>
+                  <p className="text-white text-sm">{searchedUser.createdAt?.toDate?.()?.toLocaleDateString?.('en-IN') || 'Unknown'}</p>
+                </div>
+                <div className="bg-black/30 p-3 rounded-lg border border-white/5">
+                  <p className="text-[10px] text-gray-500">30-Day Reward</p>
+                  <p className="text-sm font-medium">{searchedUser.brs30DayRewardPaid ? '✅ Claimed' : '⏳ Pending'}</p>
+                </div>
+              </div>
+
+              {/* ADMIN ACTIONS */}
+              <div className="border-t border-white/10 pt-4">
+                <p className="text-xs text-gray-400 mb-3 font-semibold uppercase tracking-wider">⚡ Admin Actions</p>
+                <div className="flex gap-3 flex-wrap">
+                  {searchedUser.status !== 'active' && (
+                    <button
+                      disabled={userActionLoading}
+                      onClick={() => updateUserStatus(searchedUser.email, 'active')}
+                      className="px-5 py-2 bg-green-500 hover:bg-green-400 text-black rounded-lg font-bold text-sm transition-all hover:scale-105 disabled:opacity-50"
+                    >
+                      ✅ Activate
+                    </button>
+                  )}
+                  {searchedUser.status !== 'blocked' && (
+                    <button
+                      disabled={userActionLoading}
+                      onClick={() => {
+                        if (confirm(`⚠️ Block user ${searchedUser.email}? They won't be able to use the platform.`)) {
+                          updateUserStatus(searchedUser.email, 'blocked')
+                        }
+                      }}
+                      className="px-5 py-2 bg-red-500 hover:bg-red-400 text-white rounded-lg font-bold text-sm transition-all hover:scale-105 disabled:opacity-50"
+                    >
+                      🚫 Block
+                    </button>
+                  )}
+                  {searchedUser.status !== 'hold' && (
+                    <button
+                      disabled={userActionLoading}
+                      onClick={() => {
+                        if (confirm(`⏸ Put user ${searchedUser.email} on hold?`)) {
+                          updateUserStatus(searchedUser.email, 'hold')
+                        }
+                      }}
+                      className="px-5 py-2 bg-orange-500 hover:bg-orange-400 text-black rounded-lg font-bold text-sm transition-all hover:scale-105 disabled:opacity-50"
+                    >
+                      ⏸ Hold
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(searchedUser.email)
+                      alert('Email copied!')
+                    }}
+                    className="px-5 py-2 bg-cyan-500/20 text-cyan-400 rounded-lg font-bold text-sm hover:bg-cyan-500/30 transition-all"
+                  >
+                    📋 Copy Email
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* RECENT USERS LIST */}
+          <h3 className="text-lg font-bold text-white mb-3">📜 Recent Users (Latest 20)</h3>
+          {recentUsers.length === 0 ? (
+            <p className="text-gray-500 text-center py-8">Loading users...</p>
+          ) : (
+            <div className="space-y-2">
+              {recentUsers.map((u: any, i: number) => (
+                <div
+                  key={u.email}
+                  onClick={() => { setUserSearchEmail(u.email); searchUser(u.email) }}
+                  className="flex items-center justify-between p-4 rounded-xl bg-[#1a1a2e] border border-white/5 hover:border-blue-500/30 cursor-pointer transition-all hover:bg-[#1f1f3a]"
+                >
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <span className="text-gray-500 text-xs w-6 shrink-0">{i + 1}.</span>
+                    <div className="min-w-0">
+                      <p className="text-white font-medium text-sm truncate">
+                        {u.fullName || u.email?.split('@')[0]}
+                      </p>
+                      <p className="text-gray-500 text-[10px] truncate">{u.email}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 shrink-0">
+                    <div className="text-right">
+                      <p className="text-yellow-400 text-xs font-bold">{Number(u.brsBalance || 0)} BRS</p>
+                      <p className="text-green-400 text-[10px]">${Number(u.usdtBalance || 0).toFixed(2)}</p>
+                    </div>
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${
+                      u.status === 'active' ? 'bg-green-400'
+                        : u.status === 'blocked' ? 'bg-red-400'
+                        : u.status === 'hold' ? 'bg-orange-400'
+                        : 'bg-yellow-400'
+                    }`} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </>
       )}
 
