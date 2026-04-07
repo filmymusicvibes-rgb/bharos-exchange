@@ -44,6 +44,7 @@ export default function Dashboard() {
   const [tripMilestone, setTripMilestone] = useState(false)
   const [refCode, setRefCode] = useState("")
   const [isCompanyDirect, setIsCompanyDirect] = useState(false)
+  const [userName, setUserName] = useState("")
 
   // AIRDROP STATES
   const [activeAirdrops, setActiveAirdrops] = useState<any[]>([])
@@ -159,6 +160,9 @@ export default function Dashboard() {
 
         // ✅ STATUS
         setStatus(data.status || "pending")
+
+        // ✅ USER NAME FROM PROFILE
+        setUserName(data.fullName || "")
 
         // ✅ TRIP STATUS
         setTripAchieved(data.tripAchieved || false)
@@ -308,7 +312,7 @@ export default function Dashboard() {
         <div className="mt-6">
 
           <h2 className="text-2xl font-bold mb-5">
-            Welcome, <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">{email?.split("@")[0]}</span>
+            Welcome, <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">{userName || email?.split("@")[0]}</span>
           </h2>
 
           {/* 📢 ANNOUNCEMENTS */}
