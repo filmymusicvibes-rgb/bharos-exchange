@@ -121,10 +121,9 @@ export default function Dashboard() {
       const email = getUser()
       if (!email) return
       try {
-        // Get user data first to check companyDirect status
+        // Get user data to check claimed status
         const userSnap = await getDoc(doc(db, "users", email))
         const userData = userSnap.exists() ? userSnap.data() : null
-        const userIsCompanyDirect = userData?.isCompanyDirect || false
 
         if (userSnap.exists()) {
           setClaimedAirdrops(userData?.claimedAirdrops || {})
@@ -138,8 +137,7 @@ export default function Dashboard() {
             if (a.status !== 'active') return false
             const exp = a.expiresAt?.toDate ? a.expiresAt.toDate() : (a.expiresAt ? new Date(a.expiresAt) : null)
             if (exp && exp < now) return false
-            // Filter by target audience
-            if (a.target === 'companyDirect' && !userIsCompanyDirect) return false
+            // Show ALL airdrops to everyone (companyDirect ones visible but claim locked)
             return true
           })
         setActiveAirdrops(active)
@@ -437,6 +435,12 @@ export default function Dashboard() {
                           {justClaimed ? (
                             <div className="px-4 py-2.5 rounded-xl bg-green-500/10 border border-green-500/20 text-xs text-green-400 font-bold">
                               +{drop.amount} BRS ✨
+                            </div>
+                          ) : drop.target === 'companyDirect' && !isCompanyDirect ? (
+                            <div className="px-4 py-2.5 rounded-xl bg-amber-500/5 border border-amber-500/20 text-xs text-amber-400/70 font-bold text-center">
+                              👑 Direct Members
+                              <br />
+                              <span className="text-[9px] text-gray-500">Only</span>
                             </div>
                           ) : (
                             <button
