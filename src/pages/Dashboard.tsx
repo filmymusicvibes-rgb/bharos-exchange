@@ -121,6 +121,15 @@ export default function Dashboard() {
       const email = getUser()
       if (!email) return
       try {
+        // Get user data first to check companyDirect status
+        const userSnap = await getDoc(doc(db, "users", email))
+        const userData = userSnap.exists() ? userSnap.data() : null
+        const userIsCompanyDirect = userData?.isCompanyDirect || false
+
+        if (userSnap.exists()) {
+          setClaimedAirdrops(userData?.claimedAirdrops || {})
+        }
+
         const airdropSnap = await getDocs(collection(db, "airdrops"))
         const now = new Date()
         const active = airdropSnap.docs
@@ -128,15 +137,12 @@ export default function Dashboard() {
           .filter(a => {
             if (a.status !== 'active') return false
             const exp = a.expiresAt?.toDate ? a.expiresAt.toDate() : (a.expiresAt ? new Date(a.expiresAt) : null)
-            return !exp || exp > now
+            if (exp && exp < now) return false
+            // Filter by target audience
+            if (a.target === 'companyDirect' && !userIsCompanyDirect) return false
+            return true
           })
         setActiveAirdrops(active)
-
-        // Get claimed status
-        const userSnap = await getDoc(doc(db, "users", email))
-        if (userSnap.exists()) {
-          setClaimedAirdrops(userSnap.data()?.claimedAirdrops || {})
-        }
       } catch (err) {
         console.log("Airdrops load:", err)
       }

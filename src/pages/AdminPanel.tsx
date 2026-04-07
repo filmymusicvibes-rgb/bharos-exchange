@@ -36,6 +36,7 @@ export default function AdminPanel() {
   const [airdropDesc, setAirdropDesc] = useState("")
   const [airdropAmount, setAirdropAmount] = useState("")
   const [airdropExpiry, setAirdropExpiry] = useState("7")
+  const [airdropTarget, setAirdropTarget] = useState<'all' | 'companyDirect'>('all')
 
   // Announcement states
   const [announcements, setAnnouncements] = useState<any[]>([])
@@ -1252,6 +1253,33 @@ export default function AdminPanel() {
                   />
                 </div>
               </div>
+
+              {/* TARGET AUDIENCE */}
+              <div>
+                <label className="text-xs text-gray-400 mb-2 block">Target Audience</label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setAirdropTarget('all')}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                      airdropTarget === 'all'
+                        ? 'bg-cyan-500 text-white'
+                        : 'bg-gray-700 text-gray-400'
+                    }`}
+                  >
+                    🌍 All Users
+                  </button>
+                  <button
+                    onClick={() => setAirdropTarget('companyDirect')}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                      airdropTarget === 'companyDirect'
+                        ? 'bg-amber-500 text-black'
+                        : 'bg-gray-700 text-gray-400'
+                    }`}
+                  >
+                    👑 Company Direct Only
+                  </button>
+                </div>
+              </div>
               <button
                 onClick={async () => {
                   const amt = Number(airdropAmount)
@@ -1272,6 +1300,7 @@ export default function AdminPanel() {
                       title: airdropTitle.trim(),
                       description: airdropDesc.trim(),
                       amount: amt,
+                      target: airdropTarget,
                       status: "active",
                       createdBy: getUser() || "admin",
                       createdAt: serverTimestamp(),
@@ -1282,6 +1311,7 @@ export default function AdminPanel() {
                     setAirdropDesc('')
                     setAirdropAmount('')
                     setAirdropExpiry('7')
+                    setAirdropTarget('all')
                     alert('✅ Airdrop offer created!')
                     loadAirdrops()
                   } catch (err: any) {
@@ -1314,10 +1344,18 @@ export default function AdminPanel() {
                       {expired && (
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/20 text-red-400">⏰ Expired</span>
                       )}
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        drop.target === 'companyDirect'
+                          ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                          : 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
+                      }`}>
+                        {drop.target === 'companyDirect' ? '👑 Direct Only' : '🌍 All Users'}
+                      </span>
                     </div>
                     <p className="text-sm text-gray-400">{drop.description}</p>
                     <p className="text-xs text-gray-600 mt-1">
                       Claimed: <span className="text-cyan-400 font-bold">{drop.totalClaimed || 0}</span> users
+                      {' | '}Target: <span className="font-medium">{drop.target === 'companyDirect' ? '👑 Company Direct' : '🌍 Everyone'}</span>
                       {' | '}Expires: {drop.expiresAt?.toDate ? drop.expiresAt.toDate().toLocaleDateString() : (drop.expiresAt ? new Date(drop.expiresAt).toLocaleDateString() : 'N/A')}
                     </p>
                   </div>
