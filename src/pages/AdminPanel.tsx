@@ -338,15 +338,54 @@ export default function AdminPanel() {
       const snap = await getDoc(doc(db, "users", email.trim().toLowerCase()))
       if (snap.exists()) {
         const data = snap.data()
-        // Get referral counts
+        // Get referral counts + team
         const usersSnap = await getDocs(collection(db, "users"))
         const allUsers = usersSnap.docs.map(d => d.data())
         const myCode = data.referralCode || ''
-        const directRefs = allUsers.filter(u => u.referredBy === myCode && u.status === 'active')
+
+        // Calculate team (4 levels)
+        const l1 = allUsers.filter(u => u.referredBy === myCode && u.status === 'active')
+        const l1Codes = l1.map(u => u.referralCode)
+        const l2 = allUsers.filter(u => l1Codes.includes(u.referredBy) && u.status === 'active')
+        const l2Codes = l2.map(u => u.referralCode)
+        const l3 = allUsers.filter(u => l2Codes.includes(u.referredBy) && u.status === 'active')
+        const l3Codes = l3.map(u => u.referralCode)
+        const l4 = allUsers.filter(u => l3Codes.includes(u.referredBy) && u.status === 'active')
+        const totalTeam = l1.length + l2.length + l3.length + l4.length
+
+        // Fetch USDT withdrawals
+        let totalUsdtWithdrawn = 0
+        let usdtWithdrawCount = 0
+        try {
+          const wSnap = await getDocs(collection(db, "withdrawals"))
+          const userWithdraws = wSnap.docs.map(d => d.data()).filter((w: any) => w.userId === email.trim().toLowerCase() && w.status === 'approved')
+          totalUsdtWithdrawn = userWithdraws.reduce((sum: number, w: any) => sum + Number(w.amount || 0), 0)
+          usdtWithdrawCount = userWithdraws.length
+        } catch (e) { console.log('USDT withdrawals fetch:', e) }
+
+        // Fetch BRS withdrawals
+        let totalBrsWithdrawn = 0
+        let brsWithdrawCount = 0
+        try {
+          const bSnap = await getDocs(collection(db, "brs_withdrawals"))
+          const userBrsW = bSnap.docs.map(d => d.data()).filter((w: any) => w.userId === email.trim().toLowerCase() && w.status === 'approved')
+          totalBrsWithdrawn = userBrsW.reduce((sum: number, w: any) => sum + Number(w.amount || 0), 0)
+          brsWithdrawCount = userBrsW.length
+        } catch (e) { console.log('BRS withdrawals fetch:', e) }
+
         setSearchedUser({
           ...data,
           email: email.trim().toLowerCase(),
-          directReferrals: directRefs.length,
+          directReferrals: l1.length,
+          totalTeam,
+          l1Count: l1.length,
+          l2Count: l2.length,
+          l3Count: l3.length,
+          l4Count: l4.length,
+          totalUsdtWithdrawn,
+          usdtWithdrawCount,
+          totalBrsWithdrawn,
+          brsWithdrawCount,
           totalUsers: allUsers.length
         })
       } else {
@@ -1695,6 +1734,46 @@ export default function AdminPanel() {
                   <p className="text-xs text-gray-500 mb-1">USDT Balance</p>
                   <p className="text-2xl font-bold text-green-400">${Number(searchedUser.usdtBalance || 0).toFixed(2)}</p>
                   <p className="text-xs text-gray-500 mt-1">BEP-20</p>
+                </div>
+              </div>
+
+              {/* TEAM MEMBERS */}
+              <div className="bg-gradient-to-br from-purple-500/10 to-indigo-500/5 p-4 rounded-xl border border-purple-500/20 mb-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs text-gray-500">👥 Total Team Members</p>
+                  <p className="text-2xl font-bold text-purple-400">{searchedUser.totalTeam || 0}</p>
+                </div>
+                <div className="grid grid-cols-4 gap-2">
+                  <div className="bg-black/30 p-2 rounded-lg text-center">
+                    <p className="text-[9px] text-gray-500">Level 1</p>
+                    <p className="text-cyan-400 font-bold text-sm">{searchedUser.l1Count || 0}</p>
+                  </div>
+                  <div className="bg-black/30 p-2 rounded-lg text-center">
+                    <p className="text-[9px] text-gray-500">Level 2</p>
+                    <p className="text-blue-400 font-bold text-sm">{searchedUser.l2Count || 0}</p>
+                  </div>
+                  <div className="bg-black/30 p-2 rounded-lg text-center">
+                    <p className="text-[9px] text-gray-500">Level 3</p>
+                    <p className="text-indigo-400 font-bold text-sm">{searchedUser.l3Count || 0}</p>
+                  </div>
+                  <div className="bg-black/30 p-2 rounded-lg text-center">
+                    <p className="text-[9px] text-gray-500">Level 4</p>
+                    <p className="text-purple-400 font-bold text-sm">{searchedUser.l4Count || 0}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* WITHDRAWALS */}
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="bg-gradient-to-br from-red-500/10 to-orange-500/5 p-4 rounded-xl border border-red-500/20">
+                  <p className="text-xs text-gray-500 mb-1">💸 USDT Withdrawn</p>
+                  <p className="text-xl font-bold text-red-400">${searchedUser.totalUsdtWithdrawn?.toFixed(2) || '0.00'}</p>
+                  <p className="text-[10px] text-gray-600 mt-1">{searchedUser.usdtWithdrawCount || 0} withdrawal(s)</p>
+                </div>
+                <div className="bg-gradient-to-br from-amber-500/10 to-yellow-500/5 p-4 rounded-xl border border-amber-500/20">
+                  <p className="text-xs text-gray-500 mb-1">🪙 BRS Withdrawn</p>
+                  <p className="text-xl font-bold text-amber-400">{searchedUser.totalBrsWithdrawn || 0} BRS</p>
+                  <p className="text-[10px] text-gray-600 mt-1">{searchedUser.brsWithdrawCount || 0} withdrawal(s)</p>
                 </div>
               </div>
 
