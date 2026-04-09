@@ -2,8 +2,19 @@
 // Webhook endpoint: https://bharosexchange.com/api/telegram
 // Features: FAQ, Daily Check-in, Invite & Earn, Channel Join, Streak Bonus
 
-import getFirestoreAdmin from './_firebase.js'
-import admin from 'firebase-admin'
+let getFirestoreAdmin = null
+let admin = null
+let firebaseReady = false
+
+try {
+  const fbModule = await import('./_firebase.js')
+  getFirestoreAdmin = fbModule.default
+  const adminModule = await import('firebase-admin')
+  admin = adminModule.default
+  firebaseReady = true
+} catch (err) {
+  console.warn('Firebase Admin not available, earn features disabled:', err.message)
+}
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
 const TELEGRAM_CHANNEL_ID = process.env.TELEGRAM_CHANNEL_ID || '@bharosexchange'
@@ -582,8 +593,19 @@ export default async function handler(req, res) {
   }
 
   try {
-    const db = getFirestoreAdmin()
-    const config = await getBotConfig(db)
+    let db = null
+    let config = { ...DEFAULT_CONFIG, botEarnEnabled: false }
+
+    if (firebaseReady && getFirestoreAdmin) {
+      try {
+        db = getFirestoreAdmin()
+        config = await getBotConfig(db)
+      } catch (dbErr) {
+        console.warn('Firestore init failed, using defaults:', dbErr.message)
+        db = null
+      }
+    }
+
     const { message, callback_query } = req.body
 
     // ─── Handle Callback (Button Clicks) ───
