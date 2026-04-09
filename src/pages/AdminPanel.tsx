@@ -12,7 +12,12 @@ import {
   increment,
   serverTimestamp,
   addDoc,
-  deleteDoc
+  deleteDoc,
+  query,
+  where,
+  orderBy,
+  limit,
+  setDoc
 } from "firebase/firestore"
 
 import AdminStats from "./AdminStats"
@@ -20,7 +25,13 @@ import { logTransaction, runFullActivation } from "../lib/commission"
 
 export default function AdminPanel() {
 
-  const [activeTab, setActiveTab] = useState<"deposits" | "withdraws" | "trips" | "brsWithdraws" | "announcements" | "airdrops" | "launchNotify" | "pushNotifs" | "users">("deposits")
+  const [activeTab, setActiveTab] = useState<"deposits" | "withdraws" | "trips" | "brsWithdraws" | "announcements" | "airdrops" | "launchNotify" | "pushNotifs" | "users" | "botRewards">("deposits")
+
+  // BOT REWARDS states
+  const [botConfig, setBotConfig] = useState<any>(null)
+  const [botEarners, setBotEarners] = useState<any[]>([])
+  const [botConfigLoading, setBotConfigLoading] = useState(false)
+  const [botSaving, setBotSaving] = useState(false)
 
   // Push Notification states
   const [pushNotifs, setPushNotifs] = useState<any[]>([])
@@ -67,11 +78,17 @@ export default function AdminPanel() {
   const [userSearchError, setUserSearchError] = useState('')
   const [userActionLoading, setUserActionLoading] = useState(false)
   const [allUsersCount, setAllUsersCount] = useState(0)
-  const [recentUsers, setRecentUsers] = useState<any[]>([])
+
   const [allUsersList, setAllUsersList] = useState<any[]>([])
   const [usersTabLoaded, setUsersTabLoaded] = useState(false)
   const [searchSuggestions, setSearchSuggestions] = useState<any[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
+
+  // BRS Audit states
+  const [auditResults, setAuditResults] = useState<any[]>([])
+  const [auditRunning, setAuditRunning] = useState(false)
+  const [auditDone, setAuditDone] = useState(false)
+  const [auditFixing, setAuditFixing] = useState(false)
 
   useEffect(() => {
     const email = getUser()
@@ -344,15 +361,25 @@ export default function AdminPanel() {
         const allUsers = usersSnap.docs.map(d => d.data())
         const myCode = data.referralCode || ''
 
-        // Calculate team (4 levels)
-        const l1 = allUsers.filter(u => u.referredBy === myCode && u.status === 'active')
-        const l1Codes = l1.map(u => u.referralCode)
-        const l2 = allUsers.filter(u => l1Codes.includes(u.referredBy) && u.status === 'active')
-        const l2Codes = l2.map(u => u.referralCode)
-        const l3 = allUsers.filter(u => l2Codes.includes(u.referredBy) && u.status === 'active')
-        const l3Codes = l3.map(u => u.referralCode)
-        const l4 = allUsers.filter(u => l3Codes.includes(u.referredBy) && u.status === 'active')
-        const totalTeam = l1.length + l2.length + l3.length + l4.length
+        // Calculate team (12 levels) — count ALL users (total + active separately)
+        const levelData: { total: number; active: number; pending: number }[] = []
+        let currentLevelCodes = [myCode]
+        let totalTeam = 0
+        let totalActive = 0
+
+        for (let lvl = 0; lvl < 12; lvl++) {
+          if (currentLevelCodes.length === 0) {
+            levelData.push({ total: 0, active: 0, pending: 0 })
+            continue
+          }
+          const levelUsers = allUsers.filter(u => currentLevelCodes.includes(u.referredBy))
+          const activeCount = levelUsers.filter(u => u.status === 'active').length
+          const pendingCount = levelUsers.length - activeCount
+          levelData.push({ total: levelUsers.length, active: activeCount, pending: pendingCount })
+          totalTeam += levelUsers.length
+          totalActive += activeCount
+          currentLevelCodes = levelUsers.map(u => u.referralCode).filter(Boolean)
+        }
 
         // Fetch USDT withdrawals
         let totalUsdtWithdrawn = 0
@@ -374,20 +401,74 @@ export default function AdminPanel() {
           brsWithdrawCount = userBrsW.length
         } catch (e) { console.log('BRS withdrawals fetch:', e) }
 
+        // 📊 Fetch BRS transaction breakdown
+        let brsTxBreakdown: Record<string, number> = {}
+        let brsTxAdmin: Record<string, number> = {}
+        let brsTxLegitTotal = 0
+        try {
+          const txSnap = await getDocs(collection(db, "transactions"))
+          const userTxs = txSnap.docs.map(d => d.data()).filter((t: any) => t.userId === email.trim().toLowerCase() && t.currency === 'BRS')
+          for (const tx of userTxs) {
+            const desc = tx.description || tx.type || 'Unknown'
+            let category = 'Other'
+            let isAdmin = false
+            if (desc.includes('Activation') || desc.includes('activation') || desc.includes('150 BRS')) category = '🎯 Activation (150)'
+            else if (desc.includes('Social') || desc.includes('social') || desc.includes('Follow')) category = '📱 Social Earn'
+            else if (desc.includes('Airdrop') || desc.includes('airdrop')) category = '🎁 Airdrop Claim'
+            else if (desc.includes('Company') || desc.includes('company') || desc.includes('direct bonus')) category = '🏢 Company Direct Bonus'
+            else if (desc.includes('30-day') || desc.includes('30 day') || desc.includes('bonus')) category = '📅 30-Day Bonus'
+            else if (desc.includes('Daily') || desc.includes('daily') || desc.includes('spin')) category = '🎰 Daily Reward'
+            else if (desc.includes('Transfer') || desc.includes('transfer')) category = '💸 BRS Transfer'
+            else if (tx.type === 'ADMIN_AUDIT_FIX') { category = '🔧 Audit Fix'; isAdmin = true }
+            else if (tx.type === 'ADMIN_AUDIT_UNDO') { category = '⏪ Audit Undo'; isAdmin = true }
+            else if (tx.type === 'ADMIN_TX_SYNC') { category = '🔄 TX Sync'; isAdmin = true }
+            else if (tx.type === 'ADMIN_ADJUST') { category = '🪙 Admin Adjust'; isAdmin = true }
+            else category = `📋 ${desc.substring(0, 30)}`
+            
+            if (isAdmin) {
+              if (!brsTxAdmin[category]) brsTxAdmin[category] = 0
+              brsTxAdmin[category] += (tx.amount || 0)
+            } else {
+              if (!brsTxBreakdown[category]) brsTxBreakdown[category] = 0
+              brsTxBreakdown[category] += (tx.amount || 0)
+              brsTxLegitTotal += (tx.amount || 0)
+            }
+          }
+        } catch (e) { console.log('BRS tx fetch:', e) }
+
+        // 💰 Fetch USDT transaction breakdown
+        let usdtTxBreakdown: { desc: string, amount: number }[] = []
+        let usdtTxTotal = 0
+        try {
+          const txSnap2 = await getDocs(collection(db, "transactions"))
+          const userUsdtTxs = txSnap2.docs.map(d => d.data()).filter((t: any) => t.userId === email.trim().toLowerCase() && t.currency === 'USDT')
+          for (const tx of userUsdtTxs) {
+            const desc = tx.description || tx.type || 'Unknown'
+            usdtTxBreakdown.push({ desc, amount: tx.amount || 0 })
+            if (tx.type !== 'ADMIN_ADJUST') {
+              usdtTxTotal += (tx.amount || 0)
+            }
+          }
+          usdtTxBreakdown.sort((a, b) => b.amount - a.amount)
+        } catch (e) { console.log('USDT tx fetch:', e) }
+
         setSearchedUser({
           ...data,
           email: email.trim().toLowerCase(),
-          directReferrals: l1.length,
+          directReferrals: levelData[0]?.total || 0,
           totalTeam,
-          l1Count: l1.length,
-          l2Count: l2.length,
-          l3Count: l3.length,
-          l4Count: l4.length,
+          totalActive,
+          levelData,
           totalUsdtWithdrawn,
           usdtWithdrawCount,
           totalBrsWithdrawn,
           brsWithdrawCount,
-          totalUsers: allUsers.length
+          totalUsers: allUsers.length,
+          brsTxBreakdown,
+          brsTxAdmin,
+          brsTxTotal: Math.round(brsTxLegitTotal),
+          usdtTxBreakdown,
+          usdtTxTotal: Math.round(usdtTxTotal * 100) / 100
         })
       } else {
         setUserSearchError('❌ User not found with this email')
@@ -399,7 +480,7 @@ export default function AdminPanel() {
     setUserSearching(false)
   }
 
-  // LOAD RECENT USERS (for Users tab)
+  // LOAD ALL USERS (for Users tab)
   const loadUsersTab = async () => {
     if (usersTabLoaded) return
     try {
@@ -412,7 +493,7 @@ export default function AdminPanel() {
         return tB - tA
       })
       setAllUsersList(list)
-      setRecentUsers(list.slice(0, 20))
+
       setUsersTabLoaded(true)
     } catch (err) {
       console.error('Load users error:', err)
@@ -456,6 +537,35 @@ export default function AdminPanel() {
     setUserActionLoading(false)
   }
 
+  // LOAD BOT REWARDS CONFIG + TOP EARNERS
+  const loadBotRewards = async () => {
+    setBotConfigLoading(true)
+    try {
+      const configSnap = await getDoc(doc(db, "botConfig", "settings"))
+      if (configSnap.exists()) {
+        setBotConfig(configSnap.data())
+      } else {
+        // Create default config
+        const defaults = {
+          botEarnEnabled: false, checkinReward: 2, inviteReward: 2,
+          channelJoinReward: 5, streakBonusReward: 2, streakBonusDays: 7,
+          dailyMaxEarn: 8, totalPoolSize: 75000000, totalDistributed: 0
+        }
+        await setDoc(doc(db, "botConfig", "settings"), defaults)
+        setBotConfig(defaults)
+      }
+
+      // Load top earners (sorted by totalEarned desc)
+      const earnSnap = await getDocs(
+        query(collection(db, "botEarnings"), orderBy("totalEarned", "desc"), limit(50))
+      )
+      setBotEarners(earnSnap.docs.map(d => ({ id: d.id, ...(d.data() as any) })))
+    } catch (err) {
+      console.error('Load bot rewards error:', err)
+    }
+    setBotConfigLoading(false)
+  }
+
   // Commission logic is now in shared module: src/lib/commission.ts
 
   // APPROVE DEPOSIT (OPTIMIZED — uses shared commission engine)
@@ -492,7 +602,8 @@ export default function AdminPanel() {
       await updateDoc(userRef, {
         status: "active",
         brsBalance: increment(150),
-        activatedAt: new Date()
+        activatedAt: new Date(),
+        activationRewardPaid: true
       })
 
       await logTransaction(
@@ -761,6 +872,17 @@ export default function AdminPanel() {
           }`}
         >
           👤 Users ({allUsersCount || '...'})
+        </button>
+
+        <button
+          onClick={() => { setActiveTab("botRewards"); loadBotRewards() }}
+          className={`px-4 py-2 rounded ${
+            activeTab === "botRewards"
+              ? "bg-gradient-to-r from-cyan-400 to-teal-500 text-black font-bold"
+              : "bg-gray-700"
+          }`}
+        >
+          🤖 Bot Rewards
         </button>
 
       </div>
@@ -1775,29 +1897,40 @@ export default function AdminPanel() {
                 </div>
               </div>
 
-              {/* TEAM MEMBERS */}
+              {/* TEAM MEMBERS — 12 LEVELS */}
               <div className="bg-gradient-to-br from-purple-500/10 to-indigo-500/5 p-4 rounded-xl border border-purple-500/20 mb-4">
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-xs text-gray-500">👥 Total Team Members</p>
+                  <div>
+                    <p className="text-xs text-gray-500">👥 Total Team Members</p>
+                    <p className="text-[10px] text-gray-600 mt-0.5">
+                      <span className="text-green-400">{searchedUser.totalActive || 0} active</span>
+                      {' · '}
+                      <span className="text-yellow-400">{(searchedUser.totalTeam || 0) - (searchedUser.totalActive || 0)} pending</span>
+                    </p>
+                  </div>
                   <p className="text-2xl font-bold text-purple-400">{searchedUser.totalTeam || 0}</p>
                 </div>
-                <div className="grid grid-cols-4 gap-2">
-                  <div className="bg-black/30 p-2 rounded-lg text-center">
-                    <p className="text-[9px] text-gray-500">Level 1</p>
-                    <p className="text-cyan-400 font-bold text-sm">{searchedUser.l1Count || 0}</p>
-                  </div>
-                  <div className="bg-black/30 p-2 rounded-lg text-center">
-                    <p className="text-[9px] text-gray-500">Level 2</p>
-                    <p className="text-blue-400 font-bold text-sm">{searchedUser.l2Count || 0}</p>
-                  </div>
-                  <div className="bg-black/30 p-2 rounded-lg text-center">
-                    <p className="text-[9px] text-gray-500">Level 3</p>
-                    <p className="text-indigo-400 font-bold text-sm">{searchedUser.l3Count || 0}</p>
-                  </div>
-                  <div className="bg-black/30 p-2 rounded-lg text-center">
-                    <p className="text-[9px] text-gray-500">Level 4</p>
-                    <p className="text-purple-400 font-bold text-sm">{searchedUser.l4Count || 0}</p>
-                  </div>
+                <div className="grid grid-cols-4 gap-2.5">
+                  {(searchedUser.levelData || []).map((ld: any, i: number) => {
+                    const levelColors = [
+                      'text-cyan-400', 'text-blue-400', 'text-indigo-400', 'text-purple-400',
+                      'text-violet-400', 'text-fuchsia-400', 'text-pink-400', 'text-rose-400',
+                      'text-amber-400', 'text-yellow-400', 'text-lime-400', 'text-emerald-400'
+                    ]
+                    const bgHighlight = ld.total > 0 ? 'border-white/10 bg-black/40' : 'border-transparent bg-black/20'
+                    return (
+                      <div key={i} className={`p-3 rounded-xl text-center border ${bgHighlight}`}>
+                        <p className="text-[10px] text-gray-400 font-medium mb-1">Level {i + 1}</p>
+                        <p className={`${levelColors[i]} font-bold text-xl`}>{ld.total}</p>
+                        {ld.total > 0 && (
+                          <div className="flex items-center justify-center gap-2 mt-1.5">
+                            <span className="text-[11px] text-green-400 font-semibold">{ld.active} ✅</span>
+                            {ld.pending > 0 && <span className="text-[11px] text-yellow-400 font-semibold">{ld.pending} ⏳</span>}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
 
@@ -1843,6 +1976,114 @@ export default function AdminPanel() {
                 </div>
               </div>
 
+              {/* 📊 BRS BREAKDOWN — CLEAN VIEW */}
+              <div className="border-t border-white/10 pt-4 mb-4">
+                <p className="text-xs text-gray-400 mb-3 font-semibold uppercase tracking-wider">📊 BRS Breakdown — Real Earnings</p>
+                
+                {/* ✅ LEGITIMATE EARNINGS */}
+                <div className="space-y-1.5 mb-3">
+                  {searchedUser.brsTxBreakdown && Object.entries(searchedUser.brsTxBreakdown as Record<string, number>)
+                    .sort(([,a], [,b]) => (b as number) - (a as number))
+                    .map(([source, amount]) => (
+                    <div key={source} className="flex items-center justify-between px-3 py-2 rounded-lg border bg-white/5 border-white/10">
+                      <span className="text-xs text-gray-300">{source}</span>
+                      <span className={`font-bold text-sm ${
+                        (amount as number) > 0 ? 'text-green-400' : 'text-red-400'
+                      }`}>{(amount as number) > 0 ? '+' : ''}{amount} BRS</span>
+                    </div>
+                  ))}
+                  {(!searchedUser.brsTxBreakdown || Object.keys(searchedUser.brsTxBreakdown).length === 0) && (
+                    <p className="text-gray-500 text-xs text-center py-2">No BRS transactions found</p>
+                  )}
+                </div>
+
+                {/* Totals — LEGITIMATE ONLY */}
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <div className="bg-green-500/10 border border-green-500/20 p-3 rounded-lg text-center">
+                    <p className="text-[9px] text-gray-500">Real Earned Total</p>
+                    <p className="text-green-400 font-bold text-lg">{searchedUser.brsTxTotal || 0} BRS</p>
+                  </div>
+                  <div className={`p-3 rounded-lg text-center border ${
+                    Math.abs((searchedUser.brsBalance || 0) - (searchedUser.brsTxTotal || 0)) > 5
+                      ? 'bg-red-500/10 border-red-500/20' 
+                      : 'bg-green-500/10 border-green-500/20'
+                  }`}>
+                    <p className="text-[9px] text-gray-500">Actual Balance</p>
+                    <p className={`font-bold text-lg ${
+                      Math.abs((searchedUser.brsBalance || 0) - (searchedUser.brsTxTotal || 0)) > 5
+                        ? 'text-red-400' : 'text-green-400'
+                    }`}>
+                      {searchedUser.brsBalance || 0} BRS
+                      {Math.abs((searchedUser.brsBalance || 0) - (searchedUser.brsTxTotal || 0)) <= 5 ? ' ✅' : ' ❌'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* 🔧 ADMIN HISTORY — Collapsible */}
+                {searchedUser.brsTxAdmin && Object.keys(searchedUser.brsTxAdmin).length > 0 && (
+                  <details className="mb-2">
+                    <summary className="text-[10px] text-orange-400/70 cursor-pointer hover:text-orange-400 transition">
+                      🔧 Admin/Audit History ({Object.keys(searchedUser.brsTxAdmin).length} entries) — click to expand
+                    </summary>
+                    <div className="space-y-1 mt-2">
+                      {Object.entries(searchedUser.brsTxAdmin as Record<string, number>)
+                        .map(([source, amount]) => (
+                        <div key={source} className="flex items-center justify-between px-3 py-1.5 rounded-lg border bg-orange-500/5 border-orange-500/10">
+                          <span className="text-[10px] text-gray-500">{source}</span>
+                          <span className={`font-medium text-xs ${
+                            (amount as number) > 0 ? 'text-orange-300' : 'text-orange-400'
+                          }`}>{(amount as number) > 0 ? '+' : ''}{amount} BRS</span>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                )}
+              </div>
+
+              {/* 💰 USDT BREAKDOWN — FROM TRANSACTIONS */}
+              <div className="border-t border-white/10 pt-4 mb-4">
+                <p className="text-xs text-gray-400 mb-3 font-semibold uppercase tracking-wider">💰 USDT Breakdown — Commission History</p>
+                
+                <div className="space-y-1.5 mb-3">
+                  {searchedUser.usdtTxBreakdown && searchedUser.usdtTxBreakdown.length > 0 ? (
+                    searchedUser.usdtTxBreakdown.map((tx: any, i: number) => (
+                      <div key={i} className={`flex items-center justify-between px-3 py-2 rounded-lg border ${
+                        tx.desc.includes('ADMIN') ? 'bg-orange-500/5 border-orange-500/10' : 'bg-white/5 border-white/10'
+                      }`}>
+                        <span className="text-[10px] text-gray-400 flex-1 mr-2">{tx.desc}</span>
+                        <span className={`font-bold text-sm whitespace-nowrap ${
+                          tx.amount > 0 ? 'text-green-400' : 'text-red-400'
+                        }`}>{tx.amount > 0 ? '+' : ''}${tx.amount.toFixed(2)}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-gray-500 text-xs text-center py-2">No USDT transactions found</p>
+                  )}
+                </div>
+
+                {/* USDT Totals */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-green-500/10 border border-green-500/20 p-3 rounded-lg text-center">
+                    <p className="text-[9px] text-gray-500">TX Earned Total</p>
+                    <p className="text-green-400 font-bold text-lg">${searchedUser.usdtTxTotal || '0.00'}</p>
+                  </div>
+                  <div className={`p-3 rounded-lg text-center border ${
+                    Math.abs((searchedUser.usdtBalance || 0) - (searchedUser.usdtTxTotal || 0)) > 0.5
+                      ? 'bg-red-500/10 border-red-500/20' 
+                      : 'bg-green-500/10 border-green-500/20'
+                  }`}>
+                    <p className="text-[9px] text-gray-500">Actual USDT Balance</p>
+                    <p className={`font-bold text-lg ${
+                      Math.abs((searchedUser.usdtBalance || 0) - (searchedUser.usdtTxTotal || 0)) > 0.5
+                        ? 'text-red-400' : 'text-green-400'
+                    }`}>
+                      ${(searchedUser.usdtBalance || 0).toFixed(2)}
+                      {Math.abs((searchedUser.usdtBalance || 0) - (searchedUser.usdtTxTotal || 0)) <= 0.5 ? ' ✅' : ' ❌'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               {/* ADMIN ACTIONS */}
               <div className="border-t border-white/10 pt-4">
                 <p className="text-xs text-gray-400 mb-3 font-semibold uppercase tracking-wider">⚡ Admin Actions</p>
@@ -1850,10 +2091,70 @@ export default function AdminPanel() {
                   {searchedUser.status !== 'active' && (
                     <button
                       disabled={userActionLoading}
-                      onClick={() => updateUserStatus(searchedUser.email, 'active')}
-                      className="px-5 py-2 bg-green-500 hover:bg-green-400 text-black rounded-lg font-bold text-sm transition-all hover:scale-105 disabled:opacity-50"
+                      onClick={async () => {
+                        if (!confirm(`⚡ Force Activate ${searchedUser.email}?\n\nThis will:\n• Set status to Active\n• Credit 150 BRS\n• Distribute referral commissions\n• Record as admin-verified deposit\n\nProceed?`)) return
+                        setUserActionLoading(true)
+                        try {
+                          const userEmail = searchedUser.email
+                          // Check if already active
+                          const snap = await getDoc(doc(db, "users", userEmail))
+                          if (snap.exists() && snap.data().status === 'active') {
+                            alert('⚠️ User is already active!')
+                            setUserActionLoading(false)
+                            return
+                          }
+                          // 🔒 Check if deposit already exists
+                          const depsSnap = await getDocs(collection(db, "deposits"))
+                          const existingDeposit = depsSnap.docs.some((d: any) => {
+                            const dd = d.data()
+                            return dd.userId === userEmail && (dd.status === "verified" || dd.status === "approved") && dd.amount >= 12
+                          })
+                          if (!existingDeposit) {
+                            await addDoc(collection(db, "deposits"), {
+                              userId: userEmail,
+                              amount: 12,
+                              txHash: 'admin-force-activate',
+                              status: "verified",
+                              verifiedBy: "admin-manual",
+                              fromAddress: "admin",
+                              toAddress: "0xCD72FfF7F22eC409FCAcED1A06AEC227da6C1A56",
+                              createdAt: new Date()
+                            })
+                          }
+
+                          // 🔒 Use user document flag — 100% reliable duplicate check
+                          const freshSnap = await getDoc(doc(db, "users", userEmail))
+                          const alreadyRewarded = freshSnap.exists() && freshSnap.data().activationRewardPaid === true
+
+                          if (alreadyRewarded) {
+                            await updateDoc(doc(db, "users", userEmail), {
+                              status: "active",
+                              activatedAt: freshSnap.data().activatedAt || new Date()
+                            })
+                            await runFullActivation(userEmail)
+                            alert(`✅ ${userEmail} Force Activated!\n• Status: Active\n• BRS already credited (no duplicate)\n• Commissions distributed`)
+                          } else {
+                            await updateDoc(doc(db, "users", userEmail), {
+                              status: "active",
+                              brsBalance: increment(150),
+                              activatedAt: new Date(),
+                              activationRewardPaid: true
+                            })
+                            await logTransaction(userEmail, 150, "BRS", "Membership activation reward (Admin)")
+                            await runFullActivation(userEmail)
+                            alert(`✅ ${userEmail} Force Activated!\n• Status: Active\n• 150 BRS credited\n• Commissions distributed`)
+                          }
+                          await searchUser(userEmail)
+                          setUsersTabLoaded(false)
+                        } catch (err) {
+                          console.error('Force activate error:', err)
+                          alert('❌ Force activation failed. Check console.')
+                        }
+                        setUserActionLoading(false)
+                      }}
+                      className="px-5 py-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 text-black rounded-lg font-bold text-sm transition-all hover:scale-105 disabled:opacity-50 shadow-lg shadow-green-500/20"
                     >
-                      ✅ Activate
+                      ⚡ Force Activate
                     </button>
                   )}
                   {searchedUser.status !== 'blocked' && (
@@ -1891,49 +2192,325 @@ export default function AdminPanel() {
                   >
                     📋 Copy Email
                   </button>
+                  <button
+                    disabled={userActionLoading}
+                    onClick={async () => {
+                      const current = searchedUser.brsBalance || 0
+                      const newVal = prompt(`🪙 Adjust BRS Balance\n\nCurrent: ${current} BRS\n\nEnter NEW BRS balance:`, String(current))
+                      if (newVal === null) return
+                      const num = parseFloat(newVal)
+                      if (isNaN(num) || num < 0) { alert('❌ Invalid number'); return }
+                      if (!confirm(`⚠️ Change BRS balance?\n\nUser: ${searchedUser.email}\nOLD: ${current} BRS\nNEW: ${num} BRS\n\nDifference: ${num - current > 0 ? '+' : ''}${(num - current).toFixed(2)} BRS\n\nConfirm?`)) return
+                      setUserActionLoading(true)
+                      try {
+                        await updateDoc(doc(db, "users", searchedUser.email), { brsBalance: num })
+                        await addDoc(collection(db, "transactions"), {
+                          userId: searchedUser.email,
+                          amount: num - current,
+                          currency: "BRS",
+                          type: "ADMIN_ADJUST",
+                          description: `Admin adjusted BRS: ${current} → ${num}`,
+                          createdAt: new Date()
+                        })
+                        alert(`✅ BRS updated: ${current} → ${num}`)
+                        await searchUser(searchedUser.email)
+                      } catch (err) { console.error(err); alert('❌ Failed') }
+                      setUserActionLoading(false)
+                    }}
+                    className="px-5 py-2 bg-yellow-500/20 text-yellow-400 rounded-lg font-bold text-sm hover:bg-yellow-500/30 transition-all disabled:opacity-50"
+                  >
+                    🪙 Adjust BRS
+                  </button>
+                  <button
+                    disabled={userActionLoading}
+                    onClick={async () => {
+                      const current = searchedUser.usdtBalance || 0
+                      const newVal = prompt(`💰 Adjust USDT Balance\n\nCurrent: $${current.toFixed(2)}\n\nEnter NEW USDT balance:`, String(current))
+                      if (newVal === null) return
+                      const num = parseFloat(newVal)
+                      if (isNaN(num) || num < 0) { alert('❌ Invalid number'); return }
+                      if (!confirm(`⚠️ Change USDT balance?\n\nUser: ${searchedUser.email}\nOLD: $${current.toFixed(2)}\nNEW: $${num.toFixed(2)}\n\nDifference: ${num - current > 0 ? '+$' : '-$'}${Math.abs(num - current).toFixed(2)}\n\nConfirm?`)) return
+                      setUserActionLoading(true)
+                      try {
+                        await updateDoc(doc(db, "users", searchedUser.email), { usdtBalance: num })
+                        await addDoc(collection(db, "transactions"), {
+                          userId: searchedUser.email,
+                          amount: num - current,
+                          currency: "USDT",
+                          type: "ADMIN_ADJUST",
+                          description: `Admin adjusted USDT: ${current} → ${num}`,
+                          createdAt: new Date()
+                        })
+                        alert(`✅ USDT updated: $${current.toFixed(2)} → $${num.toFixed(2)}`)
+                        await searchUser(searchedUser.email)
+                      } catch (err) { console.error(err); alert('❌ Failed') }
+                      setUserActionLoading(false)
+                    }}
+                    className="px-5 py-2 bg-green-500/20 text-green-400 rounded-lg font-bold text-sm hover:bg-green-500/30 transition-all disabled:opacity-50"
+                  >
+                    💰 Adjust USDT
+                  </button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* RECENT USERS LIST */}
-          <h3 className="text-lg font-bold text-white mb-3">📜 Recent Users (Latest 20)</h3>
-          {recentUsers.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">Loading users...</p>
-          ) : (
-            <div className="space-y-2">
-              {recentUsers.map((u: any, i: number) => (
-                <div
-                  key={u.email}
-                  onClick={() => { setUserSearchEmail(u.email); searchUser(u.email) }}
-                  className="flex items-center justify-between p-4 rounded-xl bg-[#1a1a2e] border border-white/5 hover:border-blue-500/30 cursor-pointer transition-all hover:bg-[#1f1f3a]"
-                >
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <span className="text-gray-500 text-xs w-6 shrink-0">{i + 1}.</span>
-                    <div className="min-w-0">
-                      <p className="text-white font-medium text-sm truncate">
-                        {u.fullName || u.email?.split('@')[0]}
-                      </p>
-                      <p className="text-gray-500 text-[10px] truncate">{u.email}</p>
-                      {u.phone && <p className="text-gray-600 text-[10px]">📱 {u.phone}</p>}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4 shrink-0">
-                    <div className="text-right">
-                      <p className="text-yellow-400 text-xs font-bold">{Number(u.brsBalance || 0)} BRS</p>
-                      <p className="text-green-400 text-[10px]">${Number(u.usdtBalance || 0).toFixed(2)}</p>
-                    </div>
-                    <span className={`w-2 h-2 rounded-full shrink-0 ${
-                      u.status === 'active' ? 'bg-green-400'
-                        : u.status === 'blocked' ? 'bg-red-400'
-                        : u.status === 'hold' ? 'bg-orange-400'
-                        : 'bg-yellow-400'
-                    }`} />
-                  </div>
-                </div>
-              ))}
+          {/* ═══════════════════ SPLIT VIEW: ACTIVE + PENDING ═══════════════════ */}
+
+          {/* 🔍 BRS AUDIT TOOL — TRANSACTION-BASED (DEFINITIVE) */}
+          <div className="bg-[#1a1a2e] p-6 mb-6 rounded-xl border border-red-500/20">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-red-400">🔍 BRS Audit Tool</h3>
+                <p className="text-[10px] text-gray-500">Scans transaction history to calculate TRUE correct balance</p>
+              </div>
+              <button
+                disabled={auditRunning}
+                onClick={async () => {
+                  setAuditRunning(true)
+                  setAuditResults([])
+                  setAuditDone(false)
+                  try {
+                    // Step 1: Get ALL BRS transactions
+                    const txSnap = await getDocs(collection(db, "transactions"))
+                    const allTx = txSnap.docs.map(d => d.data())
+                    
+                    // Step 2: Group by user — sum REAL earnings only (exclude audit/undo)
+                    const userEarnings: Record<string, { earned: number, sources: string[] }> = {}
+                    for (const tx of allTx) {
+                      if (tx.currency !== "BRS") continue
+                      // Skip audit-related transactions
+                      if (tx.type === "ADMIN_AUDIT_FIX" || tx.type === "ADMIN_AUDIT_UNDO" || tx.type === "ADMIN_ADJUST") continue
+                      const email = tx.userId
+                      if (!email) continue
+                      if (!userEarnings[email]) userEarnings[email] = { earned: 0, sources: [] }
+                      userEarnings[email].earned += (tx.amount || 0)
+                      // Track sources
+                      const src = tx.type || tx.description || 'unknown'
+                      if (!userEarnings[email].sources.includes(src)) {
+                        userEarnings[email].sources.push(src)
+                      }
+                    }
+                    
+                    // Step 3: Get all users and compare
+                    const usersSnap = await getDocs(collection(db, "users"))
+                    const mismatched: any[] = []
+                    usersSnap.docs.forEach(d => {
+                      const u: any = d.data()
+                      if (u.role === 'company') return
+                      if (u.status !== 'active') return
+                      const actual = u.brsBalance || 0
+                      const fromTx = Math.round(userEarnings[u.email]?.earned || 0)
+                      const diff = actual - fromTx
+                      if (Math.abs(diff) > 1) {
+                        mismatched.push({
+                          email: u.email,
+                          name: u.fullName || '',
+                          actual,
+                          correct: fromTx,
+                          diff,
+                          sources: userEarnings[u.email]?.sources?.join(', ') || 'none'
+                        })
+                      }
+                    })
+                    mismatched.sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff))
+                    setAuditResults(mismatched)
+                    setAuditDone(true)
+                  } catch (err) {
+                    console.error('Audit error:', err)
+                    alert('Audit failed: ' + err)
+                  }
+                  setAuditRunning(false)
+                }}
+                className="px-6 py-2.5 bg-red-500 hover:bg-red-400 text-white rounded-lg font-bold text-sm transition-all hover:scale-105 disabled:opacity-50"
+              >
+                {auditRunning ? '⏳ Scanning Transactions...' : '🔍 Audit (Transaction-Based)'}
+              </button>
             </div>
-          )}
+
+            {auditDone && (
+              <div>
+                {auditResults.length === 0 ? (
+                  <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4 text-center">
+                    <p className="text-green-400 font-bold">✅ All users BRS matches their transaction history! No mismatches.</p>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-red-400 font-bold text-sm">⚠️ {auditResults.length} users with balance ≠ transaction history:</p>
+                      <button
+                        disabled={auditFixing}
+                        onClick={async () => {
+                          if (!confirm(`✅ Fix ALL ${auditResults.length} users?\n\nThis will set each user's BRS to EXACTLY what their transaction history shows.\n\nThis is 100% accurate based on real earnings.\n\nProceed?`)) return
+                          setAuditFixing(true)
+                          try {
+                            for (const u of auditResults) {
+                              await updateDoc(doc(db, "users", u.email), {
+                                brsBalance: u.correct,
+                                activationRewardPaid: true
+                              })
+                              await addDoc(collection(db, "transactions"), {
+                                userId: u.email,
+                                amount: u.correct - u.actual,
+                                currency: "BRS",
+                                type: "ADMIN_TX_SYNC",
+                                description: `TX Sync: ${u.actual} → ${u.correct} BRS (matched to transaction history)`,
+                                createdAt: new Date()
+                              })
+                            }
+                            alert(`✅ Fixed ${auditResults.length} users! All balances now match transaction history.`)
+                            setAuditResults([])
+                            setAuditDone(false)
+                          } catch (err) {
+                            console.error('Fix error:', err)
+                            alert('Fix failed: ' + err)
+                          }
+                          setAuditFixing(false)
+                        }}
+                        className="px-5 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-black rounded-lg font-bold text-sm hover:scale-105 transition-all disabled:opacity-50"
+                      >
+                        {auditFixing ? '⏳ Syncing...' : `✅ Sync All to Transaction History`}
+                      </button>
+                    </div>
+                    <div className="max-h-[400px] overflow-y-auto space-y-2">
+                      {auditResults.map((u, i) => (
+                        <div key={i} className={`border rounded-lg p-3 flex items-center justify-between ${u.diff > 0 ? 'bg-red-500/5 border-red-500/15' : 'bg-yellow-500/5 border-yellow-500/15'}`}>
+                          <div>
+                            <p className="text-white text-sm font-medium">{u.name || u.email}</p>
+                            <p className="text-[10px] text-gray-500">{u.email}</p>
+                            <p className="text-[9px] text-gray-600 mt-0.5">Sources: {u.sources}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className={`font-bold text-sm ${u.diff > 0 ? 'text-red-400' : 'text-yellow-400'}`}>
+                              {u.actual} → {u.correct} BRS
+                            </p>
+                            <p className="text-[9px] text-gray-500">
+                              {u.diff > 0 ? `${u.diff} extra` : `${Math.abs(u.diff)} missing`}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            {/* LEFT PANEL — ✅ ACTIVE USERS */}
+            <div className="bg-[#0d1117]/60 border border-green-500/15 rounded-2xl p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  ✅ Active Users
+                  <span className="text-[10px] bg-green-500/20 text-green-400 px-2.5 py-0.5 rounded-full font-semibold">
+                    {allUsersList.filter(u => u.status === 'active').length}
+                  </span>
+                </h3>
+              </div>
+              {(() => {
+                const activeUsers = allUsersList
+                  .filter(u => u.status === 'active')
+                  .sort((a: any, b: any) => {
+                    const tA = a.activatedAt?.seconds || a.createdAt?.seconds || 0
+                    const tB = b.activatedAt?.seconds || b.createdAt?.seconds || 0
+                    return tB - tA
+                  })
+                return activeUsers.length === 0 ? (
+                  <p className="text-gray-500 text-center py-8">No active users yet</p>
+                ) : (
+                  <div className="space-y-1.5 max-h-[600px] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin', scrollbarColor: '#334155 transparent' }}>
+                    {activeUsers.map((u: any, i: number) => (
+                      <div
+                        key={u.email}
+                        onClick={() => { setUserSearchEmail(u.email); searchUser(u.email) }}
+                        className="flex items-center justify-between p-3 rounded-xl bg-green-500/5 border border-green-500/10 hover:border-green-500/30 cursor-pointer transition-all hover:bg-green-500/10 group"
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="w-7 h-7 rounded-full bg-green-500/15 border border-green-500/25 flex items-center justify-center shrink-0">
+                            <span className="text-green-400 text-[10px] font-bold">{i + 1}</span>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-white font-medium text-sm truncate group-hover:text-green-300 transition-colors">
+                              {u.fullName || u.email?.split('@')[0]}
+                            </p>
+                            <p className="text-gray-500 text-[10px] truncate">{u.email}</p>
+                            {u.phone && <p className="text-gray-600 text-[10px]">📱 {u.phone}</p>}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <div className="text-right">
+                            <p className="text-yellow-400 text-xs font-bold">{Number(u.brsBalance || 0)} BRS</p>
+                            <p className="text-green-400 text-[10px]">${Number(u.usdtBalance || 0).toFixed(2)}</p>
+                          </div>
+                          <span className="w-2.5 h-2.5 rounded-full bg-green-400 ring-2 ring-green-400/30 ring-offset-1 ring-offset-[#0d1117] shrink-0" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
+            </div>
+
+            {/* RIGHT PANEL — ⏳ PENDING USERS */}
+            <div className="bg-[#0d1117]/60 border border-yellow-500/15 rounded-2xl p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  ⏳ Pending Users
+                  <span className="text-[10px] bg-yellow-500/20 text-yellow-400 px-2.5 py-0.5 rounded-full font-semibold">
+                    {allUsersList.filter(u => u.status !== 'active').length}
+                  </span>
+                </h3>
+              </div>
+              {(() => {
+                const pendingUsers = allUsersList
+                  .filter(u => u.status !== 'active')
+                  .sort((a: any, b: any) => {
+                    const tA = a.createdAt?.seconds || 0
+                    const tB = b.createdAt?.seconds || 0
+                    return tB - tA
+                  })
+                return pendingUsers.length === 0 ? (
+                  <p className="text-gray-500 text-center py-8">🎉 All users are active!</p>
+                ) : (
+                  <div className="space-y-1.5 max-h-[600px] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin', scrollbarColor: '#334155 transparent' }}>
+                    {pendingUsers.map((u: any, i: number) => (
+                      <div
+                        key={u.email}
+                        onClick={() => { setUserSearchEmail(u.email); searchUser(u.email) }}
+                        className="flex items-center justify-between p-3 rounded-xl bg-yellow-500/5 border border-yellow-500/10 hover:border-yellow-500/30 cursor-pointer transition-all hover:bg-yellow-500/10 group"
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="w-7 h-7 rounded-full bg-yellow-500/15 border border-yellow-500/25 flex items-center justify-center shrink-0">
+                            <span className="text-yellow-400 text-[10px] font-bold">{i + 1}</span>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-white font-medium text-sm truncate group-hover:text-yellow-300 transition-colors">
+                              {u.fullName || u.email?.split('@')[0]}
+                            </p>
+                            <p className="text-gray-500 text-[10px] truncate">{u.email}</p>
+                            {u.phone && <p className="text-gray-600 text-[10px]">📱 {u.phone}</p>}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <div className="text-right">
+                            <p className="text-yellow-400/60 text-xs font-bold">{Number(u.brsBalance || 0)} BRS</p>
+                            <p className="text-gray-500 text-[10px]">${Number(u.usdtBalance || 0).toFixed(2)}</p>
+                          </div>
+                          <span className={`w-2.5 h-2.5 rounded-full shrink-0 ring-2 ring-offset-1 ring-offset-[#0d1117] ${
+                            u.status === 'blocked' ? 'bg-red-400 ring-red-400/30'
+                              : u.status === 'hold' ? 'bg-orange-400 ring-orange-400/30'
+                              : 'bg-yellow-400 ring-yellow-400/30'
+                          }`} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
+            </div>
+          </div>
         </>
       )}
 
@@ -1958,6 +2535,157 @@ export default function AdminPanel() {
           </div>
 
         </div>
+      )}
+
+      {/* 🤖 BOT REWARDS TAB */}
+      {activeTab === "botRewards" && (
+        <>
+          <h1 className="text-3xl mb-6 font-bold">🤖 Bot Rewards Control</h1>
+
+          {botConfigLoading && <p className="text-cyan-400 animate-pulse mb-4">⏳ Loading bot config...</p>}
+
+          {botConfig && (
+            <div className="space-y-6">
+
+              {/* MASTER TOGGLE */}
+              <div className="bg-[#1a1a2e] p-6 rounded-xl border border-cyan-500/20">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-white">Master Toggle</h3>
+                    <p className="text-sm text-gray-400">Enable or disable all bot earning features</p>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      setBotSaving(true)
+                      try {
+                        const newVal = !botConfig.botEarnEnabled
+                        await updateDoc(doc(db, "botConfig", "settings"), { botEarnEnabled: newVal })
+                        setBotConfig({ ...botConfig, botEarnEnabled: newVal })
+                        alert(newVal ? '✅ Bot Earn ENABLED!' : '🔒 Bot Earn DISABLED!')
+                      } catch (err) { console.error(err); alert('Error updating') }
+                      setBotSaving(false)
+                    }}
+                    disabled={botSaving}
+                    className={`px-6 py-3 rounded-xl font-bold text-lg transition-all ${
+                      botConfig.botEarnEnabled
+                        ? 'bg-green-500 text-black hover:bg-green-400'
+                        : 'bg-red-500/80 text-white hover:bg-red-400'
+                    }`}
+                  >
+                    {botConfig.botEarnEnabled ? '🟢 LIVE' : '🔴 DISABLED'}
+                  </button>
+                </div>
+              </div>
+
+              {/* POOL MONITOR */}
+              <div className="bg-[#1a1a2e] p-6 rounded-xl border border-purple-500/20">
+                <h3 className="text-lg font-bold text-purple-400 mb-4">📊 Token Pool Monitor</h3>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="bg-white/5 p-4 rounded-xl text-center">
+                    <p className="text-2xl font-bold text-white">{((botConfig.totalPoolSize || 75000000) / 10000000).toFixed(1)} Cr</p>
+                    <p className="text-xs text-gray-400 mt-1">Total Pool</p>
+                  </div>
+                  <div className="bg-white/5 p-4 rounded-xl text-center">
+                    <p className="text-2xl font-bold text-green-400">{(botConfig.totalDistributed || 0).toLocaleString()}</p>
+                    <p className="text-xs text-gray-400 mt-1">Distributed</p>
+                  </div>
+                  <div className="bg-white/5 p-4 rounded-xl text-center">
+                    <p className="text-2xl font-bold text-cyan-400">
+                      {(((botConfig.totalPoolSize || 75000000) - (botConfig.totalDistributed || 0)) / 10000000).toFixed(2)} Cr
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">Remaining</p>
+                  </div>
+                </div>
+                <div className="mt-4 bg-gray-800 rounded-full h-3 overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full transition-all"
+                    style={{ width: `${Math.min(100, ((botConfig.totalDistributed || 0) / (botConfig.totalPoolSize || 75000000)) * 100)}%` }}
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-2 text-right">
+                  {(((botConfig.totalDistributed || 0) / (botConfig.totalPoolSize || 75000000)) * 100).toFixed(4)}% used
+                </p>
+              </div>
+
+              {/* REWARD SETTINGS */}
+              <div className="bg-[#1a1a2e] p-6 rounded-xl border border-amber-500/20">
+                <h3 className="text-lg font-bold text-amber-400 mb-4">⚙️ Reward Settings</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  {[
+                    { key: 'checkinReward', label: '✅ Check-in Reward', suffix: 'BRS' },
+                    { key: 'inviteReward', label: '👥 Invite Reward', suffix: 'BRS' },
+                    { key: 'channelJoinReward', label: '📢 Channel Join', suffix: 'BRS' },
+                    { key: 'streakBonusReward', label: '🔥 Streak Bonus', suffix: 'BRS' },
+                    { key: 'streakBonusDays', label: '📅 Streak Days', suffix: 'days' },
+                    { key: 'dailyMaxEarn', label: '🧢 Daily Cap', suffix: 'BRS' },
+                  ].map(item => (
+                    <div key={item.key} className="bg-white/5 p-3 rounded-xl">
+                      <label className="text-xs text-gray-400">{item.label}</label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <input
+                          type="number"
+                          value={botConfig[item.key] || 0}
+                          onChange={(e) => setBotConfig({ ...botConfig, [item.key]: Number(e.target.value) })}
+                          className="w-full p-2 rounded-lg bg-black/30 border border-white/10 text-white text-lg font-bold"
+                        />
+                        <span className="text-xs text-gray-500 whitespace-nowrap">{item.suffix}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={async () => {
+                    setBotSaving(true)
+                    try {
+                      await updateDoc(doc(db, "botConfig", "settings"), {
+                        checkinReward: botConfig.checkinReward,
+                        inviteReward: botConfig.inviteReward,
+                        channelJoinReward: botConfig.channelJoinReward,
+                        streakBonusReward: botConfig.streakBonusReward,
+                        streakBonusDays: botConfig.streakBonusDays,
+                        dailyMaxEarn: botConfig.dailyMaxEarn,
+                      })
+                      alert('✅ Reward settings saved!')
+                    } catch (err) { console.error(err); alert('Error saving') }
+                    setBotSaving(false)
+                  }}
+                  disabled={botSaving}
+                  className="mt-4 w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-black rounded-xl font-bold hover:scale-[1.02] transition-all disabled:opacity-50"
+                >
+                  {botSaving ? '⏳ Saving...' : '💾 Save Reward Settings'}
+                </button>
+              </div>
+
+              {/* TOP EARNERS */}
+              <div className="bg-[#1a1a2e] p-6 rounded-xl border border-green-500/20">
+                <h3 className="text-lg font-bold text-green-400 mb-4">🏆 Top Earners ({botEarners.length})</h3>
+                {botEarners.length === 0 && <p className="text-gray-500">No earners yet</p>}
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {botEarners.map((u, i) => (
+                    <div key={u.telegramId || i} className="flex items-center justify-between bg-white/5 p-3 rounded-xl">
+                      <div className="flex items-center gap-3">
+                        <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                          i === 0 ? 'bg-yellow-500 text-black' : i === 1 ? 'bg-gray-300 text-black' : i === 2 ? 'bg-amber-700 text-white' : 'bg-gray-700 text-gray-300'
+                        }`}>{i + 1}</span>
+                        <div>
+                          <p className="text-sm text-white font-medium">{u.username || u.linkedEmail || 'Unknown'}</p>
+                          <p className="text-[10px] text-gray-500">
+                            🔥 {u.currentStreak || 0}d streak | 👥 {u.inviteCount || 0} invites | 📋 {u.totalCheckins || 0} checkins
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-cyan-400">{u.totalEarned || 0} BRS</p>
+                        <p className="text-[10px] text-gray-500">{u.linkedEmail ? '🔗' : '⚠️'}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+          )}
+        </>
       )}
 
     </div>

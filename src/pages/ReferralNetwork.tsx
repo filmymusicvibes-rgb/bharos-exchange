@@ -1,5 +1,5 @@
 import { getUser } from "../lib/session"
-import { useEffect, useState } from "react"
+import React, { useEffect, useState } from "react"
 import { navigate } from "@/lib/router"
 import { db } from "../lib/firebase"
 import { collection, getDocs, doc, getDoc } from "firebase/firestore"
@@ -43,6 +43,8 @@ export default function ReferralNetwork() {
   const [level4Count, setLevel4Count] = useState(0)
 
   const [directList, setDirectList] = useState<any[]>([])
+  const [allLevelMembers, setAllLevelMembers] = useState<any[][]>([])
+  const [expandedLevel, setExpandedLevel] = useState<number | null>(null)
 
   const [matrixAchieved, setMatrixAchieved] = useState(false)
   const [tripAchieved, setTripAchieved] = useState(false)
@@ -118,21 +120,24 @@ export default function ReferralNetwork() {
       setTripAchieved(true)
     }
 
-    const levels: any = []
-    levels[0] = level1
+    // Build ALL 12 levels with ACTUAL member data (not just counts)
+    const levels: any[][] = []
+    levels[0] = level1All // Level 1 — include ALL (active + pending) for visibility
 
     for (let i = 1; i < 12; i++) {
       const prev = levels[i - 1] || []
-      const codes = prev.map((u: any) => u.referralCode)
+      const codes = prev.filter((u: any) => u.status === 'active').map((u: any) => u.referralCode)
 
       levels[i] = users.filter((u) =>
-        codes.includes(u.referredBy) && u.status === "active"
+        codes.includes(u.referredBy)
       )
     }
 
+    setAllLevelMembers(levels)
+
     const levelData = COMMISSION_STRUCTURE.map((l, i) => ({
       level: l.level,
-      members: levels[i]?.length || 0,
+      members: levels[i]?.filter((u: any) => u.status === 'active').length || 0,
       commission: l.commission
     }))
 
@@ -302,7 +307,7 @@ export default function ReferralNetwork() {
           </div>
         </div>
 
-        {/* LEVEL TABLE */}
+        {/* LEVEL TABLE — CLICKABLE FOR DETAILS */}
         <div className="relative mb-8">
           <div className="absolute -inset-[1px] bg-gradient-to-r from-cyan-500/10 to-blue-500/10 rounded-xl blur-sm" />
           <div className="relative bg-[#0d1117]/90 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden">
@@ -332,17 +337,79 @@ export default function ReferralNetwork() {
                     "from-teal-500 to-cyan-500",
                     "from-cyan-500 to-white"
                   ]
+                  const levelMembers = allLevelMembers[i] || []
+                  const isExpanded = expandedLevel === i
 
                   return (
-                    <tr key={l.level}
-                      className={`bg-gradient-to-r ${colors[i]}/5 border-t border-white/5 hover:bg-white/[0.03] transition`}>
-                      <td className="p-3 md:p-4 font-medium whitespace-nowrap text-gray-300">Level {l.level}</td>
-                      <td className="p-3 md:p-4 text-center text-white">{l.members}</td>
-                      <td className="p-3 md:p-4 text-yellow-400 text-center">${l.commission}</td>
-                      <td className="p-3 md:p-4 text-green-400 text-center whitespace-nowrap font-medium">
-                        ${(l.members * l.commission).toFixed(2)}
-                      </td>
-                    </tr>
+                    <React.Fragment key={l.level}>
+                      <tr
+                        onClick={() => setExpandedLevel(isExpanded ? null : i)}
+                        className={`bg-gradient-to-r ${colors[i]}/5 border-t border-white/5 hover:bg-white/[0.03] transition cursor-pointer`}>
+                        <td className="p-3 md:p-4 font-medium whitespace-nowrap text-gray-300">
+                          <span className="flex items-center gap-2">
+                            <span className={`transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}>▶</span>
+                            Level {l.level}
+                          </span>
+                        </td>
+                        <td className="p-3 md:p-4 text-center">
+                          <span className="text-white">{l.members}</span>
+                          {levelMembers.length > l.members && (
+                            <span className="text-gray-600 text-[10px] ml-1">({levelMembers.length} total)</span>
+                          )}
+                        </td>
+                        <td className="p-3 md:p-4 text-yellow-400 text-center">${l.commission}</td>
+                        <td className="p-3 md:p-4 text-green-400 text-center whitespace-nowrap font-medium">
+                          ${(l.members * l.commission).toFixed(2)}
+                        </td>
+                      </tr>
+                      {isExpanded && levelMembers.length > 0 && (
+                        <tr>
+                          <td colSpan={4} className="p-0">
+                            <div className="bg-black/30 border-y border-white/5 p-3 space-y-2">
+                              <p className="text-[10px] text-gray-500 uppercase tracking-wider px-2 mb-2">
+                                📋 Level {l.level} Members ({levelMembers.length})
+                              </p>
+                              {levelMembers.map((m: any, mi: number) => (
+                                <div key={mi} className={`flex items-center justify-between px-3 py-2.5 rounded-lg border ${
+                                  m.status === 'active' 
+                                    ? 'bg-green-500/5 border-green-500/10' 
+                                    : 'bg-orange-500/5 border-orange-500/10'
+                                }`}>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs text-white font-medium truncate flex items-center gap-1.5">
+                                      <User className="w-3 h-3 text-cyan-400 flex-shrink-0" />
+                                      {m.userName || 'User'}
+                                    </p>
+                                    <p className="text-[10px] text-gray-500 truncate flex items-center gap-1.5 mt-0.5">
+                                      <Mail className="w-2.5 h-2.5 text-gray-600 flex-shrink-0" />
+                                      {m.email}
+                                    </p>
+                                    <p className="text-[10px] text-gray-600 flex items-center gap-1.5 mt-0.5">
+                                      <Calendar className="w-2.5 h-2.5 text-gray-600 flex-shrink-0" />
+                                      {m.createdAt?.toDate?.().toLocaleDateString('en-IN') || 'N/A'}
+                                    </p>
+                                  </div>
+                                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border flex-shrink-0 ${
+                                    m.status === 'active' 
+                                      ? 'bg-green-500/10 text-green-400 border-green-500/20' 
+                                      : 'bg-orange-500/10 text-orange-400 border-orange-500/20'
+                                  }`}>
+                                    {m.status === 'active' ? '✅ Active' : '⏳ Pending'}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                      {isExpanded && levelMembers.length === 0 && (
+                        <tr>
+                          <td colSpan={4} className="p-4 text-center text-gray-600 text-xs bg-black/20">
+                            No members at this level yet
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   )
                 })}
               </tbody>

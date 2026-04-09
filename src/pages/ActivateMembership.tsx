@@ -20,7 +20,7 @@ function ActivateMembership() {
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const activatingRef = useRef(false) // 🔒 Prevent duplicate activation
-  const maxPolls = 90 // 90 × 10 sec = 15 minutes
+  const maxPolls = 180 // 180 × 10 sec = 30 minutes
 
   const PAYMENT_AMOUNT = 12
 
@@ -39,6 +39,46 @@ function ActivateMembership() {
       if (data.status === "active") {
         navigate("/dashboard")
         return
+      }
+
+      // 🔄 SELF-HEALING: Check if deposit exists but activation didn't complete
+      try {
+        const depositsSnap = await getDocs(collection(db, "deposits"))
+        const myDeposit = depositsSnap.docs.find((d: any) => {
+          const dd = d.data()
+          return dd.userId === email && dd.status === "verified" && dd.amount >= 12
+        })
+
+        if (myDeposit && data.status !== "active") {
+          // Deposit exists but user not active — complete activation!
+          console.log("🔄 Self-healing: Found verified deposit but user not active. Completing activation...")
+          setShowWarning(false)
+          setStep("activating")
+          activatingRef.current = true
+
+          // 🔒 Use user document flag — 100% reliable duplicate check
+          const alreadyRewarded = data.activationRewardPaid === true
+
+          if (alreadyRewarded) {
+            console.log("🔒 BRS already credited — only fixing status")
+            await updateDoc(userRef, { status: "active", activatedAt: data.activatedAt || new Date() })
+          } else {
+            await updateDoc(userRef, {
+              status: "active",
+              brsBalance: increment(150),
+              activatedAt: new Date(),
+              activationRewardPaid: true
+            })
+            await logTransaction(email, 150, "BRS", "Membership activation reward (auto-recovered)")
+          }
+          await runFullActivation(email)
+
+          setStep("done")
+          setTimeout(() => navigate("/dashboard"), 3000)
+          return
+        }
+      } catch (err) {
+        console.error("Self-healing check error:", err)
       }
 
       // 🔄 Auto-resume if left page during verification
@@ -187,7 +227,8 @@ function ActivateMembership() {
       await updateDoc(doc(db, "users", email), {
         status: "active",
         brsBalance: increment(150),
-        activatedAt: new Date()
+        activatedAt: new Date(),
+        activationRewardPaid: true
       })
 
       await logTransaction(email, 150, "BRS", "Membership activation reward")
@@ -348,7 +389,7 @@ function ActivateMembership() {
                   <p className="text-[11px] text-gray-400">• Wrong wallet address</p>
                 </div>
 
-                <p className="text-gray-400 text-xs mb-4">15 minutes lo payment detect kaaledu. Already sent? Click Scan Again!</p>
+                <p className="text-gray-400 text-xs mb-4">Payment not detected within 30 minutes. Already sent? Click Scan Again!</p>
 
                 <button
                   onClick={restartScanning}
@@ -447,13 +488,13 @@ function ActivateMembership() {
                           style={{ width: `${Math.min((pollCount / maxPolls) * 100, 100)}%` }}
                         ></div>
                       </div>
-                      <p className="text-gray-600 text-[9px] mt-1">{formatTime(pollCount)} / 15:00 — Take your time, no rush!</p>
+                      <p className="text-gray-600 text-[9px] mt-1">{formatTime(pollCount)} / 30:00 — Verifying your payment...</p>
                     </div>
                   </div>
 
-                  <div className="mt-3 bg-green-500/5 border border-green-500/15 rounded-lg p-2">
-                    <p className="text-green-400 text-[10px] flex items-center justify-center gap-1.5">
-                      <CheckCircle className="w-3 h-3" /> Safe to switch to your wallet — we'll detect when you return
+                  <div className="mt-3 bg-amber-500/5 border border-amber-500/15 rounded-lg p-2.5">
+                    <p className="text-amber-400 text-[10px] flex items-center justify-center gap-1.5 font-medium">
+                      <AlertTriangle className="w-3 h-3" /> Stay on this page until verification completes. Do not close or refresh.
                     </p>
                   </div>
                 </div>

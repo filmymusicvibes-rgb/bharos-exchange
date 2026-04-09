@@ -95,8 +95,8 @@ export async function detectPayment(
     const latestBlockHex = await rpcCall(DRPC_URL, "eth_blockNumber", [])
     const latestBlock = parseInt(latestBlockHex, 16)
 
-    // Scan last 600 blocks (~30 minutes on BSC, 3 sec/block)
-    const fromBlock = "0x" + (latestBlock - 600).toString(16)
+    // Scan last 6000 blocks (~5 hours on BSC, 3 sec/block)
+    const fromBlock = "0x" + (latestBlock - 6000).toString(16)
     const toBlock = "0x" + latestBlock.toString(16)
 
     // 📡 Get USDT Transfer logs TO our wallet

@@ -104,15 +104,6 @@ export default function SupportChat() {
                 Email
               </a>
               <a
-                href="https://t.me/bharosexchange"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 transition text-xs text-blue-400"
-              >
-                <Send className="w-3.5 h-3.5" />
-                Telegram
-              </a>
-              <a
                 href="https://whatsapp.com/channel/0029Vb8HgtnHltYGfWReeJ0j"
                 target="_blank"
                 rel="noopener noreferrer"

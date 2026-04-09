@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Google Cloud Platform — Bill Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Roboto', -apple-system, sans-serif;
+      background: #f8f9fa;
+      color: #202124;
+      min-height: 100vh;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    @media print {
+      body { background: #fff; }
+      .no-print { display: none !important; }
+      .bill-container { box-shadow: none !important; margin: 0 !important; border-radius: 0 !important; }
+      .editable:hover { outline: none !important; background: transparent !important; }
+      .edit-amount:hover { outline: none !important; background: transparent !important; }
+      @page { margin: 10mm; size: A4; }
+    }
+
+    /* ═══ EDIT TOOLBAR ═══ */
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .toolbar-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .toolbar-left h3 {
+      color: #fff;
+      font-size: 15px;
+      font-weight: 500;
+    }
+    .toolbar-left .edit-badge {
+      background: #34a853;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 10px;
+      letter-spacing: 0.5px;
+      animation: pulse-badge 2s infinite;
+    }
+    @keyframes pulse-badge {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    .toolbar-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .tb-btn {
+      border: none;
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-weight: 500;
+      font-size: 12px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tb-btn:hover { transform: scale(1.03); }
+    .tb-btn-print { background: #1a73e8; color: #fff; }
+    .tb-btn-print:hover { box-shadow: 0 2px 10px rgba(26,115,232,0.4); }
+    .tb-btn-reset { background: #ea4335; color: #fff; }
+    .tb-btn-reset:hover { box-shadow: 0 2px 10px rgba(234,67,53,0.4); }
+
+    /* HELP TIP */
+    .help-tip {
+      background: linear-gradient(135deg, #e8f0fe, #d2e3fc);
+      border: 1px solid #aecbfa;
+      border-radius: 10px;
+      padding: 12px 20px;
+      max-width: 820px;
+      margin: 16px auto 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      color: #1967d2;
+    }
+    .help-tip .icon { font-size: 18px; }
+    .help-tip strong { color: #174ea6; }
+
+    /* ═══ EDITABLE STYLES ═══ */
+    .editable {
+      cursor: text;
+      transition: all 0.2s;
+      border-radius: 3px;
+      padding: 1px 3px;
+      margin: -1px -3px;
+    }
+    .editable:hover {
+      outline: 2px dashed #1a73e8;
+      outline-offset: 2px;
+      background: rgba(26,115,232,0.04);
+    }
+    .editable:focus {
+      outline: 2px solid #1a73e8;
+      outline-offset: 2px;
+      background: rgba(26,115,232,0.06);
+    }
+
+    .edit-amount {
+      cursor: text;
+      transition: all 0.2s;
+      border-radius: 3px;
+      padding: 1px 3px;
+      margin: -1px -3px;
+    }
+    .edit-amount:hover {
+      outline: 2px dashed #34a853;
+      outline-offset: 2px;
+      background: rgba(52,168,83,0.04);
+    }
+    .edit-amount:focus {
+      outline: 2px solid #34a853;
+      outline-offset: 2px;
+      background: rgba(52,168,83,0.06);
+    }
+
+    /* ═══ BILL STYLES ═══ */
+    .bill-container {
+      max-width: 820px;
+      margin: 24px auto;
+      background: #fff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
+    }
+
+    .bill-header {
+      padding: 36px 40px 28px;
+      border-bottom: 1px solid #e8eaed;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      position: relative;
+    }
+
+    .gcp-logo { display: flex; align-items: center; gap: 12px; }
+    .gcp-logo-icon { width: 40px; height: 40px; position: relative; }
+    .gcp-logo-icon .g-bar { position: absolute; border-radius: 2px; }
+    .gcp-logo-icon .g-bar.red { background: #ea4335; width: 10px; height: 24px; top: 0; left: 6px; }
+    .gcp-logo-icon .g-bar.blue { background: #4285f4; width: 24px; height: 10px; bottom: 6px; left: 0; }
+    .gcp-logo-icon .g-bar.green { background: #34a853; width: 10px; height: 24px; top: 16px; right: 6px; }
+    .gcp-logo-icon .g-bar.yellow { background: #fbbc04; width: 24px; height: 10px; top: 6px; right: 0; }
+
+    .gcp-logo-text h1 { font-family: 'Google Sans', sans-serif; font-size: 20px; font-weight: 500; color: #202124; }
+    .gcp-logo-text p { font-size: 12px; color: #5f6368; margin-top: 2px; }
+
+    .bill-meta { text-align: right; }
+    .bill-meta .bill-type { font-family: 'Google Sans', sans-serif; font-size: 24px; font-weight: 500; color: #1a73e8; margin-bottom: 6px; }
+    .bill-meta .meta-row { font-size: 12px; color: #5f6368; line-height: 1.8; }
+    .bill-meta .meta-row strong { color: #202124; font-weight: 500; }
+
+    .paid-stamp { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-18deg); z-index: 5; pointer-events: none; }
+    .paid-stamp-inner { border: 4px solid #1e8e3e; border-radius: 14px; padding: 6px 28px; opacity: 0.8; position: relative; }
+    .paid-stamp-inner::before { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.15) 2px, rgba(255,255,255,0.15) 3px); border-radius: 10px; }
+    .paid-stamp-text { font-family: 'Google Sans', sans-serif; font-size: 42px; font-weight: 700; color: #1e8e3e; letter-spacing: 8px; text-transform: uppercase; line-height: 1; }
+    .paid-stamp-date { text-align: center; font-size: 10px; font-weight: 500; color: #1e8e3e; letter-spacing: 1px; margin-top: 2px; opacity: 0.85; }
+
+    .bill-info { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; padding: 24px 40px; background: #f8f9fa; border-bottom: 1px solid #e8eaed; }
+    .info-block label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: #80868b; font-weight: 500; display: block; margin-bottom: 6px; }
+    .info-block p { font-size: 13px; color: #202124; line-height: 1.7; }
+    .info-block .highlight { font-weight: 500; color: #1a73e8; }
+
+    .summary-bar { display: flex; justify-content: space-between; align-items: center; padding: 20px 40px; border-bottom: 1px solid #e8eaed; }
+    .summary-bar .period { font-size: 13px; color: #5f6368; }
+    .summary-bar .period strong { color: #202124; font-weight: 500; }
+    .summary-bar .total-due { text-align: right; }
+    .summary-bar .total-due .label { font-size: 11px; color: #80868b; text-transform: uppercase; letter-spacing: 0.5px; }
+    .summary-bar .total-due .amount { font-family: 'Google Sans', sans-serif; font-size: 28px; font-weight: 700; color: #202124; margin-top: 2px; }
+
+    .status-pill { display: inline-flex; align-items: center; gap: 5px; background: #e6f4ea; color: #1e8e3e; font-size: 11px; font-weight: 500; padding: 4px 12px; border-radius: 12px; border: 1px solid #34a853; }
+
+    .table-section { padding: 0 40px 30px; }
+    .section-title { font-family: 'Google Sans', sans-serif; font-size: 15px; font-weight: 500; color: #202124; padding: 24px 0 12px; display: flex; align-items: center; gap: 8px; }
+    .section-title .dot { width: 8px; height: 8px; border-radius: 50%; }
+
+    table { width: 100%; border-collapse: collapse; }
+    thead th { background: #f1f3f4; font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; color: #5f6368; font-weight: 500; padding: 10px 14px; text-align: left; border-bottom: 1px solid #e8eaed; }
+    thead th:last-child { text-align: right; }
+    thead th:nth-child(3) { text-align: center; }
+    thead th:nth-child(4) { text-align: right; }
+
+    tbody td { padding: 12px 14px; font-size: 13px; color: #3c4043; border-bottom: 1px solid #f1f3f4; vertical-align: top; }
+    tbody tr:hover { background: #f8f9fa; }
+    tbody td:last-child { text-align: right; font-weight: 500; color: #202124; font-family: 'Roboto Mono', monospace; }
+    tbody td:nth-child(3) { text-align: center; color: #5f6368; font-size: 12px; }
+    tbody td:nth-child(4) { text-align: right; color: #5f6368; font-size: 12px; }
+
+    .service-name { font-weight: 500; color: #202124; }
+    .service-desc { font-size: 11px; color: #80868b; margin-top: 2px; line-height: 1.4; }
+    .service-sku { font-size: 10px; color: #9aa0a6; font-family: 'Roboto Mono', monospace; margin-top: 2px; }
+
+    .totals-section { padding: 0 40px 30px; display: flex; justify-content: flex-end; }
+    .totals-box { width: 300px; }
+    .totals-row { display: flex; justify-content: space-between; padding: 9px 0; font-size: 13px; border-bottom: 1px solid #f1f3f4; }
+    .totals-row .t-label { color: #5f6368; }
+    .totals-row .t-value { font-weight: 500; color: #202124; font-family: 'Roboto Mono', monospace; }
+    .totals-grand { display: flex; justify-content: space-between; padding: 14px 0; font-size: 16px; border-top: 2px solid #202124; margin-top: 4px; }
+    .totals-grand .t-label { font-weight: 700; color: #202124; }
+    .totals-grand .t-value { font-weight: 700; color: #1a73e8; font-family: 'Google Sans', sans-serif; font-size: 18px; }
+
+    .words-section { padding: 0 40px 24px; font-size: 12px; color: #5f6368; }
+    .words-section strong { color: #202124; font-weight: 500; }
+
+    .paid-receipt { padding: 16px 40px; background: #e6f4ea; border-top: 1px solid #ceead6; border-bottom: 1px solid #ceead6; display: flex; align-items: center; justify-content: space-between; }
+    .paid-receipt-left { display: flex; align-items: center; gap: 10px; }
+    .paid-receipt-icon { width: 32px; height: 32px; background: #1e8e3e; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+    .paid-receipt-text { font-size: 13px; color: #137333; font-weight: 500; }
+    .paid-receipt-text span { display: block; font-size: 11px; color: #1e8e3e; font-weight: 400; margin-top: 1px; }
+    .paid-receipt-right { text-align: right; font-size: 11px; color: #137333; line-height: 1.7; }
+
+    .notes-section { padding: 20px 40px; background: #f8f9fa; border-top: 1px solid #e8eaed; }
+    .notes-section h4 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: #80868b; font-weight: 500; margin-bottom: 8px; }
+    .notes-section li { font-size: 11.5px; color: #5f6368; line-height: 1.8; }
+    .notes-section ul { padding-left: 18px; }
+
+    .bill-footer { padding: 20px 40px; border-top: 1px solid #e8eaed; display: flex; justify-content: space-between; align-items: center; }
+    .footer-left p { font-size: 11px; color: #9aa0a6; line-height: 1.6; }
+    .footer-right .gcp-text { font-family: 'Google Sans', sans-serif; font-size: 14px; font-weight: 500; color: #5f6368; }
+    .footer-right .legal { font-size: 10px; color: #9aa0a6; margin-top: 2px; }
+
+    /* Auto-calc notification */
+    .calc-toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #1e8e3e;
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: 0 4px 16px rgba(30,142,62,0.4);
+      z-index: 999;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.3s;
+      pointer-events: none;
+    }
+    .calc-toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOOLBAR -->
+  <div class="toolbar no-print">
+    <div class="toolbar-left">
+      <h3>📄 GCP Bill Generator</h3>
+      <span class="edit-badge">✏️ EDITABLE</span>
+    </div>
+    <div class="toolbar-right">
+      <button class="tb-btn tb-btn-print" onclick="window.print()">🖨️ Print / Save PDF</button>
+    </div>
+  </div>
+
+  <!-- HELP -->
+  <div class="help-tip no-print">
+    <span class="icon">💡</span>
+    <div>
+      <strong>Easy Edit Mode:</strong> Bill lo ekkada aiyna <strong style="color:#1a73e8;">blue dashed border</strong> kanipiste — click chesi text/date change cheyochu.
+      <strong style="color:#34a853;">Green border</strong> amounts ki — change cheste total <strong>auto-calculate</strong> avthundi! Print cheste edit borders kanipiyavu. 🎯
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="calc-toast" id="calcToast">✅ Total auto-calculated!</div>
+
+  <!-- BILL -->
+  <div class="bill-container">
+
+    <!-- HEADER -->
+    <div class="bill-header">
+      <div class="gcp-logo">
+        <div class="gcp-logo-icon">
+          <div class="g-bar red"></div>
+          <div class="g-bar blue"></div>
+          <div class="g-bar green"></div>
+          <div class="g-bar yellow"></div>
+        </div>
+        <div class="gcp-logo-text">
+          <h1>Google Cloud Platform</h1>
+          <p>Cloud Billing — Tax Invoice (Monthly)</p>
+        </div>
+      </div>
+
+      <div class="bill-meta">
+        <div class="bill-type">Tax Invoice</div>
+        <div class="meta-row"><strong>Invoice No:</strong> <span class="editable" contenteditable="true">GCP-IN-84729361-0426-M</span></div>
+        <div class="meta-row"><strong>Invoice Date:</strong> <span class="editable" contenteditable="true">09 April 2026</span></div>
+        <div class="meta-row"><strong>Currency:</strong> INR (₹)</div>
+      </div>
+
+      <div class="paid-stamp">
+        <div class="paid-stamp-inner">
+          <div class="paid-stamp-text">PAID</div>
+          <div class="paid-stamp-date"><span class="editable" contenteditable="true" style="pointer-events: auto;">09 APR 2026</span> • Auto-Pay</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INFO -->
+    <div class="bill-info">
+      <div class="info-block">
+        <label>From</label>
+        <p>
+          <strong>Google Cloud India Pvt Ltd</strong><br>
+          No. 3, RMZ Infinity — Tower E<br>
+          Old Madras Road, Bengaluru<br>
+          Karnataka 560016, India<br>
+          GSTIN: 29AABCG1Z5M1Z3
+        </p>
+      </div>
+      <div class="info-block">
+        <label>Bill To</label>
+        <p class="editable" contenteditable="true">
+          <strong>Bharos Exchange Pvt Ltd</strong><br>
+          Hyderabad, Telangana<br>
+          India 500081<br>
+          GSTIN: 36AXXCB8742R1ZX
+        </p>
+      </div>
+      <div class="info-block">
+        <label>Account Details</label>
+        <p>
+          <strong>Billing Account:</strong><br>
+          <span class="highlight">01A4F2-8C93D1-7E6B05</span><br>
+          <strong>Project:</strong> bharos-exchange-prod<br>
+          <strong>Project ID:</strong> bharos-prod-4847
+        </p>
+      </div>
+    </div>
+
+    <!-- SUMMARY -->
+    <div class="summary-bar">
+      <div class="period">
+        Billing Period: <strong><span class="editable" contenteditable="true">09 March 2026</span> — <span class="editable" contenteditable="true">09 April 2026</span></strong>
+        <br>
+        <span class="status-pill" style="margin-top: 8px;">
+          <span class="check-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" fill="#1e8e3e"/></svg></span>
+          Paid
+        </span>
+      </div>
+      <div class="total-due">
+        <div class="label">Total Amount Paid</div>
+        <div class="amount" id="grandTotalDisplay">₹26,854</div>
+      </div>
+    </div>
+
+    <!-- PAID RECEIPT -->
+    <div class="paid-receipt">
+      <div class="paid-receipt-left">
+        <div class="paid-receipt-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" fill="#fff"/></svg>
+        </div>
+        <div class="paid-receipt-text">
+          Payment received successfully
+          <span>Processed via Auto-Pay on <span class="editable" contenteditable="true">09 Apr 2026</span></span>
+        </div>
+      </div>
+      <div class="paid-receipt-right">
+        Transaction ID: <strong class="editable" contenteditable="true">TXN-6293841057</strong><br>
+        Method: Auto-Pay (Card ending <span class="editable" contenteditable="true">8421</span>)
+      </div>
+    </div>
+
+    <!-- LINE ITEMS -->
+    <div class="table-section">
+      <div class="section-title">
+        <span class="dot" style="background: #4285f4;"></span>
+        Service Usage Details — Monthly
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 45%;">Service</th>
+            <th>Usage</th>
+            <th>Rate</th>
+            <th>Amount (₹)</th>
+          </tr>
+        </thead>
+        <tbody id="serviceRows">
+
+          <tr>
+            <td>
+              <div class="service-name editable" contenteditable="true">Cloud Firestore</div>
+              <div class="service-desc editable" contenteditable="true">Document reads, writes, deletes & real-time listeners</div>
+              <div class="service-sku editable" contenteditable="true">SKU: CF-RW-2847-IN</div>
+            </td>
+            <td class="editable" contenteditable="true">1.4M reads<br>620K writes</td>
+            <td class="editable" contenteditable="true">Per 100K ops</td>
+            <td><span class="edit-amount" contenteditable="true" data-amount>5,842</span></td>
+          </tr>
+
+          <tr>
+            <td>
+              <div class="service-name editable" contenteditable="true">Compute Engine — VM Instances</div>
+              <div class="service-desc editable" contenteditable="true">e2-standard-4 (Production) + e2-medium (Staging), sustained use</div>
+              <div class="service-sku editable" contenteditable="true">SKU: CE-VM-0394-IN</div>
+            </td>
+            <td class="editable" contenteditable="true">744 hrs (prod)<br>186 hrs (stg)</td>
+            <td class="editable" contenteditable="true">Per hour</td>
+            <td><span class="edit-amount" contenteditable="true" data-amount>4,916</span></td>
+          </tr>
+
+          <tr>
+            <td>
+              <div class="service-name editable" contenteditable="true">Cloud Functions (2nd Gen)</div>
+              <div class="service-desc editable" contenteditable="true">Serverless function invocations, compute time, memory allocation</div>
+              <div class="service-sku editable" contenteditable="true">SKU: CF2-INV-7281-IN</div>
+            </td>
+            <td class="editable" contenteditable="true">894K invocations<br>42K GB-seconds</td>
+            <td class="editable" contenteditable="true">Per invocation</td>
+            <td><span class="edit-amount" contenteditable="true" data-amount>3,478</span></td>
+          </tr>
+
+          <tr>
+            <td>
+              <div class="service-name editable" contenteditable="true">Firebase Hosting & CDN</div>
+              <div class="service-desc editable" contenteditable="true">Global CDN distribution, SSL certificates, bandwidth transfer</div>
+              <div class="service-sku editable" contenteditable="true">SKU: FH-CDN-5193-IN</div>
+            </td>
+            <td class="editable" contenteditable="true">68 GB transfer<br>480K requests</td>
+            <td class="editable" contenteditable="true">Per GB</td>
+            <td><span class="edit-amount" contenteditable="true" data-amount>2,864</span></td>
+          </tr>
+
+          <tr>
+            <td>
+              <div class="service-name editable" contenteditable="true">Cloud Storage (Standard)</div>
+              <div class="service-desc editable" contenteditable="true">Object storage — user uploads, media assets, backup archives</div>
+              <div class="service-sku editable" contenteditable="true">SKU: CS-STD-8462-IN</div>
+            </td>
+            <td class="editable" contenteditable="true">42 GB stored<br>18 GB egress</td>
+            <td class="editable" contenteditable="true">Per GB/month</td>
+            <td><span class="edit-amount" contenteditable="true" data-amount>1,742</span></td>
+          </tr>
+
+          <tr>
+            <td>
+              <div class="service-name editable" contenteditable="true">Firebase Authentication</div>
+              <div class="service-desc editable" contenteditable="true">Email/password auth, phone OTP, identity platform MAUs</div>
+              <div class="service-sku editable" contenteditable="true">SKU: FA-AUTH-3028-IN</div>
+            </td>
+            <td class="editable" contenteditable="true">4,860 MAUs<br>1,240 phone verif.</td>
+            <td class="editable" contenteditable="true">Per MAU / SMS</td>
+            <td><span class="edit-amount" contenteditable="true" data-amount>1,536</span></td>
+          </tr>
+
+          <tr>
+            <td>
+              <div class="service-name editable" contenteditable="true">Cloud Networking</div>
+              <div class="service-desc editable" contenteditable="true">Load balancer, network egress, VPC, Cloud Armor rules</div>
+              <div class="service-sku editable" contenteditable="true">SKU: CN-NET-9147-IN</div>
+            </td>
+            <td class="editable" contenteditable="true">36 GB egress<br>3 forwarding rules</td>
+            <td class="editable" contenteditable="true">Per GB / rule</td>
+            <td><span class="edit-amount" contenteditable="true" data-amount>1,024</span></td>
+          </tr>
+
+          <tr>
+            <td>
+              <div class="service-name editable" contenteditable="true">Cloud Monitoring & Logging</div>
+              <div class="service-desc editable" contenteditable="true">Stackdriver metrics, log ingestion, alerting policies, uptime checks</div>
+              <div class="service-sku editable" contenteditable="true">SKU: CM-LOG-6350-IN</div>
+            </td>
+            <td class="editable" contenteditable="true">12 GB logs<br>8 alert policies</td>
+            <td class="editable" contenteditable="true">Per GB ingested</td>
+            <td><span class="edit-amount" contenteditable="true" data-amount>684</span></td>
+          </tr>
+
+          <tr>
+            <td>
+              <div class="service-name editable" contenteditable="true">Cloud Build — CI/CD</div>
+              <div class="service-desc editable" contenteditable="true">Build minutes, artifact registry, container analysis</div>
+              <div class="service-sku editable" contenteditable="true">SKU: CB-BLD-2156-IN</div>
+            </td>
+            <td class="editable" contenteditable="true">78 build mins<br>6 deployments</td>
+            <td class="editable" contenteditable="true">Per build min</td>
+            <td><span class="edit-amount" contenteditable="true" data-amount>412</span></td>
+          </tr>
+
+          <tr>
+            <td>
+              <div class="service-name editable" contenteditable="true">Cloud Support — Standard Plan</div>
+              <div class="service-desc editable" contenteditable="true">Technical support, case management, billing support</div>
+              <div class="service-sku editable" contenteditable="true">SKU: CS-SUP-4471-IN</div>
+            </td>
+            <td class="editable" contenteditable="true">1 month</td>
+            <td class="editable" contenteditable="true">Fixed/month</td>
+            <td><span class="edit-amount" contenteditable="true" data-amount>260</span></td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+
+    <!-- TOTALS -->
+    <div class="totals-section">
+      <div class="totals-box">
+        <div class="totals-row">
+          <span class="t-label">Subtotal (Services)</span>
+          <span class="t-value" id="subtotalDisplay">₹22,758</span>
+        </div>
+        <div class="totals-row">
+          <span class="t-label">CGST @ 9%</span>
+          <span class="t-value" id="cgstDisplay">₹2,048</span>
+        </div>
+        <div class="totals-row">
+          <span class="t-label">SGST @ 9%</span>
+          <span class="t-value" id="sgstDisplay">₹2,048</span>
+        </div>
+        <div class="totals-grand">
+          <span class="t-label">Total Paid</span>
+          <span class="t-value" id="grandTotalBottom">₹26,854</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- WORDS -->
+    <div class="words-section">
+      <strong>Amount in Words:</strong> <span id="amountWords">Indian Rupees Twenty-Six Thousand Eight Hundred and Fifty-Four Only (₹26,854/-)</span>
+    </div>
+
+    <!-- NOTES -->
+    <div class="notes-section">
+      <h4>Important Information</h4>
+      <ul>
+        <li>This invoice covers Google Cloud Platform services consumed during the billing period.</li>
+        <li>Usage is metered and billed in arrears based on actual consumption.</li>
+        <li>GST is charged as per Indian tax regulations (CGST + SGST for intra-state supply).</li>
+        <li>Payment was automatically processed via the registered payment method on file.</li>
+        <li>For billing queries, visit <strong>console.cloud.google.com/billing</strong> or contact Cloud Support.</li>
+      </ul>
+    </div>
+
+    <div class="bill-footer">
+      <div class="footer-left"><p>Google Cloud India Private Limited<br>CIN: U72900KA2016PTC093027<br>This is a computer-generated invoice and does not require a physical signature.</p></div>
+      <div class="footer-right">
+        <div class="gcp-text">Google Cloud</div>
+        <div class="legal">cloud.google.com</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="text-align: center; padding: 16px; font-size: 10px; color: #9aa0a6;" class="no-print">
+    ✏️ Click any text to edit → Amounts auto-calculate → Print to save PDF
+  </div>
+
+  <script>
+    // ═══ AUTO-CALCULATE ENGINE ═══
+    function parseAmount(str) {
+      return parseInt(str.replace(/[₹,\s]/g, ''), 10) || 0
+    }
+
+    function formatINR(num) {
+      // Indian numbering: 1,23,456
+      const str = num.toString()
+      if (str.length <= 3) return str
+      let last3 = str.slice(-3)
+      let rest = str.slice(0, -3)
+      let formatted = ''
+      while (rest.length > 2) {
+        formatted = ',' + rest.slice(-2) + formatted
+        rest = rest.slice(0, -2)
+      }
+      formatted = rest + formatted + ',' + last3
+      return formatted
+    }
+
+    function numberToWords(num) {
+      if (num === 0) return 'Zero'
+      const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
+        'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen']
+      const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety']
+
+      function convert(n) {
+        if (n < 20) return ones[n]
+        if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 ? '-' + ones[n % 10] : '')
+        if (n < 1000) return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' and ' + convert(n % 100) : '')
+        if (n < 100000) return convert(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 ? ' ' + convert(n % 1000) : '')
+        if (n < 10000000) return convert(Math.floor(n / 100000)) + ' Lakh' + (n % 100000 ? (n % 100000 < 1000 ? ' and ' : ' ') + convert(n % 100000) : '')
+        return convert(Math.floor(n / 10000000)) + ' Crore' + (n % 10000000 ? ' ' + convert(n % 10000000) : '')
+      }
+      return convert(num)
+    }
+
+    function recalculate() {
+      const amountEls = document.querySelectorAll('[data-amount]')
+      let subtotal = 0
+
+      amountEls.forEach(el => {
+        subtotal += parseAmount(el.textContent)
+      })
+
+      const cgst = Math.round(subtotal * 0.09)
+      const sgst = Math.round(subtotal * 0.09)
+      const grand = subtotal + cgst + sgst
+
+      document.getElementById('subtotalDisplay').textContent = '₹' + formatINR(subtotal)
+      document.getElementById('cgstDisplay').textContent = '₹' + formatINR(cgst)
+      document.getElementById('sgstDisplay').textContent = '₹' + formatINR(sgst)
+      document.getElementById('grandTotalBottom').textContent = '₹' + formatINR(grand)
+      document.getElementById('grandTotalDisplay').textContent = '₹' + formatINR(grand)
+
+      // Amount in words
+      const words = numberToWords(grand)
+      document.getElementById('amountWords').textContent =
+        `Indian Rupees ${words} Only (₹${formatINR(grand)}/-)`
+
+      // Show toast
+      const toast = document.getElementById('calcToast')
+      toast.classList.add('show')
+      setTimeout(() => toast.classList.remove('show'), 2000)
+    }
+
+    // Listen for amount changes
+    document.querySelectorAll('[data-amount]').forEach(el => {
+      el.addEventListener('blur', () => {
+        // Clean up the value
+        let val = parseAmount(el.textContent)
+        el.textContent = formatINR(val)
+        recalculate()
+      })
+
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault()
+          el.blur()
+        }
+      })
+    })
+
+    // ═══ AUTO-DATE & INVOICE NUMBER ENGINE ═══
+    // Runs on page load — auto-fills current month dates & unique invoice number
+    ;(function autoFillDates() {
+      const now = new Date()
+      const months = ['January','February','March','April','May','June','July','August','September','October','November','December']
+      const monthsShort = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC']
+
+      // Current month info
+      const day = String(now.getDate()).padStart(2, '0')
+      const month = months[now.getMonth()]
+      const monthShort = monthsShort[now.getMonth()]
+      const year = now.getFullYear()
+      const mm = String(now.getMonth() + 1).padStart(2, '0')
+      const yy = String(year).slice(-2)
+
+      // Previous month info (billing start)
+      const prevDate = new Date(now)
+      prevDate.setMonth(prevDate.getMonth() - 1)
+      const prevDay = String(prevDate.getDate()).padStart(2, '0')
+      const prevMonth = months[prevDate.getMonth()]
+      const prevMonthShort = monthsShort[prevDate.getMonth()]
+      const prevYear = prevDate.getFullYear()
+
+      // Generate unique invoice number: GCP-IN-8XXXXXXX-MMYY-M
+      // Uses a seed from year+month so same month = same invoice number
+      const seed = year * 100 + now.getMonth()
+      const rand8 = String(84729361 + (seed * 7) % 9000000).slice(0, 8)
+      const invoiceNo = `GCP-IN-${rand8}-${mm}${yy}-M`
+
+      // Generate transaction ID
+      const txnSeed = seed * 13 + 42
+      const txnId = `TXN-${String(6293841057 + (txnSeed * 3) % 9000000000).slice(0, 10)}`
+
+      // Format dates
+      const invoiceDate = `${day} ${month} ${year}`
+      const stampDate = `${day} ${monthShort} ${year}`
+      const periodStart = `${prevDay} ${prevMonth} ${prevYear}`
+      const periodEnd = `${day} ${month} ${year}`
+      const receiptDate = `${day} ${monthShort.charAt(0) + monthShort.slice(1).toLowerCase()} ${year}`
+
+      // === Apply to all date/invoice fields ===
+      const editables = document.querySelectorAll('.editable[contenteditable="true"]')
+
+      editables.forEach(el => {
+        const text = el.textContent.trim()
+
+        // Invoice Number
+        if (text.startsWith('GCP-IN-')) {
+          el.textContent = invoiceNo
+        }
+        // Invoice Date (format: "09 April 2026")
+        else if (/^\d{2}\s\w+\s\d{4}$/.test(text) && el.closest('.bill-meta')) {
+          el.textContent = invoiceDate
+        }
+        // PAID stamp date (format: "09 APR 2026")
+        else if (/^\d{2}\s[A-Z]{3}\s\d{4}$/.test(text)) {
+          el.textContent = stampDate
+        }
+        // Billing period start
+        else if (/^\d{2}\s\w+\s\d{4}$/.test(text) && el.closest('.period')) {
+          // First one is start, second is end
+          const periodSpans = el.closest('.period').querySelectorAll('.editable')
+          if (el === periodSpans[0]) {
+            el.textContent = periodStart
+          } else if (el === periodSpans[1]) {
+            el.textContent = periodEnd
+          }
+        }
+        // Receipt date (format: "09 Apr 2026")
+        else if (/^\d{2}\s\w{3}\s\d{4}$/.test(text) && el.closest('.paid-receipt')) {
+          el.textContent = receiptDate
+        }
+        // Transaction ID
+        else if (text.startsWith('TXN-')) {
+          el.textContent = txnId
+        }
+      })
+
+      // Update toolbar title with current month
+      const toolbarTitle = document.querySelector('.toolbar-left h3')
+      if (toolbarTitle) {
+        toolbarTitle.innerHTML = `📄 GCP Bill Generator — ${month} ${year}`
+      }
+
+      console.log(`📅 Auto-filled: ${invoiceNo} | Period: ${periodStart} — ${periodEnd}`)
+    })()
+  </script>
+
+</body>
+</html>

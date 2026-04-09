@@ -69,6 +69,25 @@ export default function Auth() {
     }
   }, [resendTimer])
 
+  // 🔄 Auto-poll for email verification (every 3 seconds when on verify screen)
+  useEffect(() => {
+    if (step !== 'verify-email') return
+    const interval = setInterval(async () => {
+      try {
+        const user = auth.currentUser
+        if (user) {
+          await user.reload()
+          if (user.emailVerified) {
+            clearInterval(interval)
+            setUser(user.email!.toLowerCase())
+            navigate('/dashboard', true)
+          }
+        }
+      } catch { /* silent */ }
+    }, 3000)
+    return () => clearInterval(interval)
+  }, [step])
+
   // 🔐 Check all password rules pass
   const allPasswordRulesPass = passwordRules.every(rule => rule.test(password))
 
@@ -80,7 +99,7 @@ export default function Auth() {
       const user = auth.currentUser
       if (user) {
         await sendEmailVerification(user)
-        setSuccess("Verification email sent again! Check inbox & spam folder.")
+        setSuccess("Verification email sent again! Check your inbox.")
         setResendTimer(60)
       }
     } catch (err: any) {
@@ -109,7 +128,7 @@ export default function Auth() {
         navigate("/dashboard", true)
         return
       } else {
-        setError("Email not verified yet. Please check your inbox & spam folder.")
+        setError("Email not verified yet. Please check your inbox and click the verification link.")
       }
     } catch (err: any) {
       setError("Error checking verification. Try again.")
@@ -403,9 +422,10 @@ export default function Auth() {
             </p>
             <p className="text-cyan-400 font-semibold">{email}</p>
 
-            <div className="bg-amber-500/10 border border-amber-400/20 rounded-xl p-4 text-sm">
-              <p className="text-amber-300">📌 Check your <b>inbox</b> and <b>spam/junk</b> folder</p>
-              <p className="text-amber-300 mt-1">Click the verification link in the email</p>
+            <div className="bg-green-500/10 border border-green-400/20 rounded-xl p-4 text-sm">
+              <p className="text-green-300">📬 Check your <b>inbox</b> for verification email</p>
+              <p className="text-green-300/70 mt-1">From: <b>Bharos Exchange</b> — Click the link to verify</p>
+              <p className="text-cyan-400/50 text-[10px] mt-2 animate-pulse">⟳ Auto-detecting verification...</p>
             </div>
 
             {error && <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg p-2">{error}</p>}

@@ -223,6 +223,15 @@ export const runFullActivation = async (userEmail: string) => {
 
     if (!userData) return
 
+    // 🔒 DUPLICATE PROTECTION: Skip if commissions already paid
+    if (userData.commissionsPaid) {
+      console.log(`🔒 Commissions already distributed for ${userEmail} — skipping`)
+      return
+    }
+
+    // Mark commissions as paid BEFORE distributing (prevents race condition)
+    await updateDoc(doc(db, "users", userEmail), { commissionsPaid: true })
+
     // 🔥 COMMISSION SYSTEM (12 LEVELS)
     await distributeReferral(userData, allUsers)
 

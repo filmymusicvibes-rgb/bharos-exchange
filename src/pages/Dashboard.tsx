@@ -1,5 +1,5 @@
 import { getUser } from "../lib/session"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { navigate } from "@/lib/router"
 import { db } from "../lib/firebase"
 import { doc, getDoc, updateDoc, addDoc, collection, getDocs, query, where, orderBy, limit, increment } from "firebase/firestore"
@@ -15,6 +15,7 @@ import BRSPriceCard from "../components/BRSPriceCard"
 import { QRCodeSVG } from 'qrcode.react'
 import UserBadgeCard from "../components/UserBadgeCard"
 import AnnouncementBanner from "../components/AnnouncementBanner"
+import { logTransaction, runFullActivation } from "../lib/commission"
 
 export default function Dashboard() {
 
@@ -51,8 +52,13 @@ export default function Dashboard() {
   const [claimedAirdrops, setClaimedAirdrops] = useState<Record<string, boolean>>({})
   const [claimingId, setClaimingId] = useState<string | null>(null)
   const [justClaimedId, setJustClaimedId] = useState<string | null>(null)
+
+  // BOT EARN STATES
+  const [botEarnData, setBotEarnData] = useState<any>(null)
+  const [botEarnEnabled, setBotEarnEnabled] = useState(false)
   
   const email = getUser()
+  const healAttemptedRef = useRef(false)
 
 
 
@@ -148,6 +154,32 @@ export default function Dashboard() {
     loadAirdrops()
   }, [])
 
+  // LOAD BOT EARNINGS
+  useEffect(() => {
+    const loadBotEarnings = async () => {
+      const email = getUser()
+      if (!email) return
+      try {
+        // Check if bot earn is enabled
+        const configSnap = await getDoc(doc(db, "botConfig", "settings"))
+        if (configSnap.exists()) {
+          setBotEarnEnabled(configSnap.data()?.botEarnEnabled || false)
+        }
+
+        // Find bot earnings linked to this email
+        const earningsSnap = await getDocs(
+          query(collection(db, "botEarnings"), where("linkedEmail", "==", email), limit(1))
+        )
+        if (!earningsSnap.empty) {
+          setBotEarnData(earningsSnap.docs[0].data())
+        }
+      } catch (err) {
+        console.log("Bot earnings load:", err)
+      }
+    }
+    loadBotEarnings()
+  }, [])
+
   useEffect(() => {
 
     const loadUser = async () => {
@@ -164,6 +196,43 @@ export default function Dashboard() {
 
         // ✅ STATUS
         setStatus(data.status || "pending")
+
+        // 🔄 SELF-HEALING: If deposit exists but user not active, auto-complete activation (runs once)
+        if (data.status !== "active" && !healAttemptedRef.current) {
+          healAttemptedRef.current = true
+          try {
+            const depositsSnap = await getDocs(collection(db, "deposits"))
+            const myDeposit = depositsSnap.docs.find((d: any) => {
+              const dd = d.data()
+              return dd.userId === email && (dd.status === "verified" || dd.status === "approved") && dd.amount >= 12
+            })
+
+            if (myDeposit) {
+              console.log("🔄 Self-healing: Deposit found but user not active. Auto-activating...")
+
+              // 🔒 Use user document flag — 100% reliable duplicate check
+              const alreadyRewarded = data.activationRewardPaid === true
+
+              if (alreadyRewarded) {
+                console.log("🔒 BRS already credited — only fixing status")
+                await updateDoc(ref, { status: "active", activatedAt: data.activatedAt || new Date() })
+              } else {
+                await updateDoc(ref, {
+                  status: "active",
+                  brsBalance: increment(150),
+                  activatedAt: new Date(),
+                  activationRewardPaid: true
+                })
+                await logTransaction(email, 150, "BRS", "Membership activation reward (auto-recovered)")
+              }
+              await runFullActivation(email)
+              setStatus("active")
+              console.log("✅ Self-healing complete!")
+            }
+          } catch (err) {
+            console.error("Self-healing error:", err)
+          }
+        }
 
         // ✅ USER NAME FROM PROFILE
         setUserName(data.fullName || "")
@@ -511,6 +580,72 @@ export default function Dashboard() {
 
           {/* 🏅 USER BADGE */}
           <UserBadgeCard brsBalance={brs} />
+
+          {/* 🤖 BOT EARNINGS CARD */}
+          <div className="relative mb-6">
+            <div className="absolute -inset-[1px] bg-gradient-to-r from-cyan-500/20 via-blue-500/15 to-purple-500/20 rounded-2xl blur-sm" />
+            <div className="relative bg-[#0d1117]/90 backdrop-blur-xl border border-cyan-500/15 rounded-2xl p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-cyan-500/20 flex items-center justify-center text-xl">🤖</div>
+                  <div>
+                    <p className="font-bold text-white text-sm">Telegram Bot Earnings</p>
+                    <p className="text-[10px] text-gray-500">Daily check-in & invite friends to earn BRS</p>
+                  </div>
+                </div>
+                {botEarnData ? (
+                  <div className="text-right">
+                    <p className="text-lg font-bold text-cyan-400">{botEarnData.totalEarned || 0}</p>
+                    <p className="text-[10px] text-gray-500">BRS earned</p>
+                  </div>
+                ) : (
+                  <div className="px-3 py-1 bg-cyan-500/10 border border-cyan-500/20 rounded-lg">
+                    <p className="text-[10px] font-bold text-cyan-400">NEW</p>
+                  </div>
+                )}
+              </div>
+
+              {botEarnData ? (
+                <div className="grid grid-cols-3 gap-3 mb-4">
+                  <div className="bg-white/[0.03] rounded-xl p-3 text-center border border-white/5">
+                    <p className="text-lg font-bold text-orange-400">
+                      {botEarnData.currentStreak || 0}{botEarnData.currentStreak >= 7 ? '🔥' : ''}
+                    </p>
+                    <p className="text-[10px] text-gray-500 mt-1">Day Streak</p>
+                  </div>
+                  <div className="bg-white/[0.03] rounded-xl p-3 text-center border border-white/5">
+                    <p className="text-lg font-bold text-green-400">{botEarnData.inviteCount || 0}</p>
+                    <p className="text-[10px] text-gray-500 mt-1">Invites</p>
+                  </div>
+                  <div className="bg-white/[0.03] rounded-xl p-3 text-center border border-white/5">
+                    <p className="text-lg font-bold text-purple-400">{botEarnData.totalCheckins || 0}</p>
+                    <p className="text-[10px] text-gray-500 mt-1">Check-ins</p>
+                  </div>
+                </div>
+              ) : null}
+
+              {botEarnData ? (
+                <div className="flex items-center gap-2 bg-green-500/5 border border-green-500/15 rounded-xl px-4 py-2.5">
+                  <span className="text-green-400 text-sm">✅</span>
+                  <p className="text-xs text-green-400 font-medium">Telegram linked — earning BRS daily!</p>
+                </div>
+              ) : (
+                <a
+                  href="https://t.me/BharosExchangeBot"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/20 rounded-xl px-4 py-3 hover:border-cyan-500/40 transition-all group"
+                >
+                  <Send className="w-4 h-4 text-cyan-400 group-hover:translate-x-0.5 transition-transform" />
+                  <div>
+                    <p className="text-sm font-bold text-white">Open Telegram Bot</p>
+                    <p className="text-[10px] text-gray-400">Start earning BRS — link with /link {email}</p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-gray-500 ml-auto group-hover:text-cyan-400 transition-colors" />
+                </a>
+              )}
+            </div>
+          </div>
 
           {/* 🏆 TRIP ACHIEVED - CONTACT FORM */}
           {tripAchieved && !tripContactSubmitted && (
@@ -1474,8 +1609,32 @@ export default function Dashboard() {
                   <p className="text-[8px] text-gray-600">Soon</p>
                 </div>
               </div>
-            </div>
           </div>
+          </div>
+
+          {/* ⏳ RESUME PAYMENT VERIFICATION BANNER */}
+          {status === "awaiting_verification" && (
+            <div className="relative mb-6">
+              <div className="absolute -inset-[1px] bg-gradient-to-r from-amber-500/30 via-orange-500/20 to-red-500/30 rounded-xl blur-sm animate-pulse" />
+              <div className="relative bg-[#0d1117]/90 backdrop-blur-xl border border-amber-500/20 rounded-xl p-5">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-2xl shrink-0">
+                    ⏳
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-amber-400">Payment Verification Pending</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5">Your payment is being verified. Click below to check status.</p>
+                  </div>
+                  <button
+                    onClick={() => { navigate("/activate"); window.scrollTo(0, 0) }}
+                    className="px-5 py-2.5 rounded-xl font-bold text-sm text-black bg-gradient-to-r from-amber-400 to-orange-500 hover:scale-105 transition-all shadow-lg shadow-amber-500/20 whitespace-nowrap"
+                  >
+                    Check Now
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
         </div>
 
