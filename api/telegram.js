@@ -343,7 +343,7 @@ async function handleCheckin(db, chatId, telegramId, username, config) {
 
   // Credit to linked account if exists
   if (data.linkedUid) {
-    await creditBRSToAccount(db, data.linkedUid, reward)
+    await creditBRSToAccount(db, data.linkedUid, reward, `Bot Daily Check-in (${teamInfo.label})`)
   }
 
   // Update distributed count
@@ -426,7 +426,7 @@ async function handleChannelJoin(db, chatId, telegramId, config) {
   })
 
   if (data.linkedUid) {
-    await creditBRSToAccount(db, data.linkedUid, config.channelJoinReward)
+    await creditBRSToAccount(db, data.linkedUid, config.channelJoinReward, 'Bot Channel Join Reward')
   }
 
   await db.collection('botConfig').doc('settings').update({
@@ -493,7 +493,7 @@ async function processInviteReward(db, inviterId, config) {
   })
 
   if (inviterData.linkedUid) {
-    await creditBRSToAccount(db, inviterData.linkedUid, config.inviteReward)
+    await creditBRSToAccount(db, inviterData.linkedUid, config.inviteReward, 'Bot Invite Friend Reward')
   }
 
   await db.collection('botConfig').doc('settings').update({
@@ -626,7 +626,7 @@ async function handleLink(db, chatId, telegramId, email) {
 
   // Credit any un-credited earnings to the account
   if (data.totalEarned > 0 && !data.linkedUid) {
-    await creditBRSToAccount(db, uid, data.totalEarned)
+    await creditBRSToAccount(db, uid, data.totalEarned, `Bot Account Linked — ${data.totalEarned} BRS credited`)
   }
 
   await sendMessage(chatId,
@@ -639,13 +639,23 @@ async function handleLink(db, chatId, telegramId, email) {
 }
 
 // ═══════════════════════════════════════════
-// HELPER: Credit BRS to Bharos Exchange account
+// HELPER: Credit BRS to Bharos Exchange account (with transaction log!)
 // ═══════════════════════════════════════════
-async function creditBRSToAccount(db, uid, amount) {
+async function creditBRSToAccount(db, uid, amount, description = 'Bot Earn Reward') {
   try {
     const userRef = db.collection('users').doc(uid)
     await userRef.update({
       brsBalance: admin.firestore.FieldValue.increment(amount)
+    })
+
+    // Log transaction so it shows in Transaction History!
+    await db.collection('transactions').add({
+      userId: uid,
+      type: 'bot_earn',
+      currency: 'BRS',
+      amount: amount,
+      description: description,
+      timestamp: admin.firestore.FieldValue.serverTimestamp()
     })
   } catch (err) {
     console.error('Failed to credit BRS:', err)
@@ -937,6 +947,18 @@ export default async function handler(req, res) {
       } else if (textLower.includes('safe') || textLower.includes('secure') || textLower.includes('scam')) {
         await sendMessage(chatId, FAQ_DATA.security.text,
           { inline_keyboard: [[{ text: "🔙 Menu", callback_data: "menu" }]] })
+      } else if (textLower.includes('@') && textLower.includes('.') && !textLower.includes(' ')) {
+        // Smart detection: user typed just an email (probably trying to link)
+        if (!config.botEarnEnabled) {
+          await sendMessage(chatId, "🔒 *Coming soon!* 🚀",
+            { inline_keyboard: [[{ text: "🔙 Menu", callback_data: "menu" }]] }
+          )
+        } else {
+          await sendMessage(chatId,
+            `📧 *Linking account with:* ${text}\n\n_Processing..._`
+          )
+          await handleLink(db, chatId, telegramId, text.trim())
+        }
       } else {
         await sendMessage(chatId,
           "🤔 I didn't understand that.\n\n" +

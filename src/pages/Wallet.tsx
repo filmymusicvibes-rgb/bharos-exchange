@@ -241,14 +241,63 @@ export default function Wallet() {
                   </tr>
                 ))}
 
-                {transactions.map((t, i) => {
+                {transactions
+                  .sort((a: any, b: any) => {
+                    const aTime = a.timestamp?.toDate?.() || new Date(0)
+                    const bTime = b.timestamp?.toDate?.() || new Date(0)
+                    return bTime.getTime() - aTime.getTime()
+                  })
+                  .map((t: any, i: number) => {
                   const isSend = t.type === "send" || t.type === "BRS_SEND"
+                  const isBotEarn = t.type === "bot_earn"
+                  const isCommission = t.type === "commission" || t.type === "team_reward" || t.type === "matrix_bonus"
+                  const isActivation = t.type === "activation" || t.description?.includes?.("Activation")
+                  const isDailyReward = t.type === "daily_reward" || t.type === "social_earn"
+                  const isBRS = t.currency === "BRS"
+                  const isUSDT = t.currency === "USDT"
+
+                  // Determine display
+                  let typeLabel = t.description || t.type || "Transaction"
+                  let typeColor = "text-cyan-400"
+                  let amountPrefix = "+"
+                  let currencyLabel = isBRS ? "BRS" : isUSDT ? "USDT" : "BRS"
+
+                  if (isSend) {
+                    typeLabel = `BRS Send${t.description ? ` — ${t.description}` : ''}`
+                    typeColor = "text-red-400"
+                    amountPrefix = "-"
+                  } else if (t.type === "receive" || t.type === "BRS_RECEIVE") {
+                    typeLabel = "BRS Received"
+                    typeColor = "text-green-400"
+                  } else if (isBotEarn) {
+                    typeLabel = t.description || "🤖 Bot Earn"
+                    typeColor = "text-purple-400"
+                  } else if (isCommission) {
+                    typeLabel = t.description || "💰 Commission"
+                    typeColor = isUSDT ? "text-green-400" : "text-yellow-400"
+                  } else if (isActivation) {
+                    typeLabel = t.description || "🎁 Activation Reward"
+                    typeColor = "text-amber-400"
+                  } else if (isDailyReward) {
+                    typeLabel = t.description || "📅 Daily Reward"
+                    typeColor = "text-blue-400"
+                  }
+
+                  const timeStr = t.timestamp?.toDate?.()
+                    ? t.timestamp.toDate().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' })
+                    : ''
+
                   return (
                   <tr key={"t" + i} className="border-b border-gray-700/30">
-                    <td className="py-3 text-cyan-400">
-                      {isSend ? "BRS Send" : "BRS Receive"}
+                    <td className={`py-3 ${typeColor}`}>
+                      <div className="flex flex-col">
+                        <span className="text-xs">{typeLabel}</span>
+                        {timeStr && <span className="text-[10px] text-gray-500">{timeStr}</span>}
+                      </div>
                     </td>
-                    <td className="py-3">{t.amount} BRS</td>
+                    <td className={`py-3 ${isSend ? 'text-red-400' : 'text-green-400'}`}>
+                      {amountPrefix}{t.amount} {currencyLabel}
+                    </td>
                     <td className="py-3">
                       <span className="px-3 py-1 rounded-full text-xs bg-green-500/20 text-green-400">
                         Success
