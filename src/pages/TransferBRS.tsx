@@ -92,7 +92,9 @@ export default function TransferBRS() {
             await addDoc(collection(db, "transactions"), {
                 userId: senderEmail,
                 type: "BRS_SEND",
-                amount: transferAmount,
+                currency: "BRS",
+                amount: -transferAmount,
+                description: `BRS Transfer sent to ${receiverEmail}`,
                 to: receiverEmail,
                 createdAt: new Date()
             })
@@ -100,7 +102,9 @@ export default function TransferBRS() {
             await addDoc(collection(db, "transactions"), {
                 userId: receiverEmail,
                 type: "BRS_RECEIVE",
+                currency: "BRS",
                 amount: transferAmount,
+                description: `BRS Transfer received from ${senderEmail}`,
                 from: senderEmail,
                 createdAt: new Date()
             })

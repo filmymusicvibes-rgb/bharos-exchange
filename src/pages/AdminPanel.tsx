@@ -90,6 +90,12 @@ export default function AdminPanel() {
   const [auditDone, setAuditDone] = useState(false)
   const [auditFixing, setAuditFixing] = useState(false)
 
+  // USDT Audit states
+  const [usdtAuditResults, setUsdtAuditResults] = useState<any[]>([])
+  const [usdtAuditRunning, setUsdtAuditRunning] = useState(false)
+  const [usdtAuditDone, setUsdtAuditDone] = useState(false)
+  const [usdtAuditFixing, setUsdtAuditFixing] = useState(false)
+
   useEffect(() => {
     const email = getUser()
     const isAdmin = localStorage.getItem("bharos_admin")
@@ -2387,6 +2393,156 @@ export default function AdminPanel() {
                             <p className="text-[9px] text-gray-500">
                               {u.diff > 0 ? `${u.diff} extra` : `${Math.abs(u.diff)} missing`}
                             </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* 💰 USDT AUDIT TOOL — DUPLICATE SCAN */}
+          <div className="bg-[#1a1a2e] p-6 mb-6 rounded-xl border border-amber-500/20">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-amber-400">💰 USDT Duplicate Scan</h3>
+                <p className="text-[10px] text-gray-500">Scans USDT transaction history vs balance — finds duplicates & mismatches</p>
+              </div>
+              <button
+                disabled={usdtAuditRunning}
+                onClick={async () => {
+                  setUsdtAuditRunning(true)
+                  setUsdtAuditResults([])
+                  setUsdtAuditDone(false)
+                  try {
+                    // Step 1: Get ALL USDT transactions
+                    const txSnap = await getDocs(collection(db, "transactions"))
+                    const allTx = txSnap.docs.map(d => d.data())
+                    
+                    // Step 2: Group by user — sum REAL USDT earnings only
+                    const userEarnings: Record<string, { earned: number, withdrawn: number, sources: string[], txCount: number }> = {}
+                    for (const tx of allTx) {
+                      if (tx.currency !== "USDT") continue
+                      if (tx.type === "ADMIN_ADJUST") continue
+                      const email = tx.userId
+                      if (!email) continue
+                      if (!userEarnings[email]) userEarnings[email] = { earned: 0, withdrawn: 0, sources: [], txCount: 0 }
+                      
+                      const amt = tx.amount || 0
+                      if (amt < 0 || (tx.description || '').toLowerCase().includes('withdraw')) {
+                        userEarnings[email].withdrawn += Math.abs(amt)
+                      } else {
+                        userEarnings[email].earned += amt
+                      }
+                      userEarnings[email].txCount++
+                      
+                      const src = tx.description || tx.type || 'unknown'
+                      if (!userEarnings[email].sources.includes(src)) {
+                        userEarnings[email].sources.push(src)
+                      }
+                    }
+                    
+                    // Step 3: Check for duplicate commission descriptions per user
+                    const dupCheck: Record<string, Record<string, number>> = {}
+                    for (const tx of allTx) {
+                      if (tx.currency !== "USDT") continue
+                      if (tx.type === "ADMIN_ADJUST") continue
+                      const email = tx.userId
+                      const desc = tx.description || ''
+                      if (!email || !desc) continue
+                      if (!dupCheck[email]) dupCheck[email] = {}
+                      if (!dupCheck[email][desc]) dupCheck[email][desc] = 0
+                      dupCheck[email][desc]++
+                    }
+                    
+                    // Step 4: Get all users and compare
+                    const usersSnap = await getDocs(collection(db, "users"))
+                    const mismatched: any[] = []
+                    usersSnap.docs.forEach(d => {
+                      const u: any = d.data()
+                      if (u.role === 'company') return
+                      if (u.status !== 'active') return
+                      const actual = Number(u.usdtBalance || 0)
+                      const earned = Math.round((userEarnings[u.email]?.earned || 0) * 100) / 100
+                      const withdrawn = Math.round((userEarnings[u.email]?.withdrawn || 0) * 100) / 100
+                      const expectedBalance = Math.round((earned - withdrawn) * 100) / 100
+                      const diff = Math.round((actual - expectedBalance) * 100) / 100
+                      
+                      // Find duplicate transactions
+                      const dups = dupCheck[u.email] || {}
+                      const dupDescs = Object.entries(dups).filter(([_, count]) => count > 1).map(([desc, count]) => `${desc} (×${count})`)
+                      
+                      if (Math.abs(diff) > 0.01 || dupDescs.length > 0) {
+                        mismatched.push({
+                          email: u.email,
+                          name: u.fullName || '',
+                          actual,
+                          earned,
+                          withdrawn,
+                          expectedBalance,
+                          diff,
+                          txCount: userEarnings[u.email]?.txCount || 0,
+                          duplicates: dupDescs,
+                          sources: userEarnings[u.email]?.sources?.slice(0, 5).join(', ') || 'none'
+                        })
+                      }
+                    })
+                    mismatched.sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff))
+                    setUsdtAuditResults(mismatched)
+                    setUsdtAuditDone(true)
+                  } catch (err) {
+                    console.error('USDT Audit error:', err)
+                    alert('USDT Audit failed: ' + err)
+                  }
+                  setUsdtAuditRunning(false)
+                }}
+                className="px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-black rounded-lg font-bold text-sm transition-all hover:scale-105 disabled:opacity-50"
+              >
+                {usdtAuditRunning ? '⏳ Scanning USDT...' : '💰 Scan USDT Duplicates'}
+              </button>
+            </div>
+
+            {usdtAuditDone && (
+              <div>
+                {usdtAuditResults.length === 0 ? (
+                  <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4 text-center">
+                    <p className="text-green-400 font-bold">✅ All users USDT matches their transaction history! No duplicates found.</p>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-amber-400 font-bold text-sm">⚠️ {usdtAuditResults.length} users with USDT issues:</p>
+                      <div className="flex gap-2">
+                        <span className="text-[10px] text-gray-500 bg-white/5 px-2 py-1 rounded">
+                          {usdtAuditResults.filter(u => u.duplicates.length > 0).length} with duplicates
+                        </span>
+                        <span className="text-[10px] text-gray-500 bg-white/5 px-2 py-1 rounded">
+                          {usdtAuditResults.filter(u => Math.abs(u.diff) > 0.01).length} balance mismatch
+                        </span>
+                      </div>
+                    </div>
+                    <div className="max-h-[400px] overflow-y-auto space-y-2">
+                      {usdtAuditResults.map((u, i) => (
+                        <div key={i} className={`border rounded-lg p-3 ${u.duplicates.length > 0 ? 'bg-red-500/5 border-red-500/15' : u.diff > 0 ? 'bg-amber-500/5 border-amber-500/15' : 'bg-yellow-500/5 border-yellow-500/15'}`}>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-white text-sm font-medium">{u.name || u.email}</p>
+                              <p className="text-[10px] text-gray-500">{u.email} | {u.txCount} transactions</p>
+                              {u.duplicates.length > 0 && (
+                                <p className="text-[9px] text-red-400 mt-0.5">🔴 Duplicates: {u.duplicates.join(', ')}</p>
+                              )}
+                            </div>
+                            <div className="text-right">
+                              <p className="text-white text-sm">Balance: <span className="font-bold">${u.actual.toFixed(2)}</span></p>
+                              <p className="text-gray-400 text-[10px]">Earned: ${u.earned.toFixed(2)} | WD: ${u.withdrawn.toFixed(2)}</p>
+                              {Math.abs(u.diff) > 0.01 && (
+                                <p className={`text-[10px] font-bold ${u.diff > 0 ? 'text-red-400' : 'text-yellow-400'}`}>
+                                  {u.diff > 0 ? `+$${u.diff.toFixed(2)} extra` : `-$${Math.abs(u.diff).toFixed(2)} less`}
+                                </p>
+                              )}
+                            </div>
                           </div>
                         </div>
                       ))}

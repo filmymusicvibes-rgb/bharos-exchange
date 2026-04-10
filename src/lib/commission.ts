@@ -248,11 +248,30 @@ export const runFullActivation = async (userEmail: string) => {
 
     // 🏢 COMPANY DIRECT MEMBER — mark users who join under company code
     try {
-      if (userData.referredBy === COMPANY_REF_CODE && !userData.isCompanyDirect) {
-        await updateDoc(doc(db, "users", userEmail), {
-          isCompanyDirect: true,
-        })
-        console.log(`🏢 Company Direct member marked: ${userEmail}`)
+      if (userData.referredBy === COMPANY_REF_CODE) {
+        // Mark as company direct if not already
+        if (!userData.isCompanyDirect) {
+          await updateDoc(doc(db, "users", userEmail), {
+            isCompanyDirect: true,
+          })
+          console.log(`🏢 Company Direct member marked: ${userEmail}`)
+        }
+
+        // 🎁 50 BRS COMPANY DIRECT BONUS — only if not already paid
+        // Fresh check from DB to prevent race conditions
+        const freshCheck = await getDoc(doc(db, "users", userEmail))
+        const freshData: any = freshCheck.data()
+
+        if (!freshData?.companyBonusPaid) {
+          await updateDoc(doc(db, "users", userEmail), {
+            brsBalance: increment(50),
+            companyBonusPaid: true
+          })
+          await logTransaction(userEmail, 50, "BRS", "Company Direct 50 BRS welcome gift")
+          console.log(`🎁 Company Direct 50 BRS gift credited to ${userEmail}`)
+        } else {
+          console.log(`🔒 Company Direct 50 BRS already paid for ${userEmail} — SKIPPED`)
+        }
       }
     } catch (cdErr) {
       console.warn("Company Direct marking skipped:", cdErr)
