@@ -169,7 +169,45 @@ async function getBotConfig(db) {
 }
 
 // ═══════════════════════════════════════════
-// EARN: Daily Check-in
+// HELPER: Get Team Multiplier based on direct referrals
+// ═══════════════════════════════════════════
+async function getTeamMultiplier(db, linkedUid) {
+  if (!linkedUid) return { multiplier: 1, directCount: 0, label: '1x (No team)' }
+
+  try {
+    const userDoc = await db.collection('users').doc(linkedUid).get()
+    if (!userDoc.exists) return { multiplier: 1, directCount: 0, label: '1x (Base)' }
+
+    const userData = userDoc.data()
+
+    // Must be activated to earn from bot
+    if (userData.status !== 'active') {
+      return { multiplier: 0, directCount: 0, label: '❌ Not Activated', notActive: true }
+    }
+
+    const myRefCode = userData.referralCode
+    if (!myRefCode) return { multiplier: 1, directCount: 0, label: '1x (Base)' }
+
+    // Count direct referrals (Level 1 active members)
+    const directSnap = await db.collection('users')
+      .where('referredBy', '==', myRefCode)
+      .where('status', '==', 'active')
+      .get()
+    const directCount = directSnap.size
+
+    // Multiplier tiers
+    if (directCount >= 27) return { multiplier: 5, directCount, label: '5x 🏆 (27+ team)' }
+    if (directCount >= 10) return { multiplier: 3, directCount, label: '3x 🔥 (10+ team)' }
+    if (directCount >= 3)  return { multiplier: 2, directCount, label: '2x ⚡ (3+ team)' }
+    return { multiplier: 1, directCount, label: '1x (Base)' }
+  } catch (err) {
+    console.warn('Team multiplier check failed:', err.message)
+    return { multiplier: 1, directCount: 0, label: '1x (Base)' }
+  }
+}
+
+// ═══════════════════════════════════════════
+// EARN: Daily Check-in (with Team Multiplier)
 // ═══════════════════════════════════════════
 async function handleCheckin(db, chatId, telegramId, username, config) {
   const today = getTodayIST()
@@ -177,7 +215,8 @@ async function handleCheckin(db, chatId, telegramId, username, config) {
   const { ref, data } = await getUserEarnProfile(db, telegramId)
 
   if (!data) {
-    // First time user — create profile
+    // First time user — create profile with base reward
+    const baseReward = config.checkinReward
     await ref.set({
       telegramId: String(telegramId),
       username: username || '',
@@ -188,8 +227,8 @@ async function handleCheckin(db, chatId, telegramId, username, config) {
       longestStreak: 1,
       totalCheckins: 1,
       inviteCount: 0,
-      totalEarned: config.checkinReward,
-      dailyEarned: config.checkinReward,
+      totalEarned: baseReward,
+      dailyEarned: baseReward,
       lastResetDate: today,
       channelJoined: false,
       isBlocked: false,
@@ -198,15 +237,19 @@ async function handleCheckin(db, chatId, telegramId, username, config) {
 
     // Update distributed count
     await db.collection('botConfig').doc('settings').update({
-      totalDistributed: admin.firestore.FieldValue.increment(config.checkinReward)
+      totalDistributed: admin.firestore.FieldValue.increment(baseReward)
     })
 
     await sendMessage(chatId,
       "🎉 *Welcome to Bharos Earn!*\n\n" +
-      `✅ First check-in done! +${config.checkinReward} BRS earned!\n` +
+      `✅ First check-in done! +${baseReward} BRS earned!\n` +
       "🔥 Streak: Day 1\n\n" +
-      "💡 Come back daily to maintain your streak!\n" +
-      `📧 Use /link your@email.com to connect to your Bharos Exchange account.`,
+      "💡 *Tip:* Link your account & build your team for bigger rewards!\n" +
+      "🚀 *Team Multiplier:*\n" +
+      "• 3+ referrals → 2x earnings\n" +
+      "• 10+ referrals → 3x earnings\n" +
+      "• 27+ referrals → 5x earnings!\n\n" +
+      `📧 Use /link your@email.com to connect your account.`,
       { inline_keyboard: [[{ text: "🔙 Main Menu", callback_data: "menu" }]] }
     )
     return
@@ -214,22 +257,48 @@ async function handleCheckin(db, chatId, telegramId, username, config) {
 
   // Check if already checked in today
   if (data.lastCheckin === today) {
+    // Get multiplier info for display
+    const teamInfo = await getTeamMultiplier(db, data.linkedUid)
     await sendMessage(chatId,
       "⏰ *Already checked in today!*\n\n" +
       `🔥 Current streak: ${data.currentStreak} days\n` +
       `💰 Today's earnings: ${data.dailyEarned} BRS\n` +
-      `📊 Total earned: ${data.totalEarned} BRS\n\n` +
+      `📊 Total earned: ${data.totalEarned} BRS\n` +
+      `🚀 Team Boost: ${teamInfo.label}\n\n` +
       "Come back tomorrow for your next check-in! ⏳",
       { inline_keyboard: [[{ text: "🔙 Main Menu", callback_data: "menu" }]] }
     )
     return
   }
 
-  // Check daily limit
-  const dailyEarned = data.lastResetDate === today ? data.dailyEarned : 0
-  if (dailyEarned >= config.dailyMaxEarn) {
+  // 🚀 Get Team Multiplier
+  const teamInfo = await getTeamMultiplier(db, data.linkedUid)
+
+  // ❌ Not activated — show activation prompt
+  if (teamInfo.notActive && data.linkedUid) {
     await sendMessage(chatId,
-      `🧢 *Daily limit reached!* (${config.dailyMaxEarn} BRS/day)\n\nCome back tomorrow! 🌅`,
+      "🔒 *Account Not Activated!*\n\n" +
+      "You need to activate your Bharos Exchange account (12 USDT) to earn from bot!\n\n" +
+      "🎁 *Activation Benefits:*\n" +
+      "• Get 150 BRS instant reward\n" +
+      "• Unlock bot daily earnings\n" +
+      "• Earn USDT from referrals\n" +
+      "• Team multiplier unlocked!\n\n" +
+      "👉 Activate now at bharosexchange.com",
+      { inline_keyboard: [
+        [{ text: "🌐 Activate Now", url: "https://bharosexchange.com/activate" }],
+        [{ text: "🔙 Main Menu", callback_data: "menu" }]
+      ]}
+    )
+    return
+  }
+
+  // Check daily limit (multiplied cap)
+  const dailyEarned = data.lastResetDate === today ? data.dailyEarned : 0
+  const effectiveCap = config.dailyMaxEarn * teamInfo.multiplier
+  if (dailyEarned >= effectiveCap) {
+    await sendMessage(chatId,
+      `🧢 *Daily limit reached!* (${effectiveCap} BRS/day with ${teamInfo.label})\n\nCome back tomorrow! 🌅`,
       { inline_keyboard: [[{ text: "🔙 Main Menu", callback_data: "menu" }]] }
     )
     return
@@ -240,14 +309,22 @@ async function handleCheckin(db, chatId, telegramId, username, config) {
   const newStreak = isConsecutive ? data.currentStreak + 1 : 1
   const longestStreak = Math.max(newStreak, data.longestStreak || 0)
 
-  // Calculate reward
-  let reward = config.checkinReward
+  // Calculate reward with TEAM MULTIPLIER
+  let baseReward = config.checkinReward
+  let reward = baseReward * teamInfo.multiplier
   let bonusMsg = ''
 
-  // Streak bonus
+  // Streak bonus (also multiplied!)
   if (newStreak > 0 && newStreak % config.streakBonusDays === 0) {
-    reward += config.streakBonusReward
-    bonusMsg = `\n🎁 *STREAK BONUS!* +${config.streakBonusReward} BRS for ${config.streakBonusDays}-day streak!`
+    const streakBonus = config.streakBonusReward * teamInfo.multiplier
+    reward += streakBonus
+    bonusMsg = `\n🎁 *STREAK BONUS!* +${streakBonus} BRS (${config.streakBonusDays}-day streak × ${teamInfo.label})!`
+  }
+
+  // Multiplier bonus message
+  let multiplierMsg = ''
+  if (teamInfo.multiplier > 1) {
+    multiplierMsg = `\n🚀 *Team Boost:* ${baseReward} × ${teamInfo.multiplier} = ${reward} BRS (${teamInfo.directCount} direct referrals)`
   }
 
   // Update profile
@@ -259,7 +336,9 @@ async function handleCheckin(db, chatId, telegramId, username, config) {
     totalCheckins: admin.firestore.FieldValue.increment(1),
     totalEarned: admin.firestore.FieldValue.increment(reward),
     dailyEarned: newDailyEarned,
-    lastResetDate: today
+    lastResetDate: today,
+    teamMultiplier: teamInfo.multiplier,
+    teamDirectCount: teamInfo.directCount
   })
 
   // Credit to linked account if exists
@@ -274,11 +353,24 @@ async function handleCheckin(db, chatId, telegramId, username, config) {
 
   const streakEmoji = newStreak >= 7 ? '🔥🔥🔥' : newStreak >= 3 ? '🔥🔥' : '🔥'
 
+  // Build upgrade message
+  let upgradeMsg = ''
+  if (teamInfo.multiplier < 5) {
+    const nextTier = teamInfo.multiplier === 1 ? { need: 3, multi: '2x' } :
+                     teamInfo.multiplier === 2 ? { need: 10, multi: '3x' } :
+                     { need: 27, multi: '5x' }
+    upgradeMsg = `\n\n📈 *Next level:* Get ${nextTier.need} direct referrals → ${nextTier.multi} earnings!`
+  } else {
+    upgradeMsg = '\n\n🏆 *MAX MULTIPLIER ACHIEVED!* You\'re a top earner!'
+  }
+
   await sendMessage(chatId,
     `✅ *Daily Check-in Done!*\n\n` +
-    `💰 +${reward} BRS earned!${bonusMsg}\n` +
+    `💰 +${reward} BRS earned!${multiplierMsg}${bonusMsg}\n` +
     `${streakEmoji} Streak: ${newStreak} days${!isConsecutive && newStreak === 1 ? ' (reset)' : ''}\n` +
-    `📊 Total earned: ${(data.totalEarned || 0) + reward} BRS\n\n` +
+    `📊 Total earned: ${(data.totalEarned || 0) + reward} BRS\n` +
+    `🚀 Team Boost: ${teamInfo.label}` +
+    upgradeMsg + '\n\n' +
     (data.linkedUid ? '✅ BRS credited to your Bharos Exchange account!' :
       '⚠️ Link your account: /link your@email.com'),
     { inline_keyboard: [[{ text: "🔙 Main Menu", callback_data: "menu" }]] }
@@ -431,15 +523,31 @@ async function handleBalance(db, chatId, telegramId) {
     return
   }
 
+  // Get team multiplier info
+  const teamInfo = await getTeamMultiplier(db, data.linkedUid)
+
   const streakEmoji = data.currentStreak >= 7 ? '🔥🔥🔥' : data.currentStreak >= 3 ? '🔥🔥' : '🔥'
   const linkedStatus = data.linkedEmail
     ? `✅ Linked: ${data.linkedEmail}`
     : '⚠️ Not linked — use /link your@email.com'
 
+  // Build upgrade hint
+  let upgradeHint = ''
+  if (teamInfo.multiplier < 5) {
+    const nextTier = teamInfo.multiplier === 1 ? { need: 3, multi: '2x' } :
+                     teamInfo.multiplier === 2 ? { need: 10, multi: '3x' } :
+                     { need: 27, multi: '5x' }
+    upgradeHint = `\n📈 *Next:* ${nextTier.need} referrals → ${nextTier.multi} earnings!`
+  } else {
+    upgradeHint = '\n🏆 *MAX MULTIPLIER!* You\'re a top earner!'
+  }
+
   await sendMessage(chatId,
     `📊 *Your Earn Dashboard*\n\n` +
     `💰 *Total BRS Earned:* ${data.totalEarned || 0} BRS\n` +
     `📅 *Today's Earnings:* ${data.lastResetDate === getTodayIST() ? data.dailyEarned : 0} BRS\n\n` +
+    `🚀 *Team Boost:* ${teamInfo.label}\n` +
+    `👥 *Direct Referrals:* ${teamInfo.directCount}${upgradeHint}\n\n` +
     `${streakEmoji} *Streak:* ${data.currentStreak || 0} days\n` +
     `🏆 *Longest Streak:* ${data.longestStreak || 0} days\n` +
     `📋 *Total Check-ins:* ${data.totalCheckins || 0}\n` +
