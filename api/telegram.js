@@ -672,6 +672,9 @@ const MAIN_KEYBOARD = {
       { text: "📢 Join Channel", callback_data: "do_channel" }
     ],
     [
+      { text: "💎 How to Earn (Details)", callback_data: "earn_info" }
+    ],
+    [
       { text: "━━━━  ❓ Help  ━━━━", callback_data: "help_menu" }
     ],
     [
@@ -757,6 +760,41 @@ export default async function handler(req, res) {
         } else {
           await handleChannelJoin(db, chatId, telegramId, config)
         }
+      } else if (data === 'earn_info') {
+        // Show full earning structure with team multiplier
+        const earnDetails = 
+          `💎 *How to Earn BRS — Full Guide*\n\n` +
+          `━━━ 🤖 *Bot Earnings* ━━━\n\n` +
+          `✅ *Daily Check-in:* ${config.checkinReward} BRS base\n` +
+          `👥 *Invite Friend:* ${config.inviteReward} BRS each\n` +
+          `📢 *Join Channel:* ${config.channelJoinReward} BRS (one-time)\n` +
+          `🔥 *${config.streakBonusDays}-Day Streak:* +${config.streakBonusReward} BRS bonus\n\n` +
+          `━━━ 🚀 *Team Multiplier* ━━━\n` +
+          `_(Active referrals on Bharos Exchange)_\n\n` +
+          `📊 0-2 Referrals → *1x* Base\n` +
+          `⚡ 3+ Referrals → *2x* Earnings!\n` +
+          `🔥 10+ Referrals → *3x* Earnings!!\n` +
+          `🏆 27+ Referrals → *5x* Earnings!!!\n\n` +
+          `━━━ 💰 *Max Earnings Table* ━━━\n\n` +
+          `🟢 *1x Team:* ~${config.dailyMaxEarn} BRS/day | ~${config.dailyMaxEarn * 30}/month\n` +
+          `⚡ *2x Team:* ~${config.dailyMaxEarn * 2} BRS/day | ~${config.dailyMaxEarn * 2 * 30}/month\n` +
+          `🔥 *3x Team:* ~${config.dailyMaxEarn * 3} BRS/day | ~${config.dailyMaxEarn * 3 * 30}/month\n` +
+          `🏆 *5x Team:* ~${config.dailyMaxEarn * 5} BRS/day | ~${config.dailyMaxEarn * 5 * 30}/month\n\n` +
+          `━━━ 📌 *How It Works* ━━━\n\n` +
+          `1️⃣ Do /checkin daily → earn BRS\n` +
+          `2️⃣ /link your@email.com → connect account\n` +
+          `3️⃣ Build team on bharosexchange.com\n` +
+          `4️⃣ More active referrals = higher multiplier!\n\n` +
+          `⚠️ Only *activated* members (12 USDT paid) count as referrals\n` +
+          `🧢 Daily cap: ${config.dailyMaxEarn} BRS × your multiplier`
+
+        await sendMessage(chatId, earnDetails,
+          { inline_keyboard: [
+            [{ text: "✅ Start Earning", callback_data: "do_checkin" }],
+            [{ text: "📊 My Balance", callback_data: "do_balance" }],
+            [{ text: "🔙 Main Menu", callback_data: "menu" }]
+          ]}
+        )
       } else if (data === 'help_menu') {
         await sendMessage(chatId, "❓ *Help — Choose a topic:*", {
           inline_keyboard: [
