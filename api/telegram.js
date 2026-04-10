@@ -583,6 +583,28 @@ async function handleLink(db, chatId, telegramId, email) {
     return
   }
 
+  // Already linked? Show current status
+  if (data.linkedEmail) {
+    if (data.linkedEmail === email.toLowerCase().trim()) {
+      await sendMessage(chatId,
+        `✅ *Already Linked!*\n\n` +
+        `📧 Your account is already linked to: ${data.linkedEmail}\n` +
+        `🤖 All bot earnings go directly to your Bharos Exchange account!\n\n` +
+        `💰 Total earned: ${data.totalEarned || 0} BRS`,
+        { inline_keyboard: [[{ text: "📊 Check Balance", callback_data: "do_balance" }], [{ text: "🔙 Main Menu", callback_data: "menu" }]] }
+      )
+      return
+    } else {
+      await sendMessage(chatId,
+        `⚠️ *Already Linked to Different Email!*\n\n` +
+        `Your Telegram is linked to: ${data.linkedEmail}\n\n` +
+        `You cannot change the linked email.\nEach Telegram account can only be linked to one email.`,
+        { inline_keyboard: [[{ text: "🔙 Main Menu", callback_data: "menu" }]] }
+      )
+      return
+    }
+  }
+
   // Find user by email in Firestore users collection
   const usersSnap = await db.collection('users')
     .where('email', '==', email.toLowerCase().trim())
@@ -954,9 +976,6 @@ export default async function handler(req, res) {
             { inline_keyboard: [[{ text: "🔙 Menu", callback_data: "menu" }]] }
           )
         } else {
-          await sendMessage(chatId,
-            `📧 *Linking account with:* ${text}\n\n_Processing..._`
-          )
           await handleLink(db, chatId, telegramId, text.trim())
         }
       } else {
