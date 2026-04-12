@@ -821,11 +821,10 @@ export default function Dashboard() {
               <div className="absolute -inset-[1px] bg-gradient-to-br from-yellow-500/25 to-amber-500/15 rounded-2xl blur-sm group-hover:blur-md transition-all" />
               <div className="relative bg-[#0d1117]/90 backdrop-blur-xl border border-yellow-500/15 rounded-2xl p-6">
 
-                <div className="flex justify-between items-start mb-3">
+                <div className="flex justify-between items-start mb-5">
                   <div>
                     <p className="text-xs text-gray-500 mb-0.5">BRS Coin</p>
-                    <h3 className="text-2xl md:text-3xl font-bold text-white">{totalBrsEarned} <span className="text-base md:text-lg text-yellow-400">BRS</span></h3>
-                    <p className="text-[10px] text-gray-500 mt-0.5">Total Earned</p>
+                    <h3 className="text-2xl md:text-3xl font-bold text-white">{brs} <span className="text-base md:text-lg text-yellow-400">BRS</span></h3>
                   </div>
                   <div className="relative">
                     <div className="absolute -inset-2 bg-yellow-400/15 rounded-full blur-md" />
@@ -834,8 +833,8 @@ export default function Dashboard() {
                 </div>
 
                 <div className="flex items-center justify-between mb-1">
-                  <p className="text-xs text-gray-500">Present Balance</p>
-                  <p className="text-xs text-yellow-400 font-semibold">{brs} BRS</p>
+                  <p className="text-xs text-gray-500">Total Earned</p>
+                  <p className="text-xs text-yellow-400 font-semibold">{totalBrsEarned} BRS</p>
                 </div>
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-xs text-gray-500">Token Price</p>
@@ -874,11 +873,10 @@ export default function Dashboard() {
               <div className="absolute -inset-[1px] bg-gradient-to-br from-green-500/25 to-emerald-500/15 rounded-2xl blur-sm group-hover:blur-md transition-all" />
               <div className="relative bg-[#0d1117]/90 backdrop-blur-xl border border-green-500/15 rounded-2xl p-6">
 
-                <div className="flex justify-between items-start mb-3">
+                <div className="flex justify-between items-start mb-5">
                   <div>
                     <p className="text-xs text-gray-500 mb-0.5">USDT (BEP-20)</p>
-                    <h3 className="text-2xl md:text-3xl font-bold text-white">${totalUsdtEarned.toFixed(2)}</h3>
-                    <p className="text-[10px] text-gray-500 mt-0.5">Total Earned</p>
+                    <h3 className="text-2xl md:text-3xl font-bold text-white">${usdt.toFixed(2)}</h3>
                   </div>
                   <div className="relative">
                     <div className="absolute -inset-2 bg-green-400/15 rounded-full blur-md" />
@@ -887,8 +885,8 @@ export default function Dashboard() {
                 </div>
 
                 <div className="flex items-center justify-between mb-1">
-                  <p className="text-xs text-gray-500">Present Balance</p>
-                  <p className="text-xs text-green-400 font-semibold">${usdt.toFixed(2)}</p>
+                  <p className="text-xs text-gray-500">Total Earned</p>
+                  <p className="text-xs text-green-400 font-semibold">${totalUsdtEarned.toFixed(2)}</p>
                 </div>
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-xs text-gray-500">Network</p>
