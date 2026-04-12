@@ -117,25 +117,44 @@ export default function Dashboard() {
         )
         setRecentTxns(txnSnap.docs.map(d => d.data()))
 
-        // Calculate Total Earned from ALL transactions
+        // Calculate Total Earned = Current Balance + Approved Withdrawals
+        // USDT withdrawals
+        const wSnap = await getDocs(collection(db, "withdrawals"))
+        const approvedUsdtW = wSnap.docs
+          .map(d => d.data())
+          .filter((w: any) => w.userId === email && w.status === 'approved')
+        const usdtWithdrawn = approvedUsdtW.reduce((sum: number, w: any) => sum + Number(w.amount || 0), 0)
+
+        // BRS withdrawals
+        const bSnap = await getDocs(collection(db, "brs_withdrawals"))
+        const approvedBrsW = bSnap.docs
+          .map(d => d.data())
+          .filter((w: any) => w.userId === email && w.status === 'approved')
+        const brsWithdrawn = approvedBrsW.reduce((sum: number, w: any) => sum + Number(w.amount || 0), 0)
+
+        // BRS sent (transfers)
         const allTxnSnap = await getDocs(
           query(
             collection(db, "transactions"),
             where("userId", "==", email)
           )
         )
-        let brsTotal = 0
-        let usdtTotal = 0
+        let brsSent = 0
         allTxnSnap.docs.forEach(d => {
           const tx = d.data()
-          const amt = Number(tx.amount || 0)
-          if (amt > 0) {
-            if (tx.currency === "BRS") brsTotal += amt
-            if (tx.currency === "USDT") usdtTotal += amt
+          if (tx.currency === "BRS" && (tx.type === "BRS_SEND" || tx.type === "send")) {
+            brsSent += Math.abs(Number(tx.amount || 0))
           }
         })
-        setTotalBrsEarned(brsTotal)
-        setTotalUsdtEarned(usdtTotal)
+
+        // Get fresh balances from user doc for accurate calculation
+        const freshUserSnap = await getDoc(doc(db, "users", email))
+        const freshUser: any = freshUserSnap.data()
+        const currentBrs = Number(freshUser?.brsBalance || 0)
+        const currentUsdt = Number(freshUser?.usdtBalance || 0)
+
+        setTotalBrsEarned(currentBrs + brsWithdrawn + brsSent)
+        setTotalUsdtEarned(currentUsdt + usdtWithdrawn)
       } catch (err) {
         console.log("Extra data load:", err)
       }
@@ -802,10 +821,11 @@ export default function Dashboard() {
               <div className="absolute -inset-[1px] bg-gradient-to-br from-yellow-500/25 to-amber-500/15 rounded-2xl blur-sm group-hover:blur-md transition-all" />
               <div className="relative bg-[#0d1117]/90 backdrop-blur-xl border border-yellow-500/15 rounded-2xl p-6">
 
-                <div className="flex justify-between items-start mb-4">
+                <div className="flex justify-between items-start mb-3">
                   <div>
                     <p className="text-xs text-gray-500 mb-0.5">BRS Coin</p>
-                    <h3 className="text-2xl md:text-3xl font-bold text-white">{brs} <span className="text-base md:text-lg text-yellow-400">BRS</span></h3>
+                    <h3 className="text-2xl md:text-3xl font-bold text-white">{totalBrsEarned} <span className="text-base md:text-lg text-yellow-400">BRS</span></h3>
+                    <p className="text-[10px] text-gray-500 mt-0.5">Total Earned</p>
                   </div>
                   <div className="relative">
                     <div className="absolute -inset-2 bg-yellow-400/15 rounded-full blur-md" />
@@ -814,12 +834,8 @@ export default function Dashboard() {
                 </div>
 
                 <div className="flex items-center justify-between mb-1">
-                  <p className="text-xs text-gray-500">Total Earned</p>
-                  <p className="text-xs text-yellow-400 font-semibold">{totalBrsEarned} BRS</p>
-                </div>
-                <div className="flex items-center justify-between mb-1">
                   <p className="text-xs text-gray-500">Present Balance</p>
-                  <p className="text-xs text-white font-medium">{brs} BRS</p>
+                  <p className="text-xs text-yellow-400 font-semibold">{brs} BRS</p>
                 </div>
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-xs text-gray-500">Token Price</p>
@@ -858,10 +874,11 @@ export default function Dashboard() {
               <div className="absolute -inset-[1px] bg-gradient-to-br from-green-500/25 to-emerald-500/15 rounded-2xl blur-sm group-hover:blur-md transition-all" />
               <div className="relative bg-[#0d1117]/90 backdrop-blur-xl border border-green-500/15 rounded-2xl p-6">
 
-                <div className="flex justify-between items-start mb-4">
+                <div className="flex justify-between items-start mb-3">
                   <div>
                     <p className="text-xs text-gray-500 mb-0.5">USDT (BEP-20)</p>
-                    <h3 className="text-2xl md:text-3xl font-bold text-white">${usdt.toFixed(2)}</h3>
+                    <h3 className="text-2xl md:text-3xl font-bold text-white">${totalUsdtEarned.toFixed(2)}</h3>
+                    <p className="text-[10px] text-gray-500 mt-0.5">Total Earned</p>
                   </div>
                   <div className="relative">
                     <div className="absolute -inset-2 bg-green-400/15 rounded-full blur-md" />
@@ -870,12 +887,8 @@ export default function Dashboard() {
                 </div>
 
                 <div className="flex items-center justify-between mb-1">
-                  <p className="text-xs text-gray-500">Total Earned</p>
-                  <p className="text-xs text-green-400 font-semibold">${totalUsdtEarned.toFixed(2)}</p>
-                </div>
-                <div className="flex items-center justify-between mb-1">
                   <p className="text-xs text-gray-500">Present Balance</p>
-                  <p className="text-xs text-white font-medium">${usdt.toFixed(2)}</p>
+                  <p className="text-xs text-green-400 font-semibold">${usdt.toFixed(2)}</p>
                 </div>
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-xs text-gray-500">Network</p>
