@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sofviz Technologies — Business Card</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: #0a0a1a;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    @media print {
+      body { background: #fff; padding: 40px; }
+      .no-print { display: none !important; }
+      .card { box-shadow: 0 1px 4px rgba(0,0,0,0.1) !important; }
+      .editable:hover { outline: none !important; background: transparent !important; }
+      @page { margin: 10mm; }
+    }
+
+    /* TOOLBAR */
+    .toolbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 200;
+      background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 50%, #0d0d2b 100%);
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 30px rgba(0,0,0,0.5);
+      border-bottom: 1px solid rgba(99,102,241,0.3);
+    }
+    .toolbar h3 { color: #fff; font-size: 15px; font-weight: 600; }
+    .toolbar .badge {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff; font-size: 10px; font-weight: 700;
+      padding: 3px 12px; border-radius: 20px; margin-left: 12px;
+      letter-spacing: 0.8px; text-transform: uppercase;
+    }
+    .tb-btn {
+      border: none; padding: 8px 20px; border-radius: 10px;
+      font-weight: 600; font-size: 12px; cursor: pointer; font-family: inherit;
+      transition: all 0.2s; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff;
+    }
+    .tb-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(99,102,241,0.5); }
+
+    .editable {
+      cursor: text; transition: all 0.2s; border-radius: 4px; padding: 1px 4px; margin: -1px -4px;
+    }
+    .editable:hover { outline: 2px dashed rgba(255,255,255,0.4); outline-offset: 2px; }
+    .editable:focus { outline: 2px solid rgba(255,255,255,0.6); outline-offset: 2px; }
+
+    .page-title {
+      color: #fff;
+      font-size: 14px;
+      font-weight: 500;
+      margin-top: 80px;
+      margin-bottom: 8px;
+      color: #94a3b8;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .cards-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 40px;
+      margin-top: 20px;
+    }
+
+    .card-label {
+      color: #64748b;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+
+    /* ═══ BUSINESS CARD ═══ */
+    .card {
+      width: 540px; /* 3.5 x 2 inch ratio scaled */
+      height: 310px;
+      border-radius: 16px;
+      overflow: hidden;
+      position: relative;
+      box-shadow:
+        0 8px 40px rgba(0,0,0,0.4),
+        0 0 60px rgba(99,102,241,0.15);
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow:
+        0 16px 60px rgba(0,0,0,0.5),
+        0 0 80px rgba(99,102,241,0.2);
+    }
+
+    /* ═══ FRONT SIDE ═══ */
+    .card-front {
+      background: linear-gradient(145deg, #0f0e2e 0%, #1a1849 30%, #252369 60%, #1e1b4b 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 32px 36px;
+    }
+
+    .card-front::before {
+      content: '';
+      position: absolute;
+      top: -40%;
+      right: -20%;
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .card-front::after {
+      content: '';
+      position: absolute;
+      bottom: -30%;
+      left: -10%;
+      width: 250px;
+      height: 250px;
+      background: radial-gradient(circle, rgba(139,92,246,0.1) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* Top section */
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      position: relative;
+      z-index: 2;
+    }
+
+    .card-person {}
+    .card-person .name {
+      font-size: 22px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.5px;
+      line-height: 1.2;
+    }
+    .card-person .title {
+      font-size: 11px;
+      color: #a5b4fc;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      margin-top: 4px;
+    }
+
+    .card-logo-mini {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 800;
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(99,102,241,0.4);
+      flex-shrink: 0;
+    }
+
+    /* Divider */
+    .card-divider {
+      width: 40px;
+      height: 3px;
+      background: linear-gradient(90deg, #6366f1, #8b5cf6);
+      border-radius: 2px;
+      margin: 0;
+      position: relative;
+      z-index: 2;
+    }
+
+    /* Bottom section */
+    .card-bottom {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .card-detail {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-detail .icon {
+      width: 28px;
+      height: 28px;
+      background: rgba(99,102,241,0.15);
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+    .card-detail .text {
+      font-size: 10px;
+      color: #c7d2fe;
+      line-height: 1.4;
+    }
+    .card-detail .text strong {
+      color: #e0e7ff;
+      font-weight: 600;
+      display: block;
+      font-size: 10.5px;
+    }
+
+    /* Decorative corner */
+    .corner-accent {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 80px;
+      height: 80px;
+      overflow: hidden;
+    }
+    .corner-accent::before {
+      content: '';
+      position: absolute;
+      top: -40px;
+      right: -40px;
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.1));
+      border-radius: 50%;
+    }
+
+    /* ═══ BACK SIDE ═══ */
+    .card-back {
+      background: linear-gradient(145deg, #fff 0%, #f8fafc 50%, #f1f5f9 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 36px;
+      position: relative;
+    }
+
+    .card-back::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 5px;
+      background: linear-gradient(90deg, #6366f1, #8b5cf6, #a78bfa);
+    }
+
+    .back-logo {
+      width: 72px;
+      height: 72px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 30px;
+      font-weight: 900;
+      color: #fff;
+      letter-spacing: -2px;
+      box-shadow: 0 8px 30px rgba(99,102,241,0.3);
+      margin-bottom: 16px;
+    }
+
+    .back-company {
+      font-size: 24px;
+      font-weight: 800;
+      color: #1e1b4b;
+      letter-spacing: -0.8px;
+    }
+    .back-tagline {
+      font-size: 10px;
+      color: #6366f1;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-top: 6px;
+    }
+    .back-url {
+      margin-top: 16px;
+      font-size: 12px;
+      color: #64748b;
+      font-weight: 500;
+    }
+    .back-url strong { color: #6366f1; }
+
+    .back-services {
+      margin-top: 16px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .service-tag {
+      background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+      color: #4338ca;
+      font-size: 9px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 6px;
+      letter-spacing: 0.3px;
+    }
+
+    /* QR placeholder */
+    .qr-placeholder {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      width: 50px;
+      height: 50px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 7px;
+      color: #94a3b8;
+      gap: 2px;
+    }
+    .qr-placeholder .qr-icon { font-size: 16px; }
+
+    /* PRINT SHEET */
+    .print-sheet {
+      display: none;
+    }
+    @media print {
+      .cards-wrapper { gap: 20px; }
+      .card { box-shadow: 0 0 1px rgba(0,0,0,0.2) !important; }
+      .card:hover { transform: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOOLBAR -->
+  <div class="toolbar no-print">
+    <div>
+      <h3 style="display: inline;">💳 Sofviz Business Card</h3>
+      <span class="badge">✏️ Editable</span>
+    </div>
+    <button class="tb-btn" onclick="window.print()">🖨️ Print / Save PDF</button>
+  </div>
+
+  <div class="page-title no-print">Business Card Preview</div>
+
+  <div class="cards-wrapper">
+
+    <!-- FRONT -->
+    <div>
+      <div class="card-label no-print">— Front Side —</div>
+      <div class="card card-front" contenteditable="true">
+        <div class="corner-accent"></div>
+
+        <div class="card-top">
+          <div class="card-person">
+            <div class="name editable" contenteditable="true">Suresh Arika</div>
+            <div class="title editable" contenteditable="true">Founder & CEO</div>
+          </div>
+          <div class="card-logo-mini">SV</div>
+        </div>
+
+        <div class="card-divider"></div>
+
+        <div class="card-bottom">
+          <div class="card-detail">
+            <div class="icon">📱</div>
+            <div class="text editable" contenteditable="true">
+              <strong>+91 XXXXX XXXXX</strong>
+              Phone / WhatsApp
+            </div>
+          </div>
+          <div class="card-detail">
+            <div class="icon">📧</div>
+            <div class="text editable" contenteditable="true">
+              <strong>suresh.arika@sofviz.live</strong>
+              Email
+            </div>
+          </div>
+          <div class="card-detail">
+            <div class="icon">🌐</div>
+            <div class="text editable" contenteditable="true">
+              <strong>sofviz.live</strong>
+              Website
+            </div>
+          </div>
+          <div class="card-detail">
+            <div class="icon">📍</div>
+            <div class="text editable" contenteditable="true">
+              <strong>Visakhapatnam</strong>
+              Andhra Pradesh, India
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BACK -->
+    <div>
+      <div class="card-label no-print">— Back Side —</div>
+      <div class="card card-back" contenteditable="true">
+        <div class="back-logo">SV</div>
+        <div class="back-company">Sofviz Technologies</div>
+        <div class="back-tagline">Smart Solutions • Real Results</div>
+        <div class="back-url">🌐 <strong>sofviz.live</strong></div>
+
+        <div class="back-services">
+          <span class="service-tag">Web Development</span>
+          <span class="service-tag">Mobile Apps</span>
+          <span class="service-tag">UI/UX Design</span>
+          <span class="service-tag">Cloud Solutions</span>
+          <span class="service-tag">Digital Marketing</span>
+        </div>
+
+        <div class="qr-placeholder">
+          <span class="qr-icon">📱</span>
+          QR Code
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="text-align: center; padding: 30px; font-size: 10px; color: #64748b; max-width: 500px;" class="no-print">
+    ✏️ Click on any text to edit (name, phone, email, etc.) → 🖨️ Print to save as PDF<br>
+    <span style="margin-top: 6px; display: block; color: #4338ca;">💡 Tip: Standard business card size is 3.5" × 2". Take this PDF to any print shop!</span>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sofviz Technologies — Invoice</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: #0f0f1a;
+      color: #1a1a2e;
+      min-height: 100vh;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    @media print {
+      body { background: #fff; }
+      .no-print { display: none !important; }
+      .invoice-container { box-shadow: none !important; margin: 0 !important; border-radius: 0 !important; }
+      .editable:hover { outline: none !important; background: transparent !important; }
+      .edit-amount:hover { outline: none !important; background: transparent !important; }
+      @page { margin: 8mm; size: A4; }
+    }
+
+    /* ═══ TOOLBAR ═══ */
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 50%, #0d0d2b 100%);
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 30px rgba(0,0,0,0.5);
+      border-bottom: 1px solid rgba(99,102,241,0.3);
+    }
+    .toolbar-left { display: flex; align-items: center; gap: 16px; }
+    .toolbar-left h3 { color: #fff; font-size: 15px; font-weight: 600; letter-spacing: -0.3px; }
+    .toolbar-left .badge {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 12px;
+      border-radius: 20px;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+    }
+    .toolbar-right { display: flex; gap: 8px; flex-wrap: wrap; }
+    .tb-btn {
+      border: none;
+      padding: 8px 20px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 12px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tb-btn:hover { transform: translateY(-1px); }
+    .tb-btn-print { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; }
+    .tb-btn-print:hover { box-shadow: 0 4px 20px rgba(99,102,241,0.5); }
+    .tb-btn-add { background: linear-gradient(135deg, #10b981, #059669); color: #fff; }
+    .tb-btn-add:hover { box-shadow: 0 4px 20px rgba(16,185,129,0.5); }
+    .tb-btn-reset { background: #ef4444; color: #fff; }
+
+    /* HELP */
+    .help-tip {
+      background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+      border: 1px solid #c7d2fe;
+      border-radius: 12px;
+      padding: 12px 20px;
+      max-width: 900px;
+      margin: 16px auto 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      color: #4338ca;
+    }
+    .help-tip strong { color: #312e81; }
+
+    /* EDITABLE */
+    .editable {
+      cursor: text;
+      transition: all 0.2s;
+      border-radius: 4px;
+      padding: 1px 4px;
+      margin: -1px -4px;
+    }
+    .editable:hover {
+      outline: 2px dashed #6366f1;
+      outline-offset: 2px;
+      background: rgba(99,102,241,0.04);
+    }
+    .editable:focus {
+      outline: 2px solid #6366f1;
+      outline-offset: 2px;
+      background: rgba(99,102,241,0.06);
+    }
+    .edit-amount {
+      cursor: text;
+      transition: all 0.2s;
+      border-radius: 4px;
+      padding: 1px 4px;
+      margin: -1px -4px;
+    }
+    .edit-amount:hover {
+      outline: 2px dashed #10b981;
+      outline-offset: 2px;
+      background: rgba(16,185,129,0.04);
+    }
+    .edit-amount:focus {
+      outline: 2px solid #10b981;
+      outline-offset: 2px;
+      background: rgba(16,185,129,0.06);
+    }
+
+    /* ═══ INVOICE CONTAINER ═══ */
+    .invoice-container {
+      max-width: 900px;
+      margin: 24px auto;
+      background: #fff;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 4px 40px rgba(0,0,0,0.3), 0 0 80px rgba(99,102,241,0.1);
+    }
+
+    /* HEADER */
+    .inv-header {
+      padding: 40px 44px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      position: relative;
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+      border-bottom: 2px solid #e2e8f0;
+    }
+
+    .company-brand { display: flex; align-items: center; gap: 16px; }
+
+    .company-logo {
+      width: 56px;
+      height: 56px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -1px;
+      box-shadow: 0 4px 16px rgba(99,102,241,0.4);
+      position: relative;
+      overflow: hidden;
+    }
+    .company-logo::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.15) 50%, transparent 60%);
+    }
+
+    .company-info h1 {
+      font-size: 22px;
+      font-weight: 800;
+      color: #1e1b4b;
+      letter-spacing: -0.5px;
+    }
+    .company-info .tagline {
+      font-size: 11px;
+      color: #6366f1;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+    .company-info .contact {
+      font-size: 11px;
+      color: #64748b;
+      margin-top: 6px;
+      line-height: 1.7;
+    }
+
+    .inv-meta { text-align: right; }
+    .inv-meta .inv-title {
+      font-size: 32px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -1px;
+    }
+    .inv-meta .meta-row {
+      font-size: 12px;
+      color: #64748b;
+      line-height: 2;
+    }
+    .inv-meta .meta-row strong { color: #1e293b; font-weight: 600; }
+
+    /* STATUS STAMP */
+    .status-stamp {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-15deg);
+      z-index: 5;
+      pointer-events: none;
+    }
+    .stamp-inner {
+      border: 4px solid #10b981;
+      border-radius: 14px;
+      padding: 6px 32px;
+      opacity: 0.7;
+    }
+    .stamp-text {
+      font-size: 40px;
+      font-weight: 800;
+      color: #10b981;
+      letter-spacing: 10px;
+      text-transform: uppercase;
+    }
+
+    /* BILL TO / SHIP TO */
+    .inv-parties {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      padding: 28px 44px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .party-block {}
+    .party-block label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: #94a3b8;
+      font-weight: 700;
+      display: block;
+      margin-bottom: 8px;
+    }
+    .party-block p {
+      font-size: 13px;
+      color: #334155;
+      line-height: 1.8;
+    }
+    .party-block p strong { color: #0f172a; font-weight: 700; }
+
+    /* SUMMARY BAR */
+    .inv-summary {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 44px;
+      background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+      border-bottom: 1px solid #bbf7d0;
+    }
+    .inv-summary .period { font-size: 13px; color: #166534; }
+    .inv-summary .period strong { font-weight: 600; }
+    .inv-summary .total-box { text-align: right; }
+    .inv-summary .total-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #166534;
+      font-weight: 600;
+    }
+    .inv-summary .total-amount {
+      font-size: 30px;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -1px;
+      margin-top: 2px;
+    }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #dcfce7;
+      color: #166534;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 14px;
+      border-radius: 20px;
+      border: 1px solid #86efac;
+      margin-top: 6px;
+    }
+
+    /* TABLE */
+    .table-section { padding: 0 44px 28px; }
+    .section-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0f172a;
+      padding: 24px 0 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      letter-spacing: -0.3px;
+    }
+    .section-title .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #6366f1;
+    }
+
+    table { width: 100%; border-collapse: collapse; }
+
+    thead th {
+      background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #64748b;
+      font-weight: 700;
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 2px solid #cbd5e1;
+    }
+    thead th:nth-child(3) { text-align: center; }
+    thead th:nth-child(4) { text-align: right; }
+    thead th:last-child { text-align: right; }
+
+    tbody td {
+      padding: 14px 16px;
+      font-size: 13px;
+      color: #475569;
+      border-bottom: 1px solid #f1f5f9;
+      vertical-align: top;
+    }
+    tbody tr:hover { background: #fafbfc; }
+    tbody td:nth-child(3) { text-align: center; font-size: 12px; }
+    tbody td:nth-child(4) { text-align: right; font-size: 12px; }
+    tbody td:last-child {
+      text-align: right;
+      font-weight: 600;
+      color: #0f172a;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+    }
+
+    .item-name { font-weight: 600; color: #0f172a; }
+    .item-desc { font-size: 11px; color: #94a3b8; margin-top: 2px; line-height: 1.4; }
+
+    /* TOTALS */
+    .totals-section { padding: 0 44px 28px; display: flex; justify-content: flex-end; }
+    .totals-box { width: 320px; }
+    .totals-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      font-size: 13px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .totals-row .t-label { color: #64748b; }
+    .totals-row .t-value {
+      font-weight: 600;
+      color: #0f172a;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .totals-grand {
+      display: flex;
+      justify-content: space-between;
+      padding: 16px 0;
+      border-top: 3px solid #0f172a;
+      margin-top: 4px;
+    }
+    .totals-grand .t-label { font-weight: 800; color: #0f172a; font-size: 15px; }
+    .totals-grand .t-value {
+      font-weight: 800;
+      font-size: 20px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* WORDS */
+    .words-section {
+      padding: 0 44px 24px;
+      font-size: 12px;
+      color: #64748b;
+    }
+    .words-section strong { color: #0f172a; font-weight: 600; }
+
+    /* PAYMENT INFO */
+    .payment-section {
+      padding: 20px 44px;
+      background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+      border-top: 1px solid #c7d2fe;
+      border-bottom: 1px solid #c7d2fe;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    .payment-block label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #6366f1;
+      font-weight: 700;
+      display: block;
+      margin-bottom: 8px;
+    }
+    .payment-block p {
+      font-size: 12px;
+      color: #334155;
+      line-height: 1.8;
+    }
+    .payment-block p strong { color: #0f172a; }
+
+    /* TERMS */
+    .terms-section {
+      padding: 20px 44px;
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+    }
+    .terms-section h4 {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #94a3b8;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .terms-section li {
+      font-size: 11px;
+      color: #64748b;
+      line-height: 1.9;
+    }
+    .terms-section ul { padding-left: 18px; }
+
+    /* FOOTER */
+    .inv-footer {
+      padding: 24px 44px;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .footer-left p { font-size: 11px; color: #94a3b8; line-height: 1.7; }
+    .footer-right { text-align: right; }
+    .footer-right .brand {
+      font-size: 16px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .footer-right .legal { font-size: 10px; color: #94a3b8; margin-top: 2px; }
+
+    /* SIGNATURE */
+    .signature-section {
+      padding: 20px 44px 30px;
+      display: flex;
+      justify-content: flex-end;
+    }
+    .signature-box {
+      text-align: center;
+      min-width: 200px;
+    }
+    .signature-line {
+      width: 200px;
+      border-bottom: 1px solid #cbd5e1;
+      margin-bottom: 6px;
+      padding-top: 50px;
+    }
+    .signature-name { font-size: 12px; font-weight: 600; color: #0f172a; }
+    .signature-role { font-size: 10px; color: #94a3b8; margin-top: 1px; }
+
+    /* TOAST */
+    .calc-toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 8px 30px rgba(16,185,129,0.4);
+      z-index: 999;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.3s;
+      pointer-events: none;
+    }
+    .calc-toast.show { opacity: 1; transform: translateY(0); }
+  </style>
+</head>
+<body>
+
+  <!-- TOOLBAR -->
+  <div class="toolbar no-print">
+    <div class="toolbar-left">
+      <h3>📄 Sofviz Invoice Generator</h3>
+      <span class="badge">✏️ Editable</span>
+    </div>
+    <div class="toolbar-right">
+      <button class="tb-btn tb-btn-add" onclick="addRow()">➕ Add Item</button>
+      <button class="tb-btn tb-btn-print" onclick="window.print()">🖨️ Print / Save PDF</button>
+    </div>
+  </div>
+
+  <!-- HELP -->
+  <div class="help-tip no-print">
+    <span style="font-size: 18px;">💡</span>
+    <div>
+      <strong>Invoice Generator:</strong> Only <strong style="color:#6366f1;">Invoice No, Date, Client Info</strong> and
+      <strong style="color:#10b981;">Amounts</strong> are editable. Company address & payment info fixed ga untundi.
+      Click <strong>➕ Add Item</strong> to add more service rows. Print cheste borders kanipiyavu! 🎯
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="calc-toast" id="calcToast">✅ Total auto-calculated!</div>
+
+  <!-- INVOICE -->
+  <div class="invoice-container" contenteditable="true">
+
+    <!-- HEADER -->
+    <div class="inv-header">
+      <div class="company-brand">
+        <div class="company-logo">SV</div>
+        <div class="company-info">
+          <h1>Sofviz Technologies</h1>
+          <div class="tagline">Smart Solutions • Real Results</div>
+          <div class="contact">
+            📧 suresh.arika@sofviz.live &nbsp;|&nbsp; 📱 +91 XXXXX XXXXX<br>
+            🌐 sofviz.live &nbsp;|&nbsp; 📍 Visakhapatnam, Andhra Pradesh, India
+          </div>
+        </div>
+      </div>
+
+      <div class="inv-meta">
+        <div class="inv-title">INVOICE</div>
+        <div class="meta-row"><strong>Invoice No:</strong> <span class="editable" contenteditable="true" id="invoiceNo">SV-2026-0001</span></div>
+        <div class="meta-row"><strong>Invoice Date:</strong> <span class="editable" contenteditable="true" id="invoiceDate">11 April 2026</span></div>
+        <div class="meta-row"><strong>Due Date:</strong> <span class="editable" contenteditable="true" id="dueDate">25 April 2026</span></div>
+        <div class="meta-row"><strong>Currency:</strong> INR (₹)</div>
+      </div>
+
+      <!-- PAID STAMP (hidden by default, uncomment when paid) -->
+      <!--
+      <div class="status-stamp">
+        <div class="stamp-inner">
+          <div class="stamp-text">PAID</div>
+        </div>
+      </div>
+      -->
+    </div>
+
+    <!-- BILL TO -->
+    <div class="inv-parties">
+      <div class="party-block">
+        <label>Bill To</label>
+        <p class="editable" contenteditable="true">
+          <strong>Client Company Name</strong><br>
+          Client Address Line 1<br>
+          City, State — PIN Code<br>
+          GSTIN: XXXXXXXXXXXXXXX<br>
+          Contact: client@email.com
+        </p>
+      </div>
+      <div class="party-block">
+        <label>From</label>
+        <p>
+          <strong>Sofviz Technologies</strong><br>
+          <span class="editable" contenteditable="true">Visakhapatnam, Andhra Pradesh<br>
+          India — 530001</span><br>
+          GSTIN: <span class="editable" contenteditable="true">Pending</span><br>
+          PAN: <span class="editable" contenteditable="true">XXXXX0000X</span>
+        </p>
+      </div>
+    </div>
+
+    <!-- SUMMARY -->
+    <div class="inv-summary">
+      <div class="period">
+        Status: <span class="status-pill">⏳ Unpaid</span>
+      </div>
+      <div class="total-box">
+        <div class="total-label">Total Amount Due</div>
+        <div class="total-amount" id="grandTotalDisplay">₹0</div>
+      </div>
+    </div>
+
+    <!-- TABLE -->
+    <div class="table-section">
+      <div class="section-title">
+        <span class="dot"></span>
+        Service / Item Details
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 5%;">#</th>
+            <th style="width: 40%;">Description</th>
+            <th>Qty / Hours</th>
+            <th>Rate (₹)</th>
+            <th>Amount (₹)</th>
+          </tr>
+        </thead>
+        <tbody id="invoiceRows">
+          <tr>
+            <td>1</td>
+            <td>
+              <div class="item-name editable" contenteditable="true">Website Design & Development</div>
+              <div class="item-desc editable" contenteditable="true">Custom responsive website with modern UI/UX, 5 pages, mobile-optimized</div>
+            </td>
+            <td class="editable" contenteditable="true">1 Project</td>
+            <td><span class="edit-amount" contenteditable="true" data-rate>15,000</span></td>
+            <td><span class="edit-amount" contenteditable="true" data-amount>15,000</span></td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>
+              <div class="item-name editable" contenteditable="true">Domain & Hosting Setup</div>
+              <div class="item-desc editable" contenteditable="true">Domain registration (1 year) + Cloud hosting configuration</div>
+            </td>
+            <td class="editable" contenteditable="true">1 Year</td>
+            <td><span class="edit-amount" contenteditable="true" data-rate>3,000</span></td>
+            <td><span class="edit-amount" contenteditable="true" data-amount>3,000</span></td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>
+              <div class="item-name editable" contenteditable="true">SEO & Performance Optimization</div>
+              <div class="item-desc editable" contenteditable="true">On-page SEO, speed optimization, analytics integration</div>
+            </td>
+            <td class="editable" contenteditable="true">1 Package</td>
+            <td><span class="edit-amount" contenteditable="true" data-rate>2,000</span></td>
+            <td><span class="edit-amount" contenteditable="true" data-amount>2,000</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- TOTALS -->
+    <div class="totals-section">
+      <div class="totals-box">
+        <div class="totals-row">
+          <span class="t-label">Subtotal</span>
+          <span class="t-value" id="subtotalDisplay">₹20,000</span>
+        </div>
+        <div class="totals-row">
+          <span class="t-label">CGST @ 9%</span>
+          <span class="t-value" id="cgstDisplay">₹1,800</span>
+        </div>
+        <div class="totals-row">
+          <span class="t-label">SGST @ 9%</span>
+          <span class="t-value" id="sgstDisplay">₹1,800</span>
+        </div>
+        <div class="totals-grand">
+          <span class="t-label">Grand Total</span>
+          <span class="t-value" id="grandTotalBottom">₹23,600</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- WORDS -->
+    <div class="words-section">
+      <strong>Amount in Words:</strong> <span id="amountWords">Indian Rupees Twenty-Three Thousand Six Hundred Only (₹23,600/-)</span>
+    </div>
+
+    <!-- PAYMENT INFO -->
+    <div class="payment-section">
+      <div class="payment-block">
+        <label>Payment Details</label>
+        <p>
+          <strong>Bank:</strong> State Bank of India<br>
+          <strong>A/C Name:</strong> Sofviz Technologies<br>
+          <strong>A/C No:</strong> XXXXXXXXXX<br>
+          <strong>IFSC:</strong> SBIN0XXXXXX<br>
+          <strong>Branch:</strong> Visakhapatnam
+        </p>
+      </div>
+      <div class="payment-block">
+        <label>Payment Terms</label>
+        <p>
+          <strong>Due Date:</strong> Within 15 days of invoice date<br>
+          <strong>Late Fee:</strong> 2% per month after due date<br>
+          <strong>UPI:</strong> sofviz@upi<br>
+          <strong>PhonePe / GPay:</strong> +91 XXXXX XXXXX
+        </p>
+      </div>
+    </div>
+
+    <!-- SIGNATURE -->
+    <div class="signature-section">
+      <div class="signature-box">
+        <div class="signature-line"></div>
+        <div class="signature-name">Suresh Arika</div>
+        <div class="signature-role">Founder & CEO — Sofviz Technologies</div>
+      </div>
+    </div>
+
+    <!-- TERMS -->
+    <div class="terms-section">
+      <h4>Terms & Conditions</h4>
+      <ul>
+        <li>Payment is due within 15 days from the date of invoice unless otherwise agreed.</li>
+        <li>All prices are in Indian Rupees (INR) and inclusive of applicable taxes as mentioned.</li>
+        <li>Please include the invoice number as reference when making payment.</li>
+        <li>This is a computer-generated invoice and does not require a physical signature.</li>
+        <li>For queries regarding this invoice, please contact suresh.arika@sofviz.live</li>
+      </ul>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="inv-footer">
+      <div class="footer-left">
+        <p>
+          Sofviz Technologies<br>
+          Visakhapatnam, Andhra Pradesh, India<br>
+          Thank you for your business! 🙏
+        </p>
+      </div>
+      <div class="footer-right">
+        <div class="brand">Sofviz Technologies</div>
+        <div class="legal">sofviz.live • Smart Solutions, Real Results</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="text-align: center; padding: 16px; font-size: 10px; color: #64748b;" class="no-print">
+    ✏️ Click any text to edit → Amounts auto-calculate → ➕ Add rows → 🖨️ Print to save PDF
+  </div>
+
+  <script>
+    // ═══ FORMAT & CALCULATE ENGINE ═══
+    function parseAmount(str) {
+      return parseInt(str.replace(/[₹,\s]/g, ''), 10) || 0
+    }
+
+    function formatINR(num) {
+      const str = num.toString()
+      if (str.length <= 3) return str
+      let last3 = str.slice(-3), rest = str.slice(0, -3), formatted = ''
+      while (rest.length > 2) { formatted = ',' + rest.slice(-2) + formatted; rest = rest.slice(0, -2) }
+      return rest + formatted + ',' + last3
+    }
+
+    function numberToWords(num) {
+      if (num === 0) return 'Zero'
+      const ones = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen']
+      const tens = ['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety']
+      function convert(n) {
+        if (n < 20) return ones[n]
+        if (n < 100) return tens[Math.floor(n/10)] + (n%10 ? '-' + ones[n%10] : '')
+        if (n < 1000) return ones[Math.floor(n/100)] + ' Hundred' + (n%100 ? ' and ' + convert(n%100) : '')
+        if (n < 100000) return convert(Math.floor(n/1000)) + ' Thousand' + (n%1000 ? ' ' + convert(n%1000) : '')
+        if (n < 10000000) return convert(Math.floor(n/100000)) + ' Lakh' + (n%100000 ? (n%100000<1000 ? ' and ' : ' ') + convert(n%100000) : '')
+        return convert(Math.floor(n/10000000)) + ' Crore' + (n%10000000 ? ' ' + convert(n%10000000) : '')
+      }
+      return convert(num)
+    }
+
+    function recalculate() {
+      let subtotal = 0
+      document.querySelectorAll('[data-amount]').forEach(el => {
+        subtotal += parseAmount(el.textContent)
+      })
+      const cgst = Math.round(subtotal * 0.09)
+      const sgst = Math.round(subtotal * 0.09)
+      const grand = subtotal + cgst + sgst
+
+      document.getElementById('subtotalDisplay').textContent = '₹' + formatINR(subtotal)
+      document.getElementById('cgstDisplay').textContent = '₹' + formatINR(cgst)
+      document.getElementById('sgstDisplay').textContent = '₹' + formatINR(sgst)
+      document.getElementById('grandTotalBottom').textContent = '₹' + formatINR(grand)
+      document.getElementById('grandTotalDisplay').textContent = '₹' + formatINR(grand)
+      document.getElementById('amountWords').textContent =
+        `Indian Rupees ${numberToWords(grand)} Only (₹${formatINR(grand)}/-)`
+
+      const toast = document.getElementById('calcToast')
+      toast.classList.add('show')
+      setTimeout(() => toast.classList.remove('show'), 2000)
+    }
+
+    function bindAmountListeners() {
+      document.querySelectorAll('[data-amount]').forEach(el => {
+        el.removeEventListener('blur', handleBlur)
+        el.addEventListener('blur', handleBlur)
+        el.removeEventListener('keydown', handleKey)
+        el.addEventListener('keydown', handleKey)
+      })
+    }
+
+    function handleBlur(e) {
+      let val = parseAmount(e.target.textContent)
+      e.target.textContent = formatINR(val)
+      recalculate()
+    }
+
+    function handleKey(e) {
+      if (e.key === 'Enter') { e.preventDefault(); e.target.blur() }
+    }
+
+    // ═══ ADD ROW ═══
+    let rowCount = 3
+    function addRow() {
+      rowCount++
+      const tbody = document.getElementById('invoiceRows')
+      const tr = document.createElement('tr')
+      tr.innerHTML = `
+        <td>${rowCount}</td>
+        <td>
+          <div class="item-name editable" contenteditable="true">New Service Item</div>
+          <div class="item-desc editable" contenteditable="true">Description of the service</div>
+        </td>
+        <td class="editable" contenteditable="true">1</td>
+        <td><span class="edit-amount" contenteditable="true" data-rate>0</span></td>
+        <td><span class="edit-amount" contenteditable="true" data-amount>0</span></td>
+      `
+      tbody.appendChild(tr)
+      bindAmountListeners()
+    }
+
+    // ═══ AUTO DATE ═══
+    ;(function autoFill() {
+      const now = new Date()
+      const months = ['January','February','March','April','May','June','July','August','September','October','November','December']
+      const day = String(now.getDate()).padStart(2, '0')
+      const month = months[now.getMonth()]
+      const year = now.getFullYear()
+      const mm = String(now.getMonth() + 1).padStart(2, '0')
+
+      // Due date = 15 days later
+      const due = new Date(now)
+      due.setDate(due.getDate() + 15)
+      const dueDay = String(due.getDate()).padStart(2, '0')
+      const dueMonth = months[due.getMonth()]
+      const dueYear = due.getFullYear()
+
+      // Invoice number
+      const invNo = `SV-${year}-${String(now.getMonth() + 1).padStart(2, '0')}${day}`
+
+      document.getElementById('invoiceNo').textContent = invNo
+      document.getElementById('invoiceDate').textContent = `${day} ${month} ${year}`
+      document.getElementById('dueDate').textContent = `${dueDay} ${dueMonth} ${dueYear}`
+    })()
+
+    // Init
+    bindAmountListeners()
+    recalculate()
+  </script>
+
+</body>
+</html>

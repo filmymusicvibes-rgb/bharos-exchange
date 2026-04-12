@@ -24,6 +24,8 @@ export default function Dashboard() {
   const [status, setStatus] = useState("")
   const [usdt, setUsdt] = useState(0)
   const [brs, setBrs] = useState(0)
+  const [totalBrsEarned, setTotalBrsEarned] = useState(0)
+  const [totalUsdtEarned, setTotalUsdtEarned] = useState(0)
   const [days, setDays] = useState(0)
   const [rewardClaimed, setRewardClaimed] = useState(false)
   const [tripAchieved, setTripAchieved] = useState(false)
@@ -114,6 +116,26 @@ export default function Dashboard() {
           )
         )
         setRecentTxns(txnSnap.docs.map(d => d.data()))
+
+        // Calculate Total Earned from ALL transactions
+        const allTxnSnap = await getDocs(
+          query(
+            collection(db, "transactions"),
+            where("userId", "==", email)
+          )
+        )
+        let brsTotal = 0
+        let usdtTotal = 0
+        allTxnSnap.docs.forEach(d => {
+          const tx = d.data()
+          const amt = Number(tx.amount || 0)
+          if (amt > 0) {
+            if (tx.currency === "BRS") brsTotal += amt
+            if (tx.currency === "USDT") usdtTotal += amt
+          }
+        })
+        setTotalBrsEarned(brsTotal)
+        setTotalUsdtEarned(usdtTotal)
       } catch (err) {
         console.log("Extra data load:", err)
       }
@@ -780,7 +802,7 @@ export default function Dashboard() {
               <div className="absolute -inset-[1px] bg-gradient-to-br from-yellow-500/25 to-amber-500/15 rounded-2xl blur-sm group-hover:blur-md transition-all" />
               <div className="relative bg-[#0d1117]/90 backdrop-blur-xl border border-yellow-500/15 rounded-2xl p-6">
 
-                <div className="flex justify-between items-start mb-5">
+                <div className="flex justify-between items-start mb-4">
                   <div>
                     <p className="text-xs text-gray-500 mb-0.5">BRS Coin</p>
                     <h3 className="text-2xl md:text-3xl font-bold text-white">{brs} <span className="text-base md:text-lg text-yellow-400">BRS</span></h3>
@@ -791,6 +813,14 @@ export default function Dashboard() {
                   </div>
                 </div>
 
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-xs text-gray-500">Total Earned</p>
+                  <p className="text-xs text-yellow-400 font-semibold">{totalBrsEarned} BRS</p>
+                </div>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-xs text-gray-500">Present Balance</p>
+                  <p className="text-xs text-white font-medium">{brs} BRS</p>
+                </div>
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-xs text-gray-500">Token Price</p>
                   <p className="text-xs text-yellow-400 font-medium">$0.005</p>
@@ -828,7 +858,7 @@ export default function Dashboard() {
               <div className="absolute -inset-[1px] bg-gradient-to-br from-green-500/25 to-emerald-500/15 rounded-2xl blur-sm group-hover:blur-md transition-all" />
               <div className="relative bg-[#0d1117]/90 backdrop-blur-xl border border-green-500/15 rounded-2xl p-6">
 
-                <div className="flex justify-between items-start mb-5">
+                <div className="flex justify-between items-start mb-4">
                   <div>
                     <p className="text-xs text-gray-500 mb-0.5">USDT (BEP-20)</p>
                     <h3 className="text-2xl md:text-3xl font-bold text-white">${usdt.toFixed(2)}</h3>
@@ -839,6 +869,14 @@ export default function Dashboard() {
                   </div>
                 </div>
 
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-xs text-gray-500">Total Earned</p>
+                  <p className="text-xs text-green-400 font-semibold">${totalUsdtEarned.toFixed(2)}</p>
+                </div>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-xs text-gray-500">Present Balance</p>
+                  <p className="text-xs text-white font-medium">${usdt.toFixed(2)}</p>
+                </div>
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-xs text-gray-500">Network</p>
                   <p className="text-xs text-green-400 font-medium">BEP-20 (BSC)</p>

@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sofviz Technologies — Official Letterhead</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: #0f0f1a;
+      color: #1a1a2e;
+      min-height: 100vh;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    @media print {
+      body { background: #fff; }
+      .no-print { display: none !important; }
+      .letterhead { box-shadow: none !important; margin: 0 !important; border-radius: 0 !important; }
+      .editable:hover { outline: none !important; background: transparent !important; }
+      @page { margin: 0; size: A4; }
+    }
+
+    /* ═══ TOOLBAR ═══ */
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 50%, #0d0d2b 100%);
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 30px rgba(0,0,0,0.5);
+      border-bottom: 1px solid rgba(99,102,241,0.3);
+    }
+    .toolbar-left { display: flex; align-items: center; gap: 16px; }
+    .toolbar-left h3 { color: #fff; font-size: 15px; font-weight: 600; }
+    .toolbar-left .badge {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff; font-size: 10px; font-weight: 700;
+      padding: 3px 12px; border-radius: 20px; letter-spacing: 0.8px; text-transform: uppercase;
+    }
+    .tb-btn {
+      border: none; padding: 8px 20px; border-radius: 10px;
+      font-weight: 600; font-size: 12px; cursor: pointer; font-family: inherit;
+      transition: all 0.2s; display: flex; align-items: center; gap: 6px;
+    }
+    .tb-btn:hover { transform: translateY(-1px); }
+    .tb-btn-print { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; }
+
+    .help-tip {
+      background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+      border: 1px solid #c7d2fe; border-radius: 12px;
+      padding: 12px 20px; max-width: 900px; margin: 16px auto 0;
+      display: flex; align-items: center; gap: 10px; font-size: 12px; color: #4338ca;
+    }
+
+    .editable {
+      cursor: text; transition: all 0.2s; border-radius: 4px; padding: 1px 4px; margin: -1px -4px;
+    }
+    .editable:hover { outline: 2px dashed #6366f1; outline-offset: 2px; background: rgba(99,102,241,0.04); }
+    .editable:focus { outline: 2px solid #6366f1; outline-offset: 2px; background: rgba(99,102,241,0.06); }
+
+    /* ═══ LETTERHEAD ═══ */
+    .letterhead {
+      max-width: 900px;
+      margin: 24px auto;
+      background: #fff;
+      min-height: 1122px; /* A4 ratio */
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 40px rgba(0,0,0,0.3), 0 0 80px rgba(99,102,241,0.1);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* TOP GRADIENT BAR */
+    .top-bar {
+      height: 6px;
+      background: linear-gradient(90deg, #6366f1, #8b5cf6, #a78bfa, #6366f1);
+      background-size: 200% 100%;
+    }
+
+    /* HEADER */
+    .lh-header {
+      padding: 32px 48px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #e2e8f0;
+    }
+
+    .lh-brand { display: flex; align-items: center; gap: 16px; }
+
+    .lh-logo {
+      width: 52px;
+      height: 52px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -1px;
+      box-shadow: 0 4px 16px rgba(99,102,241,0.35);
+    }
+
+    .lh-company h1 {
+      font-size: 24px;
+      font-weight: 800;
+      color: #1e1b4b;
+      letter-spacing: -0.5px;
+    }
+    .lh-company .tagline {
+      font-size: 10px;
+      color: #6366f1;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    .lh-contact {
+      text-align: right;
+      font-size: 11px;
+      color: #64748b;
+      line-height: 1.9;
+    }
+    .lh-contact strong { color: #334155; font-weight: 600; }
+    .lh-contact .highlight { color: #6366f1; font-weight: 600; }
+
+    /* BODY */
+    .lh-body {
+      flex: 1;
+      padding: 40px 48px;
+    }
+
+    .lh-date {
+      text-align: right;
+      font-size: 13px;
+      color: #64748b;
+      margin-bottom: 32px;
+    }
+
+    .lh-ref {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-bottom: 24px;
+    }
+    .lh-ref strong { color: #334155; }
+
+    .lh-recipient {
+      margin-bottom: 28px;
+      font-size: 14px;
+      color: #334155;
+      line-height: 1.8;
+    }
+
+    .lh-subject {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 24px;
+      padding: 10px 16px;
+      background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+      border-left: 4px solid #6366f1;
+      border-radius: 0 8px 8px 0;
+    }
+
+    .lh-content {
+      font-size: 14px;
+      color: #334155;
+      line-height: 2;
+      min-height: 300px;
+    }
+
+    .lh-closing {
+      margin-top: 50px;
+      font-size: 14px;
+      color: #334155;
+      line-height: 2;
+    }
+
+    .lh-signature {
+      margin-top: 60px;
+    }
+    .lh-signature .sig-line {
+      width: 180px;
+      border-bottom: 1px solid #cbd5e1;
+      margin-bottom: 8px;
+    }
+    .lh-signature .sig-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .lh-signature .sig-title {
+      font-size: 12px;
+      color: #6366f1;
+      font-weight: 600;
+    }
+    .lh-signature .sig-company {
+      font-size: 11px;
+      color: #94a3b8;
+      margin-top: 1px;
+    }
+
+    /* FOOTER */
+    .lh-footer {
+      padding: 20px 48px;
+      background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+      border-top: 2px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .footer-info {
+      font-size: 10px;
+      color: #94a3b8;
+      line-height: 1.7;
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+    .footer-info .divider {
+      width: 1px;
+      height: 24px;
+      background: #e2e8f0;
+    }
+
+    .footer-brand {
+      text-align: right;
+    }
+    .footer-brand .brand-text {
+      font-size: 14px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .footer-brand .brand-url {
+      font-size: 10px;
+      color: #94a3b8;
+    }
+
+    /* BOTTOM LINE */
+    .bottom-bar {
+      height: 4px;
+      background: linear-gradient(90deg, #6366f1, #8b5cf6, #a78bfa);
+    }
+
+    /* WATERMARK */
+    .watermark {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-30deg);
+      font-size: 120px;
+      font-weight: 800;
+      color: rgba(99,102,241,0.03);
+      letter-spacing: 10px;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOOLBAR -->
+  <div class="toolbar no-print">
+    <div class="toolbar-left">
+      <h3>📝 Sofviz Letterhead</h3>
+      <span class="badge">✏️ Editable</span>
+    </div>
+    <div>
+      <button class="tb-btn tb-btn-print" onclick="window.print()">🖨️ Print / Save PDF</button>
+    </div>
+  </div>
+
+  <div class="help-tip no-print">
+    <span style="font-size: 18px;">💡</span>
+    <div>
+      <strong>Letterhead Mode:</strong> Click on any text with <strong style="color:#6366f1;">purple border</strong> to edit.
+      Replace all placeholder text with your actual content. Print to save as PDF! 📄
+    </div>
+  </div>
+
+  <!-- LETTERHEAD -->
+  <div class="letterhead" contenteditable="true">
+
+    <!-- WATERMARK -->
+    <div class="watermark">SOFVIZ</div>
+
+    <!-- TOP BAR -->
+    <div class="top-bar"></div>
+
+    <!-- HEADER -->
+    <div class="lh-header">
+      <div class="lh-brand">
+        <div class="lh-logo">SV</div>
+        <div class="lh-company">
+          <h1>Sofviz Technologies</h1>
+          <div class="tagline">Smart Solutions • Real Results</div>
+        </div>
+      </div>
+      <div class="lh-contact">
+        <strong>📧</strong> suresh.arika@sofviz.live<br>
+        <strong>📱</strong> +91 XXXXX XXXXX<br>
+        <strong>🌐</strong> <span class="highlight">sofviz.live</span><br>
+        <strong>📍</strong> Visakhapatnam, Andhra Pradesh, India
+      </div>
+    </div>
+
+    <!-- BODY -->
+    <div class="lh-body">
+      <div class="lh-date editable" contenteditable="true">
+        Date: 11 April 2026
+      </div>
+
+      <div class="lh-ref editable" contenteditable="true">
+        <strong>Ref:</strong> SV/2026/LTR-001
+      </div>
+
+      <div class="lh-recipient editable" contenteditable="true">
+        <strong>To,</strong><br>
+        Mr. / Ms. Client Name<br>
+        Company Name<br>
+        City, State<br>
+        India
+      </div>
+
+      <div class="lh-subject editable" contenteditable="true">
+        Subject: Proposal for Web Development Services
+      </div>
+
+      <div class="lh-content editable" contenteditable="true">
+        <p>Dear Sir / Madam,</p>
+        <br>
+        <p>Greetings from Sofviz Technologies!</p>
+        <br>
+        <p>We are writing to present our proposal for your upcoming web development project. As a dedicated technology company specializing in modern web solutions, mobile applications, and digital transformation, we are confident in our ability to deliver exceptional results that align with your business objectives.</p>
+        <br>
+        <p>Our team brings expertise in cutting-edge technologies including React, Node.js, Firebase, and cloud infrastructure, ensuring your project is built on a robust and scalable foundation.</p>
+        <br>
+        <p>We would be delighted to schedule a meeting to discuss your requirements in detail and present a customized solution tailored to your needs.</p>
+        <br>
+        <p>We look forward to the opportunity of working together and building a lasting professional relationship.</p>
+      </div>
+
+      <div class="lh-closing editable" contenteditable="true">
+        <p>Warm Regards,</p>
+      </div>
+
+      <div class="lh-signature">
+        <div class="sig-line"></div>
+        <div class="sig-name editable" contenteditable="true">Suresh Arika</div>
+        <div class="sig-title">Founder & CEO</div>
+        <div class="sig-company">Sofviz Technologies</div>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="lh-footer">
+      <div class="footer-info">
+        <span>📧 suresh.arika@sofviz.live</span>
+        <span class="divider"></span>
+        <span>🌐 sofviz.live</span>
+        <span class="divider"></span>
+        <span>📍 Visakhapatnam, India</span>
+      </div>
+      <div class="footer-brand">
+        <div class="brand-text">Sofviz Technologies</div>
+        <div class="brand-url">Smart Solutions • Real Results</div>
+      </div>
+    </div>
+
+    <!-- BOTTOM BAR -->
+    <div class="bottom-bar"></div>
+
+  </div>
+
+  <div style="text-align: center; padding: 16px; font-size: 10px; color: #64748b;" class="no-print">
+    ✏️ Click any text to edit → 🖨️ Print to save as PDF
+  </div>
+
+  <script>
+    // Auto-fill date
+    ;(function() {
+      const now = new Date()
+      const months = ['January','February','March','April','May','June','July','August','September','October','November','December']
+      const day = String(now.getDate()).padStart(2, '0')
+      const month = months[now.getMonth()]
+      const year = now.getFullYear()
+      const dateEl = document.querySelector('.lh-date')
+      if (dateEl) dateEl.textContent = `Date: ${day} ${month} ${year}`
+
+      const refEl = document.querySelector('.lh-ref')
+      if (refEl) refEl.innerHTML = `<strong>Ref:</strong> SV/${year}/LTR-001`
+    })()
+  </script>
+
+</body>
+</html>
