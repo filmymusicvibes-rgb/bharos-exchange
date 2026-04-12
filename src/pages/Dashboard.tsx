@@ -107,59 +107,86 @@ export default function Dashboard() {
         setRank(myRank || 0)
 
         // Recent transactions
-        const txnSnap = await getDocs(
-          query(
-            collection(db, "transactions"),
-            where("userId", "==", email),
-            orderBy("createdAt", "desc"),
-            limit(4)
+        try {
+          const txnSnap = await getDocs(
+            query(
+              collection(db, "transactions"),
+              where("userId", "==", email),
+              orderBy("createdAt", "desc"),
+              limit(4)
+            )
           )
-        )
-        setRecentTxns(txnSnap.docs.map(d => d.data()))
-
-        // Calculate Total Earned = Current Balance + Approved Withdrawals
-        // USDT withdrawals
-        const wSnap = await getDocs(collection(db, "withdrawals"))
-        const approvedUsdtW = wSnap.docs
-          .map(d => d.data())
-          .filter((w: any) => w.userId === email && w.status === 'approved')
-        const usdtWithdrawn = approvedUsdtW.reduce((sum: number, w: any) => sum + Number(w.amount || 0), 0)
-
-        // BRS withdrawals
-        const bSnap = await getDocs(collection(db, "brs_withdrawals"))
-        const approvedBrsW = bSnap.docs
-          .map(d => d.data())
-          .filter((w: any) => w.userId === email && w.status === 'approved')
-        const brsWithdrawn = approvedBrsW.reduce((sum: number, w: any) => sum + Number(w.amount || 0), 0)
-
-        // BRS sent (transfers)
-        const allTxnSnap = await getDocs(
-          query(
-            collection(db, "transactions"),
-            where("userId", "==", email)
-          )
-        )
-        let brsSent = 0
-        allTxnSnap.docs.forEach(d => {
-          const tx = d.data()
-          if (tx.currency === "BRS" && (tx.type === "BRS_SEND" || tx.type === "send")) {
-            brsSent += Math.abs(Number(tx.amount || 0))
-          }
-        })
-
-        // Get fresh balances from user doc for accurate calculation
-        const freshUserSnap = await getDoc(doc(db, "users", email))
-        const freshUser: any = freshUserSnap.data()
-        const currentBrs = Number(freshUser?.brsBalance || 0)
-        const currentUsdt = Number(freshUser?.usdtBalance || 0)
-
-        setTotalBrsEarned(currentBrs + brsWithdrawn + brsSent)
-        setTotalUsdtEarned(currentUsdt + usdtWithdrawn)
+          setRecentTxns(txnSnap.docs.map(d => d.data()))
+        } catch (txErr) {
+          console.log("Recent txns load:", txErr)
+        }
       } catch (err) {
         console.log("Extra data load:", err)
       }
     }
     loadExtras()
+  }, [])
+
+  // ✅ CALCULATE TOTAL EARNED (independent — never fails silently)
+  useEffect(() => {
+    const calcTotalEarned = async () => {
+      const email = getUser()
+      if (!email) return
+
+      try {
+        // Get current balances
+        const userSnap = await getDoc(doc(db, "users", email))
+        if (!userSnap.exists()) return
+        const userData: any = userSnap.data()
+        const currentBrs = Number(userData.brsBalance || 0)
+        const currentUsdt = Number(userData.usdtBalance || 0)
+
+        // USDT withdrawals (approved)
+        let usdtWithdrawn = 0
+        try {
+          const wSnap = await getDocs(collection(db, "withdrawals"))
+          wSnap.docs.forEach(d => {
+            const w: any = d.data()
+            if (w.userId === email && w.status === 'approved') {
+              usdtWithdrawn += Number(w.amount || 0)
+            }
+          })
+        } catch (e) { console.log("USDT withdrawals:", e) }
+
+        // BRS withdrawals (approved)
+        let brsWithdrawn = 0
+        try {
+          const bSnap = await getDocs(collection(db, "brs_withdrawals"))
+          bSnap.docs.forEach(d => {
+            const w: any = d.data()
+            if (w.userId === email && w.status === 'approved') {
+              brsWithdrawn += Number(w.amount || 0)
+            }
+          })
+        } catch (e) { console.log("BRS withdrawals:", e) }
+
+        // BRS sent via transfers
+        let brsSent = 0
+        try {
+          const txSnap = await getDocs(
+            query(collection(db, "transactions"), where("userId", "==", email))
+          )
+          txSnap.docs.forEach(d => {
+            const tx: any = d.data()
+            if (tx.currency === "BRS" && (tx.type === "BRS_SEND" || tx.type === "send")) {
+              brsSent += Math.abs(Number(tx.amount || 0))
+            }
+          })
+        } catch (e) { console.log("BRS sent:", e) }
+
+        // Total Earned = what you have + what you withdrew + what you sent
+        setTotalBrsEarned(currentBrs + brsWithdrawn + brsSent)
+        setTotalUsdtEarned(currentUsdt + usdtWithdrawn)
+      } catch (err) {
+        console.log("Total earned calc:", err)
+      }
+    }
+    calcTotalEarned()
   }, [])
 
   // LOAD AIRDROPS
