@@ -12,16 +12,16 @@ import Navbar from "../components/Navbar"
 const REQUIRED_DIRECT_ACTIVE = 10 // Need 10 direct active members to unlock
 const DAILY_CHECKIN_REWARDS = [2, 3, 5, 7, 10, 15, 25] // Day 1-7
 
-// Rebalanced: average ~5 BRS/spin (50 BRS over ~10 spins)
+// Tighter economy: avg ~2.6 BRS/spin — protects company reserve
 const SPIN_PRIZES = [
-  { label: "1 BRS", value: 1, color: "#6b7280", chance: 30 },
-  { label: "2 BRS", value: 2, color: "#3b82f6", chance: 25 },
+  { label: "1 BRS", value: 1, color: "#6b7280", chance: 35 },
+  { label: "2 BRS", value: 2, color: "#3b82f6", chance: 28 },
   { label: "3 BRS", value: 3, color: "#8b5cf6", chance: 18 },
-  { label: "5 BRS", value: 5, color: "#06b6d4", chance: 12 },
-  { label: "8 BRS", value: 8, color: "#f59e0b", chance: 7 },
-  { label: "10 BRS", value: 10, color: "#10b981", chance: 4 },
-  { label: "15 BRS", value: 15, color: "#ef4444", chance: 2.5 },
-  { label: "25 BRS", value: 25, color: "#ec4899", chance: 1.5 },
+  { label: "5 BRS", value: 5, color: "#06b6d4", chance: 10 },
+  { label: "8 BRS", value: 8, color: "#f59e0b", chance: 4.5 },
+  { label: "10 BRS", value: 10, color: "#10b981", chance: 2.5 },
+  { label: "15 BRS", value: 15, color: "#ef4444", chance: 1.2 },
+  { label: "25 BRS", value: 25, color: "#ec4899", chance: 0.8 },
 ]
 
 function getWeightedPrize(): number {
