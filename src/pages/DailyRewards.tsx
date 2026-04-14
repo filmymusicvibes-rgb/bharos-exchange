@@ -688,11 +688,11 @@ export default function DailyRewards() {
                   <div className="relative">
                     <div className="absolute -inset-[1px] bg-gradient-to-r from-yellow-500/50 to-green-500/50 rounded-2xl blur-lg animate-pulse" />
                     <div className="relative bg-[#0d1117]/95 border border-yellow-500/30 rounded-2xl p-6 text-center overflow-hidden">
-                      {/* Mini coins floating inside the card */}
+                      {/* Mini BRS coins floating inside the card */}
                       {[...Array(12)].map((_, i) => (
                         <div
                           key={`mini-coin-${i}`}
-                          className="absolute text-lg animate-coin-float pointer-events-none"
+                          className="absolute animate-coin-float pointer-events-none"
                           style={{
                             left: `${5 + Math.random() * 90}%`,
                             top: `-20px`,
@@ -700,7 +700,9 @@ export default function DailyRewards() {
                             animationDuration: `${1.5 + Math.random() * 1}s`,
                           }}
                         >
-                          🪙
+                          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-yellow-300 via-amber-400 to-yellow-600 border border-yellow-300/60 flex items-center justify-center shadow-md shadow-yellow-500/40">
+                            <span className="text-[7px] font-black text-yellow-900">BRS</span>
+                          </div>
                         </div>
                       ))}
 
@@ -712,12 +714,36 @@ export default function DailyRewards() {
                           </span>
                         </h3>
 
-                        {/* Big coin icon */}
-                        <div className="flex justify-center mb-2">
+                        {/* Premium BRS Coin */}
+                        <div className="flex justify-center mb-3">
                           <div className="relative">
-                            <div className="absolute -inset-3 bg-yellow-400/20 rounded-full blur-lg animate-pulse" />
-                            <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-yellow-400 via-amber-500 to-yellow-600 flex items-center justify-center shadow-lg shadow-yellow-500/30 animate-coin-spin-slow border-2 border-yellow-300/50">
-                              <span className="text-2xl font-black text-yellow-900">B</span>
+                            {/* Outer glow ring */}
+                            <div className="absolute -inset-4 bg-yellow-400/25 rounded-full blur-xl animate-pulse" />
+                            <div className="absolute -inset-2 bg-gradient-to-r from-yellow-400/30 via-amber-300/20 to-yellow-500/30 rounded-full blur-md" />
+                            
+                            {/* Coin body */}
+                            <div className="relative w-20 h-20 rounded-full animate-coin-spin-slow" style={{ perspective: '200px' }}>
+                              {/* Outer ribbed edge */}
+                              <div className="absolute inset-0 rounded-full border-[3px] border-yellow-500/80" 
+                                style={{ background: 'conic-gradient(from 0deg, #fbbf24, #f59e0b, #d97706, #fbbf24, #f59e0b, #d97706, #fbbf24)' }} />
+                              
+                              {/* Inner coin face */}
+                              <div className="absolute inset-[3px] rounded-full bg-gradient-to-br from-yellow-300 via-amber-400 to-yellow-600 border-2 border-yellow-300/50 flex flex-col items-center justify-center overflow-hidden">
+                                {/* Shine stripe */}
+                                <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-transparent" style={{ clipPath: 'polygon(0 0, 60% 0, 30% 100%, 0 100%)' }} />
+                                
+                                {/* Inner ring */}
+                                <div className="absolute inset-[6px] rounded-full border border-yellow-700/30" />
+                                
+                                {/* BRS Text */}
+                                <span className="text-lg font-black text-yellow-900 drop-shadow-sm relative z-10" style={{ textShadow: '0 1px 0 rgba(255,255,255,0.3)' }}>BRS</span>
+                                <div className="w-6 h-[1px] bg-yellow-700/30 -mt-0.5 mb-0.5" />
+                                <span className="text-[6px] font-bold text-yellow-800/70 tracking-widest relative z-10">COIN</span>
+                              </div>
+                              
+                              {/* Sparkle dots */}
+                              <div className="absolute top-1 right-2 w-1.5 h-1.5 bg-white/70 rounded-full animate-ping" style={{ animationDuration: '2s' }} />
+                              <div className="absolute bottom-3 left-2 w-1 h-1 bg-white/50 rounded-full animate-ping" style={{ animationDuration: '3s', animationDelay: '0.5s' }} />
                             </div>
                           </div>
                         </div>
@@ -768,12 +794,16 @@ export default function DailyRewards() {
                         animationDuration: `${2 + Math.random() * 1.5}s`,
                       }}
                     >
-                      <div className={`rounded-full bg-gradient-to-br from-yellow-400 via-amber-500 to-yellow-600 flex items-center justify-center shadow-lg shadow-yellow-500/30 border border-yellow-300/40 animate-coin-tumble ${
-                        i % 3 === 0 ? 'w-10 h-10' : i % 3 === 1 ? 'w-8 h-8' : 'w-6 h-6'
+                      <div className={`rounded-full bg-gradient-to-br from-yellow-300 via-amber-400 to-yellow-600 flex items-center justify-center shadow-lg shadow-yellow-500/40 animate-coin-tumble overflow-hidden relative ${
+                        i % 3 === 0 ? 'w-11 h-11' : i % 3 === 1 ? 'w-9 h-9' : 'w-7 h-7'
                       }`}>
-                        <span className={`font-black text-yellow-900 ${
-                          i % 3 === 0 ? 'text-base' : i % 3 === 1 ? 'text-sm' : 'text-[10px]'
-                        }`}>B</span>
+                        {/* Shine */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-transparent" style={{ clipPath: 'polygon(0 0, 55% 0, 25% 100%, 0 100%)' }} />
+                        {/* Inner ring */}
+                        <div className="absolute inset-[3px] rounded-full border border-yellow-700/20" />
+                        <span className={`font-black text-yellow-900 relative z-10 ${
+                          i % 3 === 0 ? 'text-xs' : i % 3 === 1 ? 'text-[10px]' : 'text-[7px]'
+                        }`} style={{ textShadow: '0 1px 0 rgba(255,255,255,0.3)' }}>BRS</span>
                       </div>
                     </div>
                   ))}
