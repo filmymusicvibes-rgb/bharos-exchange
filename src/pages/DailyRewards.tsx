@@ -24,11 +24,29 @@ const SPIN_PRIZES = [
   { label: "25 BRS", value: 25, color: "#ec4899", chance: 0.8 },
 ]
 
-function getWeightedPrize(): number {
-  const total = SPIN_PRIZES.reduce((sum, p) => sum + p.chance, 0)
+// ═══════════════════════════════════════════
+// SMART SPIN LOGIC
+// ═══════════════════════════════════════════
+function getSmartPrize(isFirstSpin: boolean, streak: number): number {
+  // 🎯 Strategy 1: First-time spinner → guaranteed 5 BRS (hook them!)
+  if (isFirstSpin) {
+    return 3 // index 3 = 5 BRS
+  }
+
+  // 🔥 Strategy 2: 7-day streak → boost big prizes by 15%
+  const boosted = SPIN_PRIZES.map((p, i) => {
+    if (streak >= 7 && i >= 4) {
+      // Boost 8, 10, 15, 25 BRS chances by 15% for loyal users
+      return { ...p, chance: p.chance * 1.15 }
+    }
+    return p
+  })
+
+  // Normal weighted random with possible streak boost
+  const total = boosted.reduce((sum, p) => sum + p.chance, 0)
   let rand = Math.random() * total
-  for (let i = 0; i < SPIN_PRIZES.length; i++) {
-    rand -= SPIN_PRIZES[i].chance
+  for (let i = 0; i < boosted.length; i++) {
+    rand -= boosted[i].chance
     if (rand <= 0) return i
   }
   return 0
@@ -58,6 +76,8 @@ export default function DailyRewards() {
   const [showCoinShower, setShowCoinShower] = useState(false)
   const [tickerBounce, setTickerBounce] = useState(false)
   const [lightPhase, setLightPhase] = useState(0)
+  const [isFirstSpin, setIsFirstSpin] = useState(false)
+  const [totalSpinCount, setTotalSpinCount] = useState(0)
 
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const lightIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -81,6 +101,11 @@ export default function DailyRewards() {
         const lastDate = data.lastCheckinDate || null
         const currentStreak = data.checkinStreak || 0
         const lastSpinDate = data.lastSpinDate || null
+        const spinCount = data.totalSpinCount || 0
+
+        // Track if this is the user's very first spin ever
+        setTotalSpinCount(spinCount)
+        setIsFirstSpin(spinCount === 0)
 
         setLastCheckin(lastDate)
         setStreak(currentStreak)
@@ -256,7 +281,7 @@ export default function DailyRewards() {
     setShowCoinShower(false)
     setSpinResult(null)
 
-    const prizeIndex = getWeightedPrize()
+    const prizeIndex = getSmartPrize(isFirstSpin, streak)
     const segments = SPIN_PRIZES.length
     const segmentAngle = 360 / segments
     // Offset by 90° because pointer is at top (12 o'clock) but canvas draws from right (3 o'clock)
@@ -306,14 +331,25 @@ export default function DailyRewards() {
       await updateDoc(doc(db, "users", email), {
         lastSpinDate: today,
         brsBalance: increment(prize.value),
+        totalSpinCount: increment(1),
       })
+
+      // Update local state
+      setIsFirstSpin(false)
+      setTotalSpinCount(prev => prev + 1)
+
+      const spinLabel = isFirstSpin
+        ? `🎉 First Spin Bonus — Won ${prize.value} BRS!`
+        : streak >= 7
+        ? `🔥 Streak Bonus Spin — Won ${prize.value} BRS!`
+        : `Spin the Wheel — Won ${prize.value} BRS!`
 
       await addDoc(collection(db, "transactions"), {
         userId: email,
         amount: prize.value,
         currency: "BRS",
         type: "SPIN_WIN",
-        description: `Spin the Wheel — Won ${prize.value} BRS!`,
+        description: spinLabel,
         createdAt: new Date(),
       })
 
