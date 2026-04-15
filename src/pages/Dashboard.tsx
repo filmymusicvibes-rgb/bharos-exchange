@@ -278,12 +278,17 @@ export default function Dashboard() {
             if (myDeposit) {
               console.log("🔄 Self-healing: Deposit found but user not active. Auto-activating...")
 
-              // 🔒 Use user document flag — 100% reliable duplicate check
-              const alreadyRewarded = data.activationRewardPaid === true
+              // 🔒 FRESH DB check — prevents race condition with ActivateMembership
+              const freshHealSnap = await getDoc(ref)
+              const freshHealData: any = freshHealSnap.data()
+              const alreadyRewarded = freshHealData?.activationRewardPaid === true
 
               if (alreadyRewarded) {
                 console.log("🔒 BRS already credited — only fixing status")
-                await updateDoc(ref, { status: "active", activatedAt: data.activatedAt || new Date() })
+                // Only fix status if still not active (another process may have fixed it)
+                if (freshHealData?.status !== "active") {
+                  await updateDoc(ref, { status: "active", activatedAt: freshHealData?.activatedAt || new Date() })
+                }
               } else {
                 await updateDoc(ref, {
                   status: "active",
@@ -337,15 +342,14 @@ export default function Dashboard() {
           // 🔥 AUTO-CREDIT 150 BRS after 30 days
           if (diff >= 30 && !data.brs30DayRewardPaid) {
 
+            // 🔒 FRESH DB check — prevents double credit from multiple tabs
             const freshSnap = await getDoc(ref)
             const freshData: any = freshSnap.data()
 
             if (!freshData?.brs30DayRewardPaid) {
-              const currentBrs = Number(freshData?.brsBalance || 0)
-              const newBrs = currentBrs + 150
-
+              // 🔥 Use increment() — atomic, never overwrites concurrent changes
               await updateDoc(ref, {
-                brsBalance: newBrs,
+                brsBalance: increment(150),
                 brs30DayRewardPaid: true
               })
 
@@ -358,7 +362,7 @@ export default function Dashboard() {
                 createdAt: new Date()
               })
 
-              setBrs(newBrs)
+              setBrs(prev => prev + 150)
               setRewardClaimed(true)
               console.log(`✅ 30-day reward 150 BRS credited to ${email}`)
             }
@@ -586,6 +590,16 @@ export default function Dashboard() {
                                 if (!email || isClaiming) return
                                 setClaimingId(drop.id)
                                 try {
+                                  // 🔒 FRESH DB check — prevents double claim from fast clicks/retries
+                                  const freshUserSnap = await getDoc(doc(db, "users", email))
+                                  const freshUserData: any = freshUserSnap.data()
+                                  if (freshUserData?.claimedAirdrops?.[drop.id]) {
+                                    console.log(`🔒 Airdrop ${drop.id} already claimed — SKIPPED`)
+                                    setClaimedAirdrops(prev => ({ ...prev, [drop.id]: true }))
+                                    setClaimingId(null)
+                                    return
+                                  }
+
                                   await updateDoc(doc(db, "users", email), {
                                     brsBalance: increment(drop.amount),
                                     [`claimedAirdrops.${drop.id}`]: true

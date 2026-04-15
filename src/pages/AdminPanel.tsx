@@ -234,14 +234,11 @@ export default function AdminPanel() {
         brsTxHash,
         approvedAt: serverTimestamp()
       })
-      // Deduct BRS from user balance
+      // Deduct BRS from user balance — ATOMIC increment
       const userRef = doc(db, "users", userId)
-      const userSnap = await getDoc(userRef)
-      if (userSnap.exists()) {
-        const userData: any = userSnap.data()
-        const newBalance = (userData.brsBalance || 0) - amount
-        await updateDoc(userRef, { brsBalance: Math.max(0, newBalance) })
-      }
+      await updateDoc(userRef, {
+        brsBalance: increment(-amount)
+      })
       await loadBrsWithdraws()
       alert(`✅ BRS withdrawal approved! ${amount} BRS sent.`)
     } catch (err: any) {
@@ -605,19 +602,31 @@ export default function AdminPanel() {
         status: "approved"
       })
 
-      await updateDoc(userRef, {
-        status: "active",
-        brsBalance: increment(150),
-        activatedAt: new Date(),
-        activationRewardPaid: true
-      })
+      // 🔒 CHECK if 150 BRS was already credited (by auto-activate or another process)
+      if (userData.activationRewardPaid === true) {
+        console.log(`🔒 BRS already credited for ${userEmail} — only fixing status`)
+        // Only set status to active, skip BRS credit
+        if (userData.status !== "active") {
+          await updateDoc(userRef, {
+            status: "active",
+            activatedAt: userData.activatedAt || new Date()
+          })
+        }
+      } else {
+        await updateDoc(userRef, {
+          status: "active",
+          brsBalance: increment(150),
+          activatedAt: new Date(),
+          activationRewardPaid: true
+        })
 
-      await logTransaction(
-        userEmail,
-        150,
-        "BRS",
-        "Membership activation reward"
-      )
+        await logTransaction(
+          userEmail,
+          150,
+          "BRS",
+          "Membership activation reward"
+        )
+      }
 
       // ⚡ Immediate UI update
       loadDeposits()

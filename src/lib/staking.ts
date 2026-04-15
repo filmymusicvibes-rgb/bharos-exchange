@@ -1,6 +1,6 @@
 // BRS Staking Logic — Firestore-based
 import { db } from "./firebase"
-import { doc, getDoc, updateDoc, addDoc, collection, query, where, getDocs, Timestamp } from "firebase/firestore"
+import { doc, getDoc, updateDoc, addDoc, collection, query, where, getDocs, Timestamp, increment } from "firebase/firestore"
 
 export interface StakePlan {
   id: string
@@ -73,10 +73,10 @@ export async function createStake(email: string, amount: number, plan: StakePlan
     const now = new Date()
     const unlockDate = new Date(now.getTime() + plan.lockDays * 24 * 60 * 60 * 1000)
 
-    // Deduct BRS from balance
+    // Deduct BRS from balance — ATOMIC to prevent overwrites
     await updateDoc(userRef, {
-      brsBalance: currentBrs - amount,
-      brsStaked: (userData.brsStaked || 0) + amount,
+      brsBalance: increment(-amount),
+      brsStaked: increment(amount),
     })
 
     // Create stake record
@@ -135,9 +135,10 @@ export async function withdrawStake(stakeId: string, email: string): Promise<boo
 
     const userData: any = userSnap.data()
 
+    // Return BRS to balance — ATOMIC to prevent overwrites
     await updateDoc(userRef, {
-      brsBalance: (userData.brsBalance || 0) + totalReturn,
-      brsStaked: Math.max(0, (userData.brsStaked || 0) - stake.amount),
+      brsBalance: increment(totalReturn),
+      brsStaked: increment(-stake.amount),
     })
 
     await updateDoc(stakeRef, {
