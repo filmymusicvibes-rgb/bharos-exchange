@@ -408,24 +408,37 @@ export default function AdminPanel() {
         let brsTxBreakdown: Record<string, number> = {}
         let brsTxAdmin: Record<string, number> = {}
         let brsTxLegitTotal = 0
+        let brsTxDetailList: { desc: string, amount: number, date: any, type: string }[] = []
         try {
           const txSnap = await getDocs(collection(db, "transactions"))
           const userTxs = txSnap.docs.map(d => d.data()).filter((t: any) => t.userId === email.trim().toLowerCase() && t.currency === 'BRS')
           for (const tx of userTxs) {
             const desc = tx.description || tx.type || 'Unknown'
+            const txType = tx.type || ''
             let category = 'Other'
             let isAdmin = false
-            if (desc.includes('Activation') || desc.includes('activation') || desc.includes('150 BRS')) category = '🎯 Activation (150)'
+
+            // Match by type FIRST (more reliable), then by description keywords
+            if (txType === 'DAILY_CHECKIN') category = '📅 Daily Check-in'
+            else if (txType === 'SPIN_WIN') category = '🎰 Spin the Wheel'
+            else if (txType === 'SOCIAL_EARN') category = '📱 Social Earn'
+            else if (txType === 'AIRDROP') category = '🎁 Airdrop Claim'
+            else if (txType === 'BRS_SEND' || txType === 'send') category = '💸 BRS Sent'
+            else if (txType === 'BRS_RECEIVE' && (desc.includes('30-day') || desc.includes('30 day'))) category = '📅 30-Day Bonus'
+            else if (txType === 'BRS_RECEIVE') category = '📥 BRS Received'
+            else if (txType === 'ADMIN_AUDIT_FIX') { category = '🔧 Audit Fix'; isAdmin = true }
+            else if (txType === 'ADMIN_AUDIT_UNDO') { category = '⏪ Audit Undo'; isAdmin = true }
+            else if (txType === 'ADMIN_TX_SYNC') { category = '🔄 TX Sync'; isAdmin = true }
+            else if (txType === 'ADMIN_ADJUST') { category = '🪙 Admin Adjust'; isAdmin = true }
+            else if (desc.includes('Activation') || desc.includes('activation') || desc.includes('Membership activation')) category = '🎯 Activation (150)'
             else if (desc.includes('Social') || desc.includes('social') || desc.includes('Follow')) category = '📱 Social Earn'
             else if (desc.includes('Airdrop') || desc.includes('airdrop')) category = '🎁 Airdrop Claim'
             else if (desc.includes('Company') || desc.includes('company') || desc.includes('direct bonus')) category = '🏢 Company Direct Bonus'
-            else if (desc.includes('30-day') || desc.includes('30 day') || desc.includes('bonus')) category = '📅 30-Day Bonus'
-            else if (desc.includes('Daily') || desc.includes('daily') || desc.includes('spin')) category = '🎰 Daily Reward'
-            else if (desc.includes('Transfer') || desc.includes('transfer')) category = '💸 BRS Transfer'
-            else if (tx.type === 'ADMIN_AUDIT_FIX') { category = '🔧 Audit Fix'; isAdmin = true }
-            else if (tx.type === 'ADMIN_AUDIT_UNDO') { category = '⏪ Audit Undo'; isAdmin = true }
-            else if (tx.type === 'ADMIN_TX_SYNC') { category = '🔄 TX Sync'; isAdmin = true }
-            else if (tx.type === 'ADMIN_ADJUST') { category = '🪙 Admin Adjust'; isAdmin = true }
+            else if (desc.includes('30-day') || desc.includes('30 day')) category = '📅 30-Day Bonus'
+            else if (desc.includes('check-in') || desc.includes('checkin') || desc.includes('Check In')) category = '📅 Daily Check-in'
+            else if (desc.includes('Spin') || desc.includes('spin') || desc.includes('Won')) category = '🎰 Spin the Wheel'
+            else if (desc.includes('Daily') || desc.includes('daily')) category = '📅 Daily Check-in'
+            else if (desc.includes('Transfer') || desc.includes('transfer') || desc.includes('sent to') || desc.includes('received from')) category = '💸 BRS Transfer'
             else category = `📋 ${desc.substring(0, 30)}`
             
             if (isAdmin) {
@@ -436,7 +449,21 @@ export default function AdminPanel() {
               brsTxBreakdown[category] += (tx.amount || 0)
               brsTxLegitTotal += (tx.amount || 0)
             }
+
+            // Save individual transaction for detailed view
+            brsTxDetailList.push({
+              desc,
+              amount: tx.amount || 0,
+              date: tx.createdAt,
+              type: txType
+            })
           }
+          // Sort by date (newest first)
+          brsTxDetailList.sort((a, b) => {
+            const tA = a.date?.seconds || 0
+            const tB = b.date?.seconds || 0
+            return tB - tA
+          })
         } catch (e) { console.log('BRS tx fetch:', e) }
 
         // 💰 Fetch USDT transaction breakdown
@@ -470,6 +497,7 @@ export default function AdminPanel() {
           brsTxBreakdown,
           brsTxAdmin,
           brsTxTotal: Math.round(brsTxLegitTotal),
+          brsTxDetailList,
           usdtTxBreakdown,
           usdtTxTotal: Math.round(usdtTxTotal * 100) / 100
         })
@@ -2053,6 +2081,35 @@ export default function AdminPanel() {
                     </div>
                   </details>
                 )}
+              </div>
+
+              {/* 📜 FULL BRS TRANSACTION HISTORY — Collapsible */}
+              <div className="border-t border-white/10 pt-4 mb-4">
+                <details>
+                  <summary className="text-xs text-cyan-400/80 cursor-pointer hover:text-cyan-400 transition font-semibold uppercase tracking-wider mb-2">
+                    📜 Full BRS Transaction History ({searchedUser.brsTxDetailList?.length || 0} transactions) — click to expand
+                  </summary>
+                  <div className="space-y-1 mt-3 max-h-[400px] overflow-y-auto pr-1">
+                    {searchedUser.brsTxDetailList && searchedUser.brsTxDetailList.length > 0 ? (
+                      searchedUser.brsTxDetailList.map((tx: any, i: number) => (
+                        <div key={i} className="flex items-center justify-between px-3 py-2 rounded-lg border bg-white/[0.03] border-white/8 hover:bg-white/[0.06] transition-all">
+                          <div className="flex-1 min-w-0 mr-3">
+                            <p className="text-xs text-gray-300 truncate">{tx.desc}</p>
+                            <p className="text-[9px] text-gray-600 mt-0.5">
+                              {tx.date?.toDate ? tx.date.toDate().toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                              {tx.type ? <span className="ml-2 text-gray-700">• {tx.type}</span> : ''}
+                            </p>
+                          </div>
+                          <span className={`font-bold text-sm whitespace-nowrap ${
+                            tx.amount > 0 ? 'text-green-400' : 'text-red-400'
+                          }`}>{tx.amount > 0 ? '+' : ''}{tx.amount} BRS</span>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-gray-500 text-xs text-center py-3">No BRS transactions found</p>
+                    )}
+                  </div>
+                </details>
               </div>
 
               {/* 💰 USDT BREAKDOWN — FROM TRANSACTIONS */}
