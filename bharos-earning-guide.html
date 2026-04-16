@@ -317,38 +317,34 @@
         <text x="50" y="58" text-anchor="middle" font-size="28" font-weight="900" fill="#000" font-family="Inter,sans-serif">BRS</text>
       </svg>
       <h3>Bharos Exchange — Earning Guide</h3>
-      <span class="badge">📄 EDITABLE</span>
     </div>
     <div class="tb-actions">
       <!-- Language Selector -->
       <div style="position:relative;" id="langContainer">
-        <button class="tb-btn tb-btn-edit" onclick="toggleLangMenu()" id="langBtn">🌐 <span id="currentLang">తెలుగు</span> ▾</button>
+        <button class="tb-btn tb-btn-edit" onclick="toggleLangMenu()" id="langBtn">🌐 <span id="currentLang">English</span> ▾</button>
         <div id="langMenu" style="display:none; position:absolute; top:100%; right:0; margin-top:6px; background:#0f172a; border:1px solid rgba(234,179,8,0.3); border-radius:12px; padding:6px; min-width:180px; z-index:999; box-shadow:0 20px 40px rgba(0,0,0,0.6);">
-          <div style="font-size:9px; color:#64748b; padding:6px 10px; text-transform:uppercase; letter-spacing:1.5px; font-weight:700;">🇮🇳 Indian</div>
-          <button class="lang-opt" onclick="switchLang('te')">🇮🇳 తెలుగు (Telugu)</button>
+          <div style="font-size:9px; color:#64748b; padding:6px 10px; text-transform:uppercase; letter-spacing:1.5px; font-weight:700;">🌍 International</div>
+          <button class="lang-opt active" onclick="switchLang('en')">🇺🇸 English</button>
+          <button class="lang-opt" onclick="switchLang('es')">🇪🇸 Español (Spanish)</button>
+          <button class="lang-opt" onclick="switchLang('ar')">🇸🇦 العربية (Arabic)</button>
+          <div style="font-size:9px; color:#64748b; padding:6px 10px; text-transform:uppercase; letter-spacing:1.5px; font-weight:700; margin-top:4px;">🇮🇳 Indian</div>
           <button class="lang-opt" onclick="switchLang('hi')">🇮🇳 हिंदी (Hindi)</button>
           <button class="lang-opt" onclick="switchLang('ta')">🇮🇳 தமிழ் (Tamil)</button>
           <button class="lang-opt" onclick="switchLang('kn')">🇮🇳 ಕನ್ನಡ (Kannada)</button>
-          <button class="lang-opt" onclick="switchLang('ml')">🇮🇳 മലയാളം (Malayalam)</button>
+          <button class="lang-opt" onclick="switchLang('ml')">🇮🇳 മലయാളം (Malayalam)</button>
           <button class="lang-opt" onclick="switchLang('bn')">🇮🇳 বাংলা (Bengali)</button>
           <button class="lang-opt" onclick="switchLang('mr')">🇮🇳 मराठी (Marathi)</button>
-          <div style="font-size:9px; color:#64748b; padding:6px 10px; text-transform:uppercase; letter-spacing:1.5px; font-weight:700; margin-top:4px;">🌍 International</div>
-          <button class="lang-opt" onclick="switchLang('en')">🇺🇸 English</button>
-          <button class="lang-opt" onclick="switchLang('es')">🇪🇸 Español (Spanish)</button>
-          <button class="lang-opt" onclick="switchLang('ar')">🇸🇦 العربية (Arabic)</button>
+          <button class="lang-opt" onclick="switchLang('te')">🇮🇳 తెలుగు (Telugu)</button>
         </div>
       </div>
-      <button class="tb-btn tb-btn-edit" onclick="toggleEdit()">✏️ <span id="editLabel">Enable Edit</span></button>
-      <button class="tb-btn tb-btn-edit" onclick="saveAsImage()" id="saveImgBtn">📸 Save as Image</button>
-      <button class="tb-btn tb-btn-print" onclick="window.print()">🖨️ Print / PDF</button>
+      <button class="tb-btn tb-btn-print" onclick="saveAsImage()" id="saveImgBtn">📸 Save as Image</button>
     </div>
   </div>
 
   <div class="help-tip no-print">
     <span style="font-size: 18px;">💡</span>
     <div>
-      <strong>Editable Document:</strong> Click "Enable Edit" to modify any text. Click "📸 Save as Image" to download as PNG.
-      Click "Print / PDF" to save as PDF. Share via WhatsApp, Telegram, or print!
+      Click "📸 Save as Image" to download as PNG and share via WhatsApp or Telegram.
       <strong>10 Languages</strong> supported — click 🌐 to switch.
     </div>
   </div>
@@ -390,9 +386,9 @@
 
     <!-- HERO -->
     <div class="hero">
-      <h2><span class="gradient-text" data-i18n="heroTitle1">₹1,000 Invest చేస్తే</span></h2>
-      <h2><span class="gradient-text" data-i18n="heroTitle2">ఎన్ని రకాలుగా Earn చేయొచ్చు?</span></h2>
-      <p style="margin-top: 8px;" data-i18n="heroSub">12 USDT Membership Activate చేస్తే — 13+ Earning Sources Open అవుతాయి!</p>
+      <h2><span class="gradient-text" data-i18n="heroTitle1">Invest ₹1,000 and</span></h2>
+      <h2><span class="gradient-text" data-i18n="heroTitle2">How Many Ways Can You Earn?</span></h2>
+      <p style="margin-top: 8px;" data-i18n="heroSub">Activate 12 USDT Membership — Unlock 13+ Earning Sources!</p>
       <div class="invest-badge">💰 Investment: Just 12 USDT (≈ ₹1,000)</div>
     </div>
 
@@ -408,7 +404,7 @@
       <!-- Source 1: Activation -->
       <div class="section-card">
         <h3>🎯 1. Activation Reward <span class="amount-green" style="margin-left: auto; font-size: 18px;">+150 BRS</span></h3>
-        <p class="sub" data-i18n="activationDesc">Membership Activate చేసిన second లో నే wallet లో credit అవుతుంది</p>
+        <p class="sub" data-i18n="activationDesc">Credited to your wallet instantly upon activation</p>
         <div class="stat-grid">
           <div class="stat-card">
             <div class="label">Amount</div>
@@ -431,13 +427,13 @@
       <!-- Source 2: 30-Day Bonus -->
       <div class="section-card">
         <h3>📅 2. 30-Day Bonus <span class="amount-green" style="margin-left: auto; font-size: 18px;">+150 BRS</span></h3>
-        <p class="sub" data-i18n="dayBonusDesc">Join అయిన 30 రోజుల తర్వాత Automatic గా credit అవుతుంది — ఏమీ చేయక్కర్లేదు!</p>
+        <p class="sub" data-i18n="dayBonusDesc">Automatically credited 30 days after joining — no action needed!</p>
       </div>
 
       <!-- Source 3: Social Earn -->
       <div class="section-card">
         <h3>📱 3. Social Media Earn <span class="amount-green" style="margin-left: auto; font-size: 18px;">+50 BRS</span></h3>
-        <p class="sub" data-i18n="socialDesc">5 Social Media Platforms Follow చేయి — ఒక్కొక్క platform కి 10 BRS!</p>
+        <p class="sub" data-i18n="socialDesc">Follow 5 Social Media Platforms — 10 BRS per platform!</p>
         <table class="earning-table">
           <tr><th>Platform</th><th>Action</th><th>Reward</th></tr>
           <tr class="earning-row"><td>📱 Telegram</td><td>Join Community</td><td class="amount-green">+10 BRS</td></tr>
@@ -451,7 +447,7 @@
       <!-- Source 4: Daily Check-in -->
       <div class="section-card">
         <h3>📅 4. Daily Check-in <span class="amount-cyan" style="margin-left: auto; font-size: 14px;">2–25 BRS/day</span></h3>
-        <p class="sub" data-i18n="checkinDesc">రోజూ App Open చేసి Check-In నొక్కు — Streak maintain చేస్తే rewards పెరుగుతాయి!</p>
+        <p class="sub" data-i18n="checkinDesc">Open app daily and tap Check-In — maintain streaks for more rewards!</p>
         <table class="earning-table">
           <tr><th>Day</th><th>Reward</th><th>Day</th><th>Reward</th></tr>
           <tr class="earning-row"><td>Day 1</td><td class="amount-green">+2 BRS</td><td>Day 5</td><td class="amount-green">+10 BRS</td></tr>
@@ -467,7 +463,7 @@
       <!-- Source 5: Spin Wheel -->
       <div class="section-card">
         <h3>🎡 5. Spin the Wheel <span class="amount-cyan" style="margin-left: auto; font-size: 14px;">1–25 BRS/day</span></h3>
-        <p class="sub" data-i18n="spinDesc">రోజూ 1 Free Spin — Check-in చేసాక Spin చేయి! First Time Guaranteed 5 BRS!</p>
+        <p class="sub" data-i18n="spinDesc">1 Free Spin daily — spin after check-in! First time Guaranteed 5 BRS!</p>
         <table class="earning-table">
           <tr><th>Prize</th><th>Chance</th><th>Prize</th><th>Chance</th></tr>
           <tr class="earning-row"><td>1 BRS</td><td>35%</td><td>8 BRS</td><td>4.5%</td></tr>
@@ -480,7 +476,7 @@
       <!-- Source 6: Staking -->
       <div class="section-card">
         <h3>📊 6. BRS Staking <span class="amount-cyan" style="margin-left: auto; font-size: 14px;">8–40% APY</span></h3>
-        <p class="sub" data-i18n="stakingDesc">Bank Fixed Deposit లాగా — నీ coins lock చేస్తే Interest వస్తుంది!</p>
+        <p class="sub" data-i18n="stakingDesc">Like a Bank Fixed Deposit — lock your coins and earn interest!</p>
         <table class="earning-table">
           <tr><th>Plan</th><th>Lock Period</th><th>APY</th><th>Min Stake</th><th>500 BRS →</th></tr>
           <tr class="earning-row"><td>🥉 Bronze</td><td>30 Days</td><td class="amount-green">8%</td><td>50 BRS</td><td>+3.3 BRS</td></tr>
@@ -493,7 +489,7 @@
       <!-- Source 7: Airdrops -->
       <div class="section-card">
         <h3>🎁 7. Airdrops & Bonuses <span class="amount-cyan" style="margin-left: auto; font-size: 14px;">Variable</span></h3>
-        <p class="sub" data-i18n="airdropDesc">Company Special Events లో Free BRS coins distribute చేస్తుంది — Active Members కి Priority!</p>
+        <p class="sub" data-i18n="airdropDesc">Company distributes Free BRS coins during special events!</p>
       </div>
 
       <!-- DIVIDER -->
@@ -508,7 +504,7 @@
       <!-- Source 8: MLM -->
       <div class="section-card">
         <h3>💵 8. 12-Level MLM Commissions <span class="amount-green" style="margin-left: auto; font-size: 14px;">$8/chain</span></h3>
-        <p class="sub" data-i18n="mlmDesc">ఒక member 12 USDT కట్టినప్పుడు — 12 levels కి commissions distribute అవుతాయి!</p>
+        <p class="sub" data-i18n="mlmDesc">When a member pays 12 USDT — commissions are distributed across 12 levels!</p>
         <table class="earning-table">
           <tr><th>Level</th><th>Commission</th><th>Level</th><th>Commission</th></tr>
           <tr class="earning-row"><td><strong>Level 1</strong></td><td class="amount-green"><strong>$2.00</strong></td><td>Level 7</td><td class="amount-green">$0.45</td></tr>
@@ -526,7 +522,7 @@
       <!-- Source 9 & 10: Special Rewards -->
       <div class="section-card">
         <h3>🏆 9. Special Rewards</h3>
-        <p class="sub" data-i18n="specialDesc">Team Milestones Achieve చేస్తే — Extra USDT Bonuses!</p>
+        <p class="sub" data-i18n="specialDesc">Achieve Team Milestones — earn extra USDT Bonuses!</p>
         <div class="two-col" style="margin-top: 14px;">
           <div style="background: rgba(16,185,129,0.06); border: 1px solid rgba(16,185,129,0.15); border-radius: 10px; padding: 16px; text-align: center;">
             <div style="font-size: 24px; margin-bottom: 6px;">🎯</div>
@@ -613,8 +609,8 @@
       <!-- Breakeven -->
       <div class="highlight-box">
         <p>
-          ⏱️ <strong>BREAKEVEN POINT:</strong> Just <strong>6 members</strong> refer చేస్తే → 6 × $2 = $12 USDT ← నీ Investment Back! ✅<br>
-          7వ member నుండి — <strong>PURE PROFIT!</strong> 💰
+          ⏱️ <strong>BREAKEVEN POINT:</strong> Just <strong>6 members</strong> referred → 6 × $2 = $12 USDT ← Your Investment Back! ✅<br>
+          From 7th member onwards — <strong>PURE PROFIT!</strong> 💰
         </p>
       </div>
 
@@ -694,13 +690,13 @@
       <div style="text-align: center; padding: 30px 20px; margin-top: 20px; background: linear-gradient(180deg, rgba(234,179,8,0.08) 0%, transparent 100%); border-radius: 12px; border: 1px solid rgba(234,179,8,0.12);">
         <div style="font-size: 36px; margin-bottom: 10px;">🚀</div>
         <h3 style="font-size: 20px; font-weight: 900; margin-bottom: 8px;">
-          <span class="gradient-text" data-i18n="ctaTitle">Just ₹1,000 Invest చేయి.</span>
+          <span class="gradient-text" data-i18n="ctaTitle">Just Invest ₹1,000.</span>
         </h3>
         <p style="font-size: 13px; color: #94a3b8; line-height: 2; max-width: 500px; margin: 0 auto;" contenteditable="false" data-i18n="ctaBody">
-          Immediate గా 150 BRS coins వస్తాయి. రోజూ Check-in + Spin చేస్తే months లో వేల BRS accumulate అవుతాయి. Team build చేస్తే direct గా USDT dollars wallet లో పడతాయి. BRS coin value Phase 4 కి 110x grow అవుతుంది.
+          Get 150 BRS coins instantly. Check-in + Spin daily to accumulate thousands of BRS. Build a team and USDT flows into your wallet. BRS value grows 110x by Phase 4.
         </p>
         <p style="margin-top: 12px;">
-          <strong style="color: #10b981; font-size: 15px;" data-i18n="ctaEarly">ఇప్పుడు early గా join అయితే — maximum BRS cheapest price లో!</strong>
+          <strong style="color: #10b981; font-size: 15px;" data-i18n="ctaEarly">Join early now — get maximum BRS at the cheapest price!</strong>
         </p>
       </div>
 
@@ -794,7 +790,7 @@
     // ═══════════════════════════════════════
     // LANGUAGE SYSTEM — 10 LANGUAGES
     // ═══════════════════════════════════════
-    let currentLangCode = localStorage.getItem('guidelang') || 'te'
+    let currentLangCode = localStorage.getItem('guidelang') || 'en'
 
     const LANG_NAMES = {
       te: 'తెలుగు', hi: 'हिंदी', ta: 'தமிழ்', kn: 'ಕನ್ನಡ',
@@ -1098,7 +1094,7 @@
 
     // Initialize on load
     ;(function() {
-      document.getElementById('currentLang').textContent = LANG_NAMES[currentLangCode] || 'తెలుగు'
+      document.getElementById('currentLang').textContent = LANG_NAMES[currentLangCode] || 'English'
       applyTranslations(currentLangCode)
     })()
   </script>

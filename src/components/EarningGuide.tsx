@@ -72,7 +72,7 @@ export default function EarningGuide() {
             </span>
           </h2>
           <p className="text-gray-400 text-sm sm:text-base max-w-lg mx-auto">
-            Just ₹1,000 invest చేయి — BRS Coins + USDT Dollars రెండూ earn చేయి!
+            Just ₹1,000 investment — Earn both BRS Coins + USDT Dollars!
           </p>
         </div>
 
@@ -158,7 +158,7 @@ export default function EarningGuide() {
           </div>
           <div className="mt-4 text-center">
             <p className="text-xs text-gray-500">
-              ⏱️ <span className="text-green-400 font-bold">Breakeven:</span> Just 6 members = ₹1,000 back! 7వ member → PURE PROFIT 💰
+              ⏱️ <span className="text-green-400 font-bold">Breakeven:</span> Just 6 members = ₹1,000 back! 7th member onwards → PURE PROFIT 💰
             </p>
           </div>
         </div>
@@ -182,7 +182,7 @@ export default function EarningGuide() {
               </div>
             </a>
             <p className="text-[11px] text-gray-500">
-              📄 Editable • 🖨️ Printable • 📱 10 Languages • 📸 Save as Image
+              📱 10 Languages • 📸 Save as Image
             </p>
           </div>
         </div>
