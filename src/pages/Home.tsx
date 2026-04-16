@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import EarningGuide from "@/components/EarningGuide"
 import Hero from "@/components/Hero"
 import AnnouncementsSlider from "@/components/AnnouncementsSlider"
 import About from "@/components/About"
@@ -77,6 +78,10 @@ function Home() {
 
         <div className="py-4">
           <Membership />
+        </div>
+
+        <div className="py-4">
+          <EarningGuide />
         </div>
 
         <div className="py-4">
