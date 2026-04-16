@@ -186,7 +186,7 @@ export default function EarningGuide() {
               ].map(lang => (
                 <a
                   key={lang.code}
-                  href={`/bharos-earning-guide.html?lang=${lang.code}`}
+                  href={`/bharos-earning-guide.html?lang=${lang.code}&autodownload=true`}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => { localStorage.setItem('guidelang', lang.code) }}
