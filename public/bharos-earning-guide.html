@@ -337,15 +337,15 @@
           <button class="lang-opt" onclick="switchLang('te')">🇮🇳 తెలుగు (Telugu)</button>
         </div>
       </div>
-      <button class="tb-btn tb-btn-print" onclick="saveAsImage()" id="saveImgBtn">📸 Save as Image</button>
+      <button class="tb-btn tb-btn-print" onclick="saveAsPDF()" id="saveImgBtn">📥 Download PDF</button>
     </div>
   </div>
 
   <div class="help-tip no-print">
     <span style="font-size: 18px;">💡</span>
     <div>
-      Click "📸 Save as Image" to download as PNG and share via WhatsApp or Telegram.
-      <strong>10 Languages</strong> supported — click 🌐 to switch.
+      Click "📥 Download PDF" to save the guide as PDF for sharing.
+      <strong>10 Languages</strong> supported — click 🌐 to switch before downloading.
     </div>
   </div>
 
@@ -389,7 +389,7 @@
       <h2><span class="gradient-text" data-i18n="heroTitle1">Invest ₹1,000 and</span></h2>
       <h2><span class="gradient-text" data-i18n="heroTitle2">How Many Ways Can You Earn?</span></h2>
       <p style="margin-top: 8px;" data-i18n="heroSub">Activate 12 USDT Membership — Unlock 13+ Earning Sources!</p>
-      <div class="invest-badge">💰 Investment: Just 12 USDT (≈ ₹1,000)</div>
+      <div class="invest-badge" data-i18n="investBadge">💰 Investment: Just 12 USDT (≈ $12)</div>
     </div>
 
     <!-- BODY -->
@@ -561,7 +561,7 @@
           </table>
           <div class="result-box">
             <div class="big">$10 USDT</div>
-            <div class="roi">₹835 — 83% Recovery</div>
+            <div class="roi"><span data-usd="10">$10</span> — 83% Recovery</div>
           </div>
         </div>
         <div class="scenario-box">
@@ -572,7 +572,7 @@
           </table>
           <div class="result-box">
             <div class="big">$40 USDT</div>
-            <div class="roi">₹3,340 — 3.3x PROFIT! ✅</div>
+            <div class="roi"><span data-usd="40">$40</span> — 3.3x PROFIT! ✅</div>
           </div>
         </div>
       </div>
@@ -587,7 +587,7 @@
           </table>
           <div class="result-box">
             <div class="big">$64 USDT</div>
-            <div class="roi">₹5,344 — 5.3x PROFIT! 🔥</div>
+            <div class="roi"><span data-usd="64">$64</span> — 5.3x PROFIT! 🔥</div>
           </div>
         </div>
         <div class="scenario-box">
@@ -601,7 +601,7 @@
           </table>
           <div class="result-box">
             <div class="big">$161.50 USDT</div>
-            <div class="roi">₹13,485 — 13.5x PROFIT! 🚀</div>
+            <div class="roi"><span data-usd="161.5">$161.50</span> — 13.5x PROFIT! 🚀</div>
           </div>
         </div>
       </div>
@@ -653,11 +653,11 @@
       <!-- Future Value Table -->
       <table class="summary-table">
         <tr><th>BRS Holdings</th><th>Phase 1 ($0.005)</th><th>Phase 2 ($0.02)</th><th>Phase 3 ($0.10)</th><th>Phase 4 ($0.55)</th></tr>
-        <tr class="earning-row"><td><strong>150 BRS</strong></td><td>₹63</td><td>₹250</td><td>₹1,250</td><td class="amount-yellow"><strong>₹6,900</strong></td></tr>
-        <tr class="earning-row"><td><strong>500 BRS</strong></td><td>₹210</td><td>₹840</td><td>₹4,175</td><td class="amount-yellow"><strong>₹23,000</strong></td></tr>
-        <tr class="earning-row"><td><strong>1,000 BRS</strong></td><td>₹420</td><td>₹1,670</td><td>₹8,350</td><td class="amount-yellow"><strong>₹46,000</strong></td></tr>
-        <tr class="earning-row"><td><strong>5,000 BRS</strong></td><td>₹2,090</td><td>₹8,350</td><td>₹41,750</td><td class="amount-yellow"><strong>₹2.3 Lakh!</strong></td></tr>
-        <tr class="earning-row"><td><strong>10,000 BRS</strong></td><td>₹4,175</td><td>₹16,700</td><td>₹83,500</td><td class="amount-yellow"><strong>₹4.6 Lakh!</strong></td></tr>
+        <tr class="earning-row"><td><strong>150 BRS</strong></td><td><span data-usd="0.75">$0.75</span></td><td><span data-usd="3">$3</span></td><td><span data-usd="15">$15</span></td><td class="amount-yellow"><strong><span data-usd="82.5">$82.50</span></strong></td></tr>
+        <tr class="earning-row"><td><strong>500 BRS</strong></td><td><span data-usd="2.5">$2.50</span></td><td><span data-usd="10">$10</span></td><td><span data-usd="50">$50</span></td><td class="amount-yellow"><strong><span data-usd="275">$275</span></strong></td></tr>
+        <tr class="earning-row"><td><strong>1,000 BRS</strong></td><td><span data-usd="5">$5</span></td><td><span data-usd="20">$20</span></td><td><span data-usd="100">$100</span></td><td class="amount-yellow"><strong><span data-usd="550">$550</span></strong></td></tr>
+        <tr class="earning-row"><td><strong>5,000 BRS</strong></td><td><span data-usd="25">$25</span></td><td><span data-usd="100">$100</span></td><td><span data-usd="500">$500</span></td><td class="amount-yellow"><strong><span data-usd="2750">$2,750</span></strong></td></tr>
+        <tr class="earning-row"><td><strong>10,000 BRS</strong></td><td><span data-usd="50">$50</span></td><td><span data-usd="200">$200</span></td><td><span data-usd="1000">$1,000</span></td><td class="amount-yellow"><strong><span data-usd="5500">$5,500</span></strong></td></tr>
       </table>
 
       <!-- DIVIDER -->
@@ -725,8 +725,9 @@
     🖨️ Click "Print / Save PDF" to save this document
   </div>
 
-  <!-- html2canvas CDN for Save as Image -->
+  <!-- html2canvas + jsPDF CDN for PDF Download -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
   <script>
     // ═══════════════════════════════════════
@@ -743,337 +744,96 @@
     })()
 
     // ═══════════════════════════════════════
-    // EDIT MODE
+    // SAVE AS PDF
     // ═══════════════════════════════════════
-    let editMode = false
-    function toggleEdit() {
-      editMode = !editMode
-      const elements = document.querySelectorAll('.doc-body p, .doc-body td, .doc-body h3, .doc-body h4, .doc-body .sub, .section-title, .hero h2, .hero p, .stat-card .value, .stat-card .value-sm, .stat-card .label, .phase-card .phase-price, .phase-card .phase-users, .phase-card .phase-growth, .result-box .big, .result-box .roi')
-      elements.forEach(el => {
-        el.contentEditable = editMode ? 'true' : 'false'
-      })
-      document.getElementById('editLabel').textContent = editMode ? 'Editing ON ✏️' : 'Enable Edit'
-      document.querySelector('.doc-container').style.outline = editMode ? '2px dashed rgba(234,179,8,0.4)' : 'none'
-    }
-
-    // ═══════════════════════════════════════
-    // SAVE AS IMAGE (PNG)
-    // ═══════════════════════════════════════
-    async function saveAsImage() {
-      const overlay = document.createElement('div')
+    async function saveAsPDF() {
+      var overlay = document.createElement('div')
       overlay.className = 'save-overlay'
-      overlay.innerHTML = '<div class="spinner"></div> Generating Image...'
+      overlay.innerHTML = '<div class="spinner"></div> Generating PDF...'
       document.body.appendChild(overlay)
-
       try {
-        const doc = document.querySelector('.doc-container')
-        const canvas = await html2canvas(doc, {
-          backgroundColor: '#070b1a',
-          scale: 2,
-          useCORS: true,
-          logging: false,
-          windowWidth: 960,
-        })
-
-        const link = document.createElement('a')
-        link.download = `Bharos-Earning-Guide-${currentLangCode.toUpperCase()}.png`
-        link.href = canvas.toDataURL('image/png')
-        link.click()
-      } catch (e) {
-        alert('Image generation failed. Try again!')
-        console.error(e)
-      }
-
+        var docEl = document.querySelector('.doc-container')
+        var canvas = await html2canvas(docEl, { backgroundColor: '#070b1a', scale: 2, useCORS: true, logging: false, windowWidth: 960 })
+        var imgData = canvas.toDataURL('image/jpeg', 0.95)
+        var pdf = new jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+        var pdfW = pdf.internal.pageSize.getWidth()
+        var pdfH = pdf.internal.pageSize.getHeight()
+        var imgW = pdfW
+        var imgH = (canvas.height * pdfW) / canvas.width
+        var heightLeft = imgH
+        var position = 0
+        pdf.addImage(imgData, 'JPEG', 0, position, imgW, imgH)
+        heightLeft -= pdfH
+        while (heightLeft > 0) {
+          position = position - pdfH
+          pdf.addPage()
+          pdf.addImage(imgData, 'JPEG', 0, position, imgW, imgH)
+          heightLeft -= pdfH
+        }
+        var langLabel = LANG_NAMES[currentLangCode] || 'English'
+        pdf.save('Bharos-Earning-Guide-' + langLabel + '.pdf')
+      } catch (e) { alert('PDF generation failed. Try again!'); console.error(e) }
       overlay.remove()
     }
 
     // ═══════════════════════════════════════
-    // LANGUAGE SYSTEM — 10 LANGUAGES
+    // LANGUAGE + CURRENCY SYSTEM
     // ═══════════════════════════════════════
-    let currentLangCode = localStorage.getItem('guidelang') || 'en'
+    var currentLangCode = (new URLSearchParams(window.location.search).get('lang')) || localStorage.getItem('guidelang') || 'en'
 
-    const LANG_NAMES = {
-      te: 'తెలుగు', hi: 'हिंदी', ta: 'தமிழ்', kn: 'ಕನ್ನಡ',
-      ml: 'മലയാളം', bn: 'বাংলা', mr: 'मराठी',
-      en: 'English', es: 'Español', ar: 'العربية'
+    var LANG_NAMES = { en:'English', es:'Español', ar:'العربية', hi:'हिंदी', ta:'தமிழ்', kn:'ಕನ್ನಡ', ml:'മലയാളം', bn:'বাংলা', mr:'मराठी', te:'తెలుగు' }
+
+    var CURRENCIES = {
+      en:{symbol:'$',rate:1,pre:true}, es:{symbol:'€',rate:0.92,pre:false}, ar:{symbol:'ر.س',rate:3.75,pre:false},
+      te:{symbol:'₹',rate:83.5,pre:true}, hi:{symbol:'₹',rate:83.5,pre:true}, ta:{symbol:'₹',rate:83.5,pre:true},
+      kn:{symbol:'₹',rate:83.5,pre:true}, ml:{symbol:'₹',rate:83.5,pre:true}, bn:{symbol:'₹',rate:83.5,pre:true}, mr:{symbol:'₹',rate:83.5,pre:true}
     }
 
-    // Translation keys for the hero section and key labels
-    const TRANSLATIONS = {
-      te: {
-        heroTitle1: '₹1,000 Invest చేస్తే',
-        heroTitle2: 'ఎన్ని రకాలుగా Earn చేయొచ్చు?',
-        heroSub: '12 USDT Membership Activate చేస్తే — 13+ Earning Sources Open అవుతాయి!',
-        brsTitle: '🪙 BRS COIN EARNING SOURCES',
-        usdtTitle: '💵 USDT EARNING SOURCES — REAL CASH INCOME',
-        scenarioTitle: '📊 TEAM SIZE vs USDT INCOME — REALISTIC SCENARIOS',
-        roadmapTitle: '📈 BRS COIN PRICE GROWTH ROADMAP',
-        summaryTitle: '🔥 COMPLETE EARNING SUMMARY — 13 SOURCES',
-        activationDesc: 'Membership Activate చేసిన second లో నే wallet లో credit అవుతుంది',
-        dayBonusDesc: 'Join అయిన 30 రోజుల తర్వాత Automatic గా credit అవుతుంది — ఏమీ చేయక్కర్లేదు!',
-        socialDesc: '5 Social Media Platforms Follow చేయి — ఒక్కొక్క platform కి 10 BRS!',
-        checkinDesc: 'రోజూ App Open చేసి Check-In నొక్కు — Streak maintain చేస్తే rewards పెరుగుతాయి!',
-        spinDesc: 'రోజూ 1 Free Spin — Check-in చేసాక Spin చేయి! First Time Guaranteed 5 BRS!',
-        stakingDesc: 'Bank Fixed Deposit లాగా — నీ coins lock చేస్తే Interest వస్తుంది!',
-        airdropDesc: 'Company Special Events లో Free BRS coins distribute చేస్తుంది — Active Members కి Priority!',
-        mlmDesc: 'ఒక member 12 USDT కట్టినప్పుడు — 12 levels కి commissions distribute అవుతాయి!',
-        mlmExample: 'నువ్వు 10 members refer చేస్తే → 10 × $2 = $20 USDT (₹1,670) — Just Level 1 లోనే!',
-        specialDesc: 'Team Milestones Achieve చేస్తే — Extra USDT Bonuses!',
-        breakeven: 'Just 6 members refer చేస్తే → 6 × $2 = $12 USDT ← నీ Investment Back! ✅ 7వ member నుండి — PURE PROFIT! 💰',
-        unlockWarn: 'Daily Rewards open avvalante minimum 10 Direct Active Members kavali!',
-        ctaTitle: 'Just ₹1,000 Invest చేయి.',
-        ctaBody: 'Immediate గా 150 BRS coins వస్తాయి. రోజూ Check-in + Spin చేస్తే months లో వేల BRS accumulate అవుతాయి. Team build చేస్తే direct గా USDT dollars wallet లో పడతాయి. BRS coin value Phase 4 కి 110x grow అవుతుంది.',
-        ctaEarly: 'ఇప్పుడు early గా join అయితే — maximum BRS cheapest price లో!',
-      },
-      hi: {
-        heroTitle1: '₹1,000 Invest करो तो',
-        heroTitle2: 'कितने तरीकों से Earn कर सकते हो?',
-        heroSub: '12 USDT Membership Activate करो — 13+ Earning Sources Open हो जाएंगे!',
-        brsTitle: '🪙 BRS COIN EARNING SOURCES',
-        usdtTitle: '💵 USDT EARNING SOURCES — REAL CASH INCOME',
-        scenarioTitle: '📊 TEAM SIZE vs USDT INCOME — REALISTIC SCENARIOS',
-        roadmapTitle: '📈 BRS COIN PRICE GROWTH ROADMAP',
-        summaryTitle: '🔥 COMPLETE EARNING SUMMARY — 13 SOURCES',
-        activationDesc: 'Membership Activate करते ही wallet में credit हो जाएगा',
-        dayBonusDesc: 'Join करने के 30 दिन बाद Automatic credit — कुछ नहीं करना!',
-        socialDesc: '5 Social Media Platforms Follow करो — हर platform के लिए 10 BRS!',
-        checkinDesc: 'रोज़ App Open करो और Check-In दबाओ — Streak बनाए रखो!',
-        spinDesc: 'रोज़ 1 Free Spin — Check-in के बाद Spin करो! First Time Guaranteed 5 BRS!',
-        stakingDesc: 'Bank FD जैसा — coins lock करो तो Interest मिलेगा!',
-        airdropDesc: 'Company Special Events में Free BRS coins distribute करती है!',
-        mlmDesc: 'एक member 12 USDT देता है — 12 levels पर commissions बंटते हैं!',
-        mlmExample: 'तुम 10 members refer करो → 10 × $2 = $20 USDT (₹1,670) — सिर्फ Level 1 से!',
-        specialDesc: 'Team Milestones Achieve करो — Extra USDT Bonuses!',
-        breakeven: 'सिर्फ 6 members refer करो → 6 × $2 = $12 USDT ← Investment वापस! ✅ 7वें member से — PURE PROFIT! 💰',
-        unlockWarn: 'Daily Rewards के लिए minimum 10 Direct Active Members चाहिए!',
-        ctaTitle: 'सिर्फ ₹1,000 Invest करो.',
-        ctaBody: 'तुरंत 150 BRS coins मिलेंगे. रोज़ Check-in + Spin करो तो महीनों में हज़ारों BRS जमा होंगे. Team बनाओ तो USDT wallet में आएगा. BRS Phase 4 तक 110x grow होगा.',
-        ctaEarly: 'अभी early join करो — सबसे सस्ते price में BRS मिलेगा!',
-      },
-      en: {
-        heroTitle1: 'Invest ₹1,000 and',
-        heroTitle2: 'How Many Ways Can You Earn?',
-        heroSub: 'Activate 12 USDT Membership — Unlock 13+ Earning Sources!',
-        brsTitle: '🪙 BRS COIN EARNING SOURCES',
-        usdtTitle: '💵 USDT EARNING SOURCES — REAL CASH INCOME',
-        scenarioTitle: '📊 TEAM SIZE vs USDT INCOME — REALISTIC SCENARIOS',
-        roadmapTitle: '📈 BRS COIN PRICE GROWTH ROADMAP',
-        summaryTitle: '🔥 COMPLETE EARNING SUMMARY — 13 SOURCES',
-        activationDesc: 'Credited to your wallet instantly upon activation',
-        dayBonusDesc: 'Automatically credited 30 days after joining — no action needed!',
-        socialDesc: 'Follow 5 Social Media Platforms — 10 BRS per platform!',
-        checkinDesc: 'Open app daily and tap Check-In — maintain streaks for more rewards!',
-        spinDesc: '1 Free Spin daily — spin after check-in! First time Guaranteed 5 BRS!',
-        stakingDesc: 'Like a Bank Fixed Deposit — lock your coins and earn interest!',
-        airdropDesc: 'Company distributes Free BRS coins during special events!',
-        mlmDesc: 'When a member pays 12 USDT — commissions are distributed across 12 levels!',
-        mlmExample: 'Refer 10 members → 10 × $2 = $20 USDT (₹1,670) — from Level 1 alone!',
-        specialDesc: 'Achieve Team Milestones — earn extra USDT Bonuses!',
-        breakeven: 'Just refer 6 members → 6 × $2 = $12 USDT ← Investment back! ✅ From 7th member — PURE PROFIT! 💰',
-        unlockWarn: 'Daily Rewards require minimum 10 Direct Active Members!',
-        ctaTitle: 'Just Invest ₹1,000.',
-        ctaBody: 'Get 150 BRS coins instantly. Check-in + Spin daily to accumulate thousands of BRS. Build a team and USDT flows into your wallet. BRS value grows 110x by Phase 4.',
-        ctaEarly: 'Join early now — get maximum BRS at the cheapest price!',
-      },
-      ta: {
-        heroTitle1: '₹1,000 முதலீடு செய்தால்',
-        heroTitle2: 'எத்தனை வழிகளில் சம்பாதிக்கலாம்?',
-        heroSub: '12 USDT Membership செயல்படுத்தவும் — 13+ வருவாய் ஆதாரங்கள் திறக்கும்!',
-        brsTitle: '🪙 BRS COIN சம்பாதிப்பு ஆதாரங்கள்',
-        usdtTitle: '💵 USDT வருவாய் — REAL CASH INCOME',
-        scenarioTitle: '📊 TEAM SIZE vs USDT INCOME',
-        roadmapTitle: '📈 BRS COIN PRICE GROWTH ROADMAP',
-        summaryTitle: '🔥 முழுமையான சம்பாதிப்பு — 13 ஆதாரங்கள்',
-        activationDesc: 'செயல்படுத்தியவுடன் உடனடியாக wallet-ல் credit ஆகும்',
-        dayBonusDesc: 'சேர்ந்த 30 நாட்களுக்குப் பிறகு தானாக credit ஆகும்!',
-        socialDesc: '5 Social Media தளங்களை Follow செய்யுங்கள் — ஒவ்வொன்றுக்கும் 10 BRS!',
-        checkinDesc: 'தினமும் App திறந்து Check-In தட்டுங்கள்!',
-        spinDesc: 'தினமும் 1 Free Spin — Check-in பிறகு Spin செய்யுங்கள்!',
-        stakingDesc: 'Bank FD போல — coins lock செய்தால் Interest கிடைக்கும்!',
-        airdropDesc: 'Company Special Events-ல் Free BRS coins விநியோகிக்கும்!',
-        mlmDesc: 'ஒரு member 12 USDT செலுத்தும்போது — 12 நிலைகளுக்கு commission பகிர்ந்தளிக்கப்படும்!',
-        mlmExample: '10 members refer செய்தால் → 10 × $2 = $20 USDT — Level 1 மட்டுமே!',
-        specialDesc: 'Team Milestones அடையுங்கள் — Extra USDT Bonuses!',
-        breakeven: '6 members refer செய்தால் → $12 USDT ← முதலீடு திரும்பும்! ✅',
-        unlockWarn: 'Daily Rewards-க்கு minimum 10 Direct Active Members தேவை!',
-        ctaTitle: '₹1,000 மட்டும் முதலீடு செய்யுங்கள்.',
-        ctaBody: 'உடனடியாக 150 BRS coins கிடைக்கும். தினமும் Check-in + Spin செய்தால் ஆயிரக்கணக்கான BRS சேரும்.',
-        ctaEarly: 'இப்போது early join செய்து — மிகக்குறைந்த விலையில் BRS பெறுங்கள்!',
-      },
-      kn: {
-        heroTitle1: '₹1,000 Invest ಮಾಡಿದರೆ',
-        heroTitle2: 'ಎಷ್ಟು ವಿಧಗಳಲ್ಲಿ Earn ಮಾಡಬಹುದು?',
-        heroSub: '12 USDT Membership Activate ಮಾಡಿ — 13+ Earning Sources Open ಆಗುತ್ತವೆ!',
-        brsTitle: '🪙 BRS COIN EARNING SOURCES',
-        usdtTitle: '💵 USDT EARNING SOURCES — REAL CASH',
-        scenarioTitle: '📊 TEAM SIZE vs USDT INCOME',
-        roadmapTitle: '📈 BRS COIN PRICE GROWTH',
-        summaryTitle: '🔥 COMPLETE EARNING SUMMARY — 13 SOURCES',
-        activationDesc: 'Membership Activate ಮಾಡಿದ ತಕ್ಷಣ wallet ನಲ್ಲಿ credit ಆಗುತ್ತದೆ',
-        dayBonusDesc: 'Join ಆದ 30 ದಿನಗಳ ನಂತರ Auto credit — ಏನೂ ಮಾಡಬೇಕಿಲ್ಲ!',
-        socialDesc: '5 Social Media Platforms Follow ಮಾಡಿ — ಪ್ರತಿ platform ಗೆ 10 BRS!',
-        checkinDesc: 'ಪ್ರತಿದಿನ App Open ಮಾಡಿ Check-In ಒತ್ತಿ!',
-        spinDesc: 'ಪ್ರತಿದಿನ 1 Free Spin — Check-in ನಂತರ Spin ಮಾಡಿ!',
-        stakingDesc: 'Bank FD ತರಹ — coins lock ಮಾಡಿದರೆ Interest ಬರುತ್ತದೆ!',
-        airdropDesc: 'Company Special Events ನಲ್ಲಿ Free BRS coins ಹಂಚುತ್ತದೆ!',
-        mlmDesc: 'ಒಬ್ಬ member 12 USDT ಕೊಟ್ಟಾಗ — 12 levels ಗೆ commissions ಹಂಚಲಾಗುತ್ತದೆ!',
-        mlmExample: '10 members refer ಮಾಡಿ → $20 USDT — Level 1 ರಿಂದಲೇ!',
-        specialDesc: 'Team Milestones Achieve ಮಾಡಿ — Extra USDT Bonuses!',
-        breakeven: '6 members refer → $12 USDT ← Investment Back! ✅',
-        unlockWarn: 'Daily Rewards ಗೆ minimum 10 Direct Active Members ಬೇಕು!',
-        ctaTitle: '₹1,000 Invest ಮಾಡಿ.',
-        ctaBody: 'ತಕ್ಷಣ 150 BRS coins ಬರುತ್ತವೆ. ಪ್ರತಿದಿನ Check-in + Spin ಮಾಡಿ.',
-        ctaEarly: 'ಈಗ early ಸೇರಿ — ಅತ್ಯಂತ ಕಡಿಮೆ ಬೆಲೆಗೆ BRS ಪಡೆಯಿರಿ!',
-      },
-      ml: {
-        heroTitle1: '₹1,000 Invest ചെയ്താൽ',
-        heroTitle2: 'എത്ര വഴികളിൽ Earn ചെയ്യാം?',
-        heroSub: '12 USDT Membership Activate ചെയ്യൂ — 13+ Earning Sources Open ആകും!',
-        brsTitle: '🪙 BRS COIN EARNING SOURCES',
-        usdtTitle: '💵 USDT EARNING SOURCES — REAL CASH',
-        scenarioTitle: '📊 TEAM SIZE vs USDT INCOME',
-        roadmapTitle: '📈 BRS COIN PRICE GROWTH',
-        summaryTitle: '🔥 COMPLETE EARNING SUMMARY — 13 SOURCES',
-        activationDesc: 'Membership Activate ചെയ്തയുടൻ wallet-ൽ credit ആകും',
-        dayBonusDesc: 'Join ചെയ്ത 30 ദിവസത്തിന് ശേഷം Auto credit!',
-        socialDesc: '5 Social Media Platforms Follow ചെയ്യൂ — ഓരോന്നിനും 10 BRS!',
-        checkinDesc: 'ദിവസവും App Open ചെയ്ത് Check-In ടാപ്പ് ചെയ്യൂ!',
-        spinDesc: 'ദിവസവും 1 Free Spin — Check-in കഴിഞ്ഞ് Spin ചെയ്യൂ!',
-        stakingDesc: 'Bank FD പോലെ — coins lock ചെയ്താൽ Interest കിട്ടും!',
-        airdropDesc: 'Company Special Events-ൽ Free BRS coins വിതരണം ചെയ്യും!',
-        mlmDesc: 'ഒരു member 12 USDT അടയ്ക്കുമ്പോൾ — 12 levels-ലേക്ക് commissions!',
-        mlmExample: '10 members refer ചെയ്താൽ → $20 USDT — Level 1 മാത്രം!',
-        specialDesc: 'Team Milestones Achieve ചെയ്യൂ — Extra USDT Bonuses!',
-        breakeven: '6 members refer → $12 USDT ← Investment Back! ✅',
-        unlockWarn: 'Daily Rewards-ന് minimum 10 Direct Active Members വേണം!',
-        ctaTitle: '₹1,000 മാത്രം Invest ചെയ്യൂ.',
-        ctaBody: 'ഉടൻ 150 BRS coins ലഭിക്കും. ദിവസവും Check-in + Spin ചെയ്യൂ.',
-        ctaEarly: 'ഇപ്പോൾ early join ചെയ്യൂ — ഏറ്റവും കുറഞ്ഞ വിലയിൽ BRS!',
-      },
-      bn: {
-        heroTitle1: '₹1,000 Invest করলে',
-        heroTitle2: 'কত ভাবে Earn করা যায়?',
-        heroSub: '12 USDT Membership Activate করুন — 13+ Earning Sources খুলে যাবে!',
-        brsTitle: '🪙 BRS COIN EARNING SOURCES',
-        usdtTitle: '💵 USDT EARNING SOURCES — REAL CASH',
-        scenarioTitle: '📊 TEAM SIZE vs USDT INCOME',
-        roadmapTitle: '📈 BRS COIN PRICE GROWTH',
-        summaryTitle: '🔥 COMPLETE EARNING SUMMARY — 13 SOURCES',
-        activationDesc: 'Membership Activate করলেই wallet-এ credit হবে',
-        dayBonusDesc: 'Join করার 30 দিন পর Automatic credit — কিছু করতে হবে না!',
-        socialDesc: '5 Social Media Platforms Follow করুন — প্রতিটিতে 10 BRS!',
-        checkinDesc: 'প্রতিদিন App খুলুন এবং Check-In চাপুন!',
-        spinDesc: 'প্রতিদিন 1 Free Spin — Check-in পর Spin করুন!',
-        stakingDesc: 'Bank FD এর মতো — coins lock করলে Interest পাবেন!',
-        airdropDesc: 'Company Special Events-এ Free BRS coins বিতরণ করে!',
-        mlmDesc: 'একজন member 12 USDT দিলে — 12 levels-এ commissions বিতরণ হয়!',
-        mlmExample: '10 members refer করলে → $20 USDT — শুধু Level 1 থেকে!',
-        specialDesc: 'Team Milestones Achieve করুন — Extra USDT Bonuses!',
-        breakeven: '6 members refer → $12 USDT ← Investment ফিরবে! ✅',
-        unlockWarn: 'Daily Rewards-এর জন্য minimum 10 Direct Active Members দরকার!',
-        ctaTitle: '₹1,000 Invest করুন.',
-        ctaBody: 'সঙ্গে সঙ্গেই 150 BRS coins পাবেন. প্রতিদিন Check-in + Spin করুন.',
-        ctaEarly: 'এখনই early join করুন — সবচেয়ে কম দামে BRS পান!',
-      },
-      mr: {
-        heroTitle1: '₹1,000 Invest केलं तर',
-        heroTitle2: 'किती प्रकारे Earn करता येतं?',
-        heroSub: '12 USDT Membership Activate करा — 13+ Earning Sources उघडतात!',
-        brsTitle: '🪙 BRS COIN EARNING SOURCES',
-        usdtTitle: '💵 USDT EARNING SOURCES — REAL CASH',
-        scenarioTitle: '📊 TEAM SIZE vs USDT INCOME',
-        roadmapTitle: '📈 BRS COIN PRICE GROWTH',
-        summaryTitle: '🔥 COMPLETE EARNING SUMMARY — 13 SOURCES',
-        activationDesc: 'Membership Activate केल्यावर लगेच wallet मध्ये credit होतो',
-        dayBonusDesc: 'Join केल्यानंतर 30 दिवसांनी Automatic credit — काहीही करायला नको!',
-        socialDesc: '5 Social Media Platforms Follow करा — प्रत्येकी 10 BRS!',
-        checkinDesc: 'रोज App उघडा आणि Check-In दाबा!',
-        spinDesc: 'रोज 1 Free Spin — Check-in नंतर Spin करा!',
-        stakingDesc: 'Bank FD सारखं — coins lock केल्यास Interest मिळतो!',
-        airdropDesc: 'Company Special Events मध्ये Free BRS coins वाटतो!',
-        mlmDesc: 'एक member 12 USDT भरतो — 12 levels वर commissions वाटले जातात!',
-        mlmExample: '10 members refer केले → $20 USDT — फक्त Level 1 मधून!',
-        specialDesc: 'Team Milestones Achieve करा — Extra USDT Bonuses!',
-        breakeven: '6 members refer → $12 USDT ← Investment परत! ✅',
-        unlockWarn: 'Daily Rewards साठी minimum 10 Direct Active Members हवेत!',
-        ctaTitle: '₹1,000 Invest करा.',
-        ctaBody: 'लगेच 150 BRS coins मिळतात. रोज Check-in + Spin केल्यास हजारो BRS जमा होतात.',
-        ctaEarly: 'आता early join करा — सर्वात कमी किमतीत BRS मिळवा!',
-      },
-      es: {
-        heroTitle1: 'Invierte ₹1,000 y',
-        heroTitle2: '¿De cuántas formas puedes ganar?',
-        heroSub: 'Activa Membresía de 12 USDT — ¡Desbloquea 13+ fuentes de ingreso!',
-        brsTitle: '🪙 FUENTES DE GANANCIA BRS COIN',
-        usdtTitle: '💵 FUENTES DE GANANCIA USDT — DINERO REAL',
-        scenarioTitle: '📊 TAMAÑO DEL EQUIPO vs INGRESO USDT',
-        roadmapTitle: '📈 HOJA DE RUTA DEL PRECIO BRS',
-        summaryTitle: '🔥 RESUMEN COMPLETO — 13 FUENTES',
-        activationDesc: 'Acreditado en tu wallet al instante',
-        dayBonusDesc: '¡30 días después se acredita automáticamente!',
-        socialDesc: '¡Sigue 5 plataformas de Social Media — 10 BRS por cada una!',
-        checkinDesc: '¡Abre la app y toca Check-In cada día!',
-        spinDesc: '1 Spin Gratis diario — ¡gira después del check-in!',
-        stakingDesc: '¡Como un depósito fijo — bloquea tus coins y gana interés!',
-        airdropDesc: '¡La empresa distribuye BRS gratis en eventos especiales!',
-        mlmDesc: 'Cuando un miembro paga 12 USDT — ¡se distribuyen comisiones en 12 niveles!',
-        mlmExample: 'Refiere 10 miembros → $20 USDT — ¡solo del Nivel 1!',
-        specialDesc: '¡Alcanza Milestones de Equipo — Bonos USDT Extra!',
-        breakeven: '6 miembros referidos → $12 USDT ← ¡Inversión recuperada! ✅',
-        unlockWarn: '¡Se necesitan mínimo 10 Miembros Directos Activos!',
-        ctaTitle: 'Solo invierte ₹1,000.',
-        ctaBody: 'Obtén 150 BRS al instante. Check-in + Spin diario acumula miles de BRS.',
-        ctaEarly: '¡Únete temprano — obtén BRS al precio más bajo!',
-      },
-      ar: {
-        heroTitle1: 'استثمر ₹1,000',
-        heroTitle2: 'كم طريقة يمكنك الربح؟',
-        heroSub: 'فعّل عضوية 12 USDT — افتح 13+ مصدر دخل!',
-        brsTitle: '🪙 مصادر ربح BRS COIN',
-        usdtTitle: '💵 مصادر ربح USDT — دخل نقدي حقيقي',
-        scenarioTitle: '📊 حجم الفريق مقابل دخل USDT',
-        roadmapTitle: '📈 خارطة طريق سعر BRS',
-        summaryTitle: '🔥 ملخص الأرباح الكامل — 13 مصدر',
-        activationDesc: 'يُضاف إلى محفظتك فوراً عند التفعيل',
-        dayBonusDesc: 'يُضاف تلقائياً بعد 30 يوماً من الانضمام!',
-        socialDesc: 'تابع 5 منصات تواصل — 10 BRS لكل منصة!',
-        checkinDesc: 'افتح التطبيق يومياً واضغط Check-In!',
-        spinDesc: 'دورة مجانية يومياً — أدر بعد تسجيل الدخول!',
-        stakingDesc: 'مثل الوديعة البنكية — اقفل عملاتك واكسب فائدة!',
-        airdropDesc: 'الشركة توزع BRS مجاناً في المناسبات الخاصة!',
-        mlmDesc: 'عندما يدفع عضو 12 USDT — توزع العمولات على 12 مستوى!',
-        mlmExample: 'أحل 10 أعضاء → $20 USDT — من المستوى 1 فقط!',
-        specialDesc: 'حقق أهداف الفريق — مكافآت USDT إضافية!',
-        breakeven: '6 أعضاء إحالة → $12 USDT ← استرداد الاستثمار! ✅',
-        unlockWarn: 'المكافآت اليومية تتطلب 10 أعضاء مباشرين نشطين كحد أدنى!',
-        ctaTitle: 'استثمر فقط ₹1,000.',
-        ctaBody: 'احصل على 150 BRS فوراً. تسجيل دخول + دوران يومي يجمع آلاف BRS.',
-        ctaEarly: 'انضم مبكراً الآن — احصل على BRS بأقل سعر!',
-      },
+    function formatCurrency(usd, lang) {
+      var c = CURRENCIES[lang] || CURRENCIES.en; var v = usd * c.rate; var f
+      if (v >= 100000) f = (v/100000).toFixed(1)+' Lakh'
+      else if (v >= 1000) f = Math.round(v).toLocaleString()
+      else if (v >= 1) f = v.toFixed(v%1===0?0:2)
+      else f = v.toFixed(2)
+      return c.pre ? c.symbol+f : f+' '+c.symbol
     }
 
-    // Translatable DOM elements — mapped by data-i18n attribute
+    function updateCurrencyDisplay(lang) {
+      document.querySelectorAll('[data-usd]').forEach(function(el) {
+        el.textContent = formatCurrency(parseFloat(el.getAttribute('data-usd')), lang)
+      })
+    }
+
+    var TRANSLATIONS = {
+      en: { heroTitle1:'Invest just $12 USDT and', heroTitle2:'How Many Ways Can You Earn?', heroSub:'Activate 12 USDT Membership — Unlock 13+ Earning Sources!', investBadge:'💰 Investment: Just 12 USDT (≈ $12)', brsTitle:'🪙 BRS COIN EARNING SOURCES', usdtTitle:'💵 USDT EARNING SOURCES — REAL CASH INCOME', scenarioTitle:'📊 TEAM SIZE vs USDT INCOME — REALISTIC SCENARIOS', roadmapTitle:'📈 BRS COIN PRICE GROWTH ROADMAP', summaryTitle:'🔥 COMPLETE EARNING SUMMARY — 13 SOURCES', activationDesc:'Credited to your wallet instantly upon activation', dayBonusDesc:'Automatically credited 30 days after joining — no action needed!', socialDesc:'Follow 5 Social Media Platforms — 10 BRS per platform!', checkinDesc:'Open app daily and tap Check-In — maintain streaks for more rewards!', spinDesc:'1 Free Spin daily — spin after check-in! First time Guaranteed 5 BRS!', stakingDesc:'Like a Bank Fixed Deposit — lock your coins and earn interest!', airdropDesc:'Company distributes Free BRS coins during special events!', mlmDesc:'When a member pays 12 USDT — commissions distributed across 12 levels!', specialDesc:'Achieve Team Milestones — earn extra USDT Bonuses!', ctaTitle:'Just Invest $12 USDT.', ctaBody:'Get 150 BRS coins instantly. Check-in + Spin daily to accumulate thousands of BRS. Build a team and USDT flows into your wallet. BRS value grows 110x by Phase 4.', ctaEarly:'Join early now — get maximum BRS at the cheapest price!' },
+      hi: { heroTitle1:'₹1,000 Invest करो तो', heroTitle2:'कितने तरीकों से Earn कर सकते हो?', heroSub:'12 USDT Membership Activate करो — 13+ Earning Sources Open!', investBadge:'💰 निवेश: सिर्फ 12 USDT (≈ ₹1,000)', brsTitle:'🪙 BRS COIN कमाई के स्रोत', usdtTitle:'💵 USDT कमाई — असली नकद आय', scenarioTitle:'📊 टीम साइज़ vs USDT आय', roadmapTitle:'📈 BRS COIN कीमत वृद्धि', summaryTitle:'🔥 पूरी कमाई — 13 स्रोत', activationDesc:'Membership Activate करते ही wallet में credit', dayBonusDesc:'30 दिन बाद Automatic credit — कुछ नहीं करना!', socialDesc:'5 Social Media Follow करो — हर platform 10 BRS!', checkinDesc:'रोज़ App Open करो और Check-In दबाओ — Streak बनाए रखो!', spinDesc:'रोज़ 1 Free Spin — Check-in बाद Spin करो! पहली बार 5 BRS!', stakingDesc:'Bank FD जैसा — coins lock करो तो Interest!', airdropDesc:'Special Events में Free BRS coins distribute!', mlmDesc:'एक member 12 USDT देता है — 12 levels पर commissions!', specialDesc:'Team Milestones Achieve करो — Extra USDT Bonuses!', ctaTitle:'सिर्फ ₹1,000 Invest करो.', ctaBody:'तुरंत 150 BRS मिलेंगे. रोज़ Check-in + Spin से हज़ारों BRS जमा. Team बनाओ तो USDT wallet में.', ctaEarly:'अभी early join करो — सस्ते price में BRS!' },
+      ta: { heroTitle1:'₹1,000 முதலீடு செய்தால்', heroTitle2:'எத்தனை வழிகளில் சம்பாதிக்கலாம்?', heroSub:'12 USDT உறுப்பினர் செயல்படுத்தவும் — 13+ வருவாய் ஆதாரங்கள்!', investBadge:'💰 முதலீடு: 12 USDT மட்டும் (≈ ₹1,000)', brsTitle:'🪙 BRS COIN சம்பாதிப்பு ஆதாரங்கள்', usdtTitle:'💵 USDT வருவாய் — உண்மையான பணம்', scenarioTitle:'📊 குழு அளவு vs USDT வருமானம்', roadmapTitle:'📈 BRS COIN விலை வளர்ச்சி', summaryTitle:'🔥 முழுமையான சம்பாதிப்பு — 13 ஆதாரங்கள்', activationDesc:'செயல்படுத்தியவுடன் wallet-ல் credit ஆகும்', dayBonusDesc:'30 நாட்களுக்குப் பிறகு தானாக credit — எதுவும் செய்ய வேண்டாம்!', socialDesc:'5 Social Media Follow செய்யுங்கள் — ஒவ்வொன்றுக்கும் 10 BRS!', checkinDesc:'தினமும் App திறந்து Check-In — Streak தொடர்ந்தால் rewards!', spinDesc:'தினமும் 1 Free Spin — முதல் முறை 5 BRS!', stakingDesc:'Bank FD போல — coins lock செய்தால் Interest!', airdropDesc:'சிறப்பு நிகழ்வுகளில் Free BRS coins!', mlmDesc:'ஒரு உறுப்பினர் 12 USDT — 12 நிலைகளுக்கு commission!', specialDesc:'குழு இலக்குகள் — கூடுதல் USDT போனஸ்!', ctaTitle:'₹1,000 மட்டும் முதலீடு செய்யுங்கள்.', ctaBody:'உடனடியாக 150 BRS. தினமும் Check-in + Spin செய்தால் ஆயிரக்கணக்கான BRS சேரும்.', ctaEarly:'இப்போது early join — மிகக்குறைந்த விலையில் BRS!' },
+      kn: { heroTitle1:'₹1,000 Invest ಮಾಡಿದರೆ', heroTitle2:'ಎಷ್ಟು ವಿಧಗಳಲ್ಲಿ Earn ಮಾಡಬಹುದು?', heroSub:'12 USDT ಸದಸ್ಯತ್ವ Activate — 13+ Earning Sources!', investBadge:'💰 ಹೂಡಿಕೆ: 12 USDT ಮಾತ್ರ (≈ ₹1,000)', brsTitle:'🪙 BRS COIN ಗಳಿಕೆ ಮೂಲಗಳು', usdtTitle:'💵 USDT ಗಳಿಕೆ — ನಿಜವಾದ ಹಣ', scenarioTitle:'📊 ತಂಡದ ಗಾತ್ರ vs USDT ಆದಾಯ', roadmapTitle:'📈 BRS COIN ಬೆಲೆ ಬೆಳವಣಿಗೆ', summaryTitle:'🔥 ಸಂಪೂರ್ಣ ಗಳಿಕೆ — 13 ಮೂಲಗಳು', activationDesc:'Activate ಮಾಡಿದ ತಕ್ಷಣ wallet credit', dayBonusDesc:'30 ದಿನಗಳ ನಂತರ Auto credit — ಏನೂ ಮಾಡಬೇಕಿಲ್ಲ!', socialDesc:'5 Social Media Follow — ಪ್ರತಿಯೊಂದಕ್ಕೂ 10 BRS!', checkinDesc:'ಪ್ರತಿದಿನ Check-In ಒತ್ತಿ — Streak ಮುಂದುವರಿಸಿ!', spinDesc:'ಪ್ರತಿದಿನ 1 Free Spin — ಮೊದಲ ಬಾರಿ 5 BRS!', stakingDesc:'Bank FD ತರಹ — coins lock ಮಾಡಿ Interest!', airdropDesc:'ವಿಶೇಷ ಕಾರ್ಯಕ್ರಮಗಳಲ್ಲಿ Free BRS coins!', mlmDesc:'ಒಬ್ಬ ಸದಸ್ಯ 12 USDT — 12 ಹಂತಗಳಿಗೆ commission!', specialDesc:'ತಂಡದ ಗುರಿಗಳು — ಹೆಚ್ಚುವರಿ USDT ಬೋನಸ್!', ctaTitle:'₹1,000 ಮಾತ್ರ Invest ಮಾಡಿ.', ctaBody:'ತಕ್ಷಣ 150 BRS. ಪ್ರತಿದಿನ Check-in + Spin ಮಾಡಿ ಸಾವಿರಾರು BRS ಸಂಗ್ರಹಿಸಿ.', ctaEarly:'ಈಗ early ಸೇರಿ — ಕಡಿಮೆ ಬೆಲೆಗೆ BRS!' },
+      ml: { heroTitle1:'₹1,000 Invest ചെയ്താൽ', heroTitle2:'എത്ര വഴികളിൽ Earn ചെയ്യാം?', heroSub:'12 USDT അംഗത്വം Activate — 13+ Earning Sources!', investBadge:'💰 നിക്ഷേപം: 12 USDT മാത്രം (≈ ₹1,000)', brsTitle:'🪙 BRS COIN സമ്പാദന മാർഗങ്ങൾ', usdtTitle:'💵 USDT സമ്പാദനം — യഥാർത്ഥ പണം', scenarioTitle:'📊 ടീം വലുപ്പം vs USDT വരുമാനം', roadmapTitle:'📈 BRS COIN വില വളർച്ച', summaryTitle:'🔥 മൊത്തം സമ്പാദനം — 13 മാർഗങ്ങൾ', activationDesc:'Activate ചെയ്തയുടൻ wallet-ൽ credit', dayBonusDesc:'30 ദിവസത്തിന് ശേഷം Auto credit — ഒന്നും ചെയ്യേണ്ട!', socialDesc:'5 Social Media Follow — ഓരോന്നിനും 10 BRS!', checkinDesc:'ദിവസവും Check-In ടാപ്പ് — Streak തുടരൂ!', spinDesc:'ദിവസവും 1 Free Spin — ആദ്യ തവണ 5 BRS ഉറപ്പ്!', stakingDesc:'Bank FD പോലെ — coins lock Interest!', airdropDesc:'പ്രത്യേക പരിപാടികളിൽ Free BRS coins!', mlmDesc:'ഒരു അംഗം 12 USDT — 12 ലെവലുകളിലേക്ക് commission!', specialDesc:'ടീം ലക്ഷ്യങ്ങൾ — അധിക USDT ബോണസ്!', ctaTitle:'₹1,000 മാത്രം Invest ചെയ്യൂ.', ctaBody:'ഉടൻ 150 BRS. ദിവസവും Check-in + Spin ആയിരക്കണക്കിന് BRS ശേഖരിക്കൂ.', ctaEarly:'ഇപ്പോൾ early join — കുറഞ്ഞ വിലയിൽ BRS!' },
+      bn: { heroTitle1:'₹1,000 বিনিয়োগ করলে', heroTitle2:'কত ভাবে আয় করা যায়?', heroSub:'12 USDT সদস্যপদ সক্রিয় — 13+ আয়ের উৎস!', investBadge:'💰 বিনিয়োগ: মাত্র 12 USDT (≈ ₹1,000)', brsTitle:'🪙 BRS COIN আয়ের উৎস', usdtTitle:'💵 USDT আয় — প্রকৃত নগদ', scenarioTitle:'📊 টিম সাইজ vs USDT আয়', roadmapTitle:'📈 BRS COIN মূল্য বৃদ্ধি', summaryTitle:'🔥 সম্পূর্ণ আয় — 13 উৎস', activationDesc:'সক্রিয় করলেই wallet-এ credit', dayBonusDesc:'30 দিন পর Auto credit — কিছু করতে হবে না!', socialDesc:'5 Social Media Follow — প্রতিটিতে 10 BRS!', checkinDesc:'প্রতিদিন Check-In চাপুন — Streak বজায় রাখুন!', spinDesc:'প্রতিদিন 1 Free Spin — প্রথমবার 5 BRS নিশ্চিত!', stakingDesc:'Bank FD মতো — coins lock Interest!', airdropDesc:'বিশেষ অনুষ্ঠানে Free BRS coins!', mlmDesc:'একজন সদস্য 12 USDT — 12 স্তরে commission!', specialDesc:'টিম লক্ষ্য — অতিরিক্ত USDT বোনাস!', ctaTitle:'₹1,000 বিনিয়োগ করুন.', ctaBody:'সঙ্গে সঙ্গে 150 BRS. প্রতিদিন Check-in + Spin হাজার হাজার BRS জমা করুন.', ctaEarly:'এখনই early join — কম দামে BRS পান!' },
+      mr: { heroTitle1:'₹1,000 गुंतवणूक केली तर', heroTitle2:'किती प्रकारे कमाई करता येते?', heroSub:'12 USDT सदस्यत्व सक्रिय — 13+ कमाईचे स्रोत!', investBadge:'💰 गुंतवणूक: फक्त 12 USDT (≈ ₹1,000)', brsTitle:'🪙 BRS COIN कमाईचे स्रोत', usdtTitle:'💵 USDT कमाई — खरा पैसा', scenarioTitle:'📊 टीम आकार vs USDT उत्पन्न', roadmapTitle:'📈 BRS COIN किंमत वाढ', summaryTitle:'🔥 संपूर्ण कमाई — 13 स्रोत', activationDesc:'सक्रिय केल्यावर लगेच wallet credit', dayBonusDesc:'30 दिवसांनी Auto credit — काहीही करायला नको!', socialDesc:'5 Social Media Follow — प्रत्येकी 10 BRS!', checkinDesc:'रोज Check-In दाबा — Streak चालू ठेवा!', spinDesc:'रोज 1 Free Spin — पहिल्यांदा 5 BRS!', stakingDesc:'Bank FD सारखं — coins lock Interest!', airdropDesc:'Special Events मध्ये Free BRS coins!', mlmDesc:'एक सदस्य 12 USDT — 12 स्तरांवर commission!', specialDesc:'टीम उद्दिष्टे — अतिरिक्त USDT बोनस!', ctaTitle:'₹1,000 गुंतवणूक करा.', ctaBody:'लगेच 150 BRS. रोज Check-in + Spin हजारो BRS जमा.', ctaEarly:'आता early join — कमी किमतीत BRS!' },
+      es: { heroTitle1:'Invierte solo 12 USDT (≈ €11) y', heroTitle2:'¿De cuántas formas puedes ganar?', heroSub:'Activa Membresía 12 USDT — ¡13+ fuentes de ingreso!', investBadge:'💰 Inversión: Solo 12 USDT (≈ €11)', brsTitle:'🪙 FUENTES DE GANANCIA BRS', usdtTitle:'💵 FUENTES USDT — DINERO REAL', scenarioTitle:'📊 EQUIPO vs INGRESO USDT', roadmapTitle:'📈 CRECIMIENTO DEL PRECIO BRS', summaryTitle:'🔥 RESUMEN — 13 FUENTES', activationDesc:'Se acredita al instante al activar', dayBonusDesc:'¡30 días después se acredita automáticamente!', socialDesc:'¡Sigue 5 redes sociales — 10 BRS cada una!', checkinDesc:'¡Abre la app y Check-In cada día!', spinDesc:'1 Giro Gratis diario — ¡5 BRS garantizados!', stakingDesc:'¡Depósito fijo — bloquea monedas y gana!', airdropDesc:'¡BRS gratis en eventos especiales!', mlmDesc:'Miembro paga 12 USDT — ¡comisiones en 12 niveles!', specialDesc:'¡Metas de equipo — Bonos USDT Extra!', ctaTitle:'Solo invierte €11 (12 USDT).', ctaBody:'150 BRS al instante. Check-in + Giro diario acumula miles de BRS.', ctaEarly:'¡Únete temprano — BRS al precio más bajo!' },
+      ar: { heroTitle1:'استثمر فقط 12 USDT (≈ 45 ر.س) و', heroTitle2:'كم طريقة يمكنك الربح؟', heroSub:'فعّل عضوية 12 USDT — 13+ مصدر دخل!', investBadge:'💰 الاستثمار: فقط 12 USDT (≈ 45 ر.س)', brsTitle:'🪙 مصادر ربح BRS', usdtTitle:'💵 مصادر ربح USDT — دخل حقيقي', scenarioTitle:'📊 الفريق مقابل USDT', roadmapTitle:'📈 نمو سعر BRS', summaryTitle:'🔥 ملخص الأرباح — 13 مصدر', activationDesc:'يُضاف فوراً عند التفعيل', dayBonusDesc:'يُضاف تلقائياً بعد 30 يوماً!', socialDesc:'تابع 5 منصات — 10 BRS لكل!', checkinDesc:'تسجيل حضور يومي — حافظ على السلسلة!', spinDesc:'دورة مجانية يومياً — 5 BRS مضمونة!', stakingDesc:'وديعة بنكية — اقفل واكسب فائدة!', airdropDesc:'BRS مجاناً في المناسبات!', mlmDesc:'عضو يدفع 12 USDT — عمولات 12 مستوى!', specialDesc:'أهداف الفريق — مكافآت USDT!', ctaTitle:'استثمر فقط 45 ر.س (12 USDT).', ctaBody:'150 BRS فوراً. حضور + دوران يومي يجمع آلاف BRS.', ctaEarly:'انضم مبكراً — BRS بأقل سعر!' },
+      te: { heroTitle1:'₹1,000 Invest చేస్తే', heroTitle2:'ఎన్ని రకాలుగా Earn చేయొచ్చు?', heroSub:'12 USDT Membership Activate చేస్తే — 13+ Earning Sources Open!', investBadge:'💰 Investment: Just 12 USDT (≈ ₹1,000)', brsTitle:'🪙 BRS COIN సంపాదన మార్గాలు', usdtTitle:'💵 USDT సంపాదన — REAL CASH', scenarioTitle:'📊 TEAM SIZE vs USDT INCOME — వాస్తవ అంచనాలు', roadmapTitle:'📈 BRS COIN ధర వృద్ధి', summaryTitle:'🔥 మొత్తం సంపాదన — 13 మార్గాలు', activationDesc:'Activate చేసిన second లో wallet credit', dayBonusDesc:'30 రోజుల తర్వాత Auto credit — ఏమీ చేయక్కర్లేదు!', socialDesc:'5 Social Media Follow చేయి — ఒక్కొక్క platform 10 BRS!', checkinDesc:'రోజూ Check-In నొక్కు — Streak maintain చేస్తే rewards పెరుగుతాయి!', spinDesc:'రోజూ 1 Free Spin — First Time 5 BRS Guaranteed!', stakingDesc:'Bank FD లాగా — coins lock చేస్తే Interest వస్తుంది!', airdropDesc:'Special Events లో Free BRS coins — Active Members Priority!', mlmDesc:'ఒక member 12 USDT కట్టినప్పుడు — 12 levels commissions!', specialDesc:'Team Milestones Achieve — Extra USDT Bonuses!', ctaTitle:'Just ₹1,000 Invest చేయి.', ctaBody:'Immediate గా 150 BRS. రోజూ Check-in + Spin చేస్తే వేల BRS accumulate. Team build చేస్తే USDT wallet లో పడతాయి.', ctaEarly:'ఇప్పుడు early join — cheapest price లో BRS!' },
+    }
+
     function applyTranslations(lang) {
-      const t = TRANSLATIONS[lang] || TRANSLATIONS.en
-      document.querySelectorAll('[data-i18n]').forEach(el => {
-        const key = el.getAttribute('data-i18n')
+      var t = TRANSLATIONS[lang] || TRANSLATIONS.en
+      document.querySelectorAll('[data-i18n]').forEach(function(el) {
+        var key = el.getAttribute('data-i18n')
         if (t[key]) el.textContent = t[key]
       })
-      // Update direction for Arabic
       document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr'
     }
 
     function toggleLangMenu() {
-      const menu = document.getElementById('langMenu')
+      var menu = document.getElementById('langMenu')
       menu.style.display = menu.style.display === 'none' ? 'block' : 'none'
     }
 
-    // Close lang menu on outside click
-    document.addEventListener('click', (e) => {
-      const container = document.getElementById('langContainer')
-      if (container && !container.contains(e.target)) {
-        document.getElementById('langMenu').style.display = 'none'
-      }
+    document.addEventListener('click', function(e) {
+      var c = document.getElementById('langContainer')
+      if (c && !c.contains(e.target)) document.getElementById('langMenu').style.display = 'none'
     })
 
     function switchLang(code) {
@@ -1082,20 +842,17 @@
       document.getElementById('currentLang').textContent = LANG_NAMES[code] || code
       document.getElementById('langMenu').style.display = 'none'
       applyTranslations(code)
-
-      // Highlight active lang button
-      document.querySelectorAll('.lang-opt').forEach(btn => btn.classList.remove('active'))
-      document.querySelectorAll('.lang-opt').forEach(btn => {
-        if (btn.onclick && btn.onclick.toString().includes(`'${code}'`)) {
-          btn.classList.add('active')
-        }
+      updateCurrencyDisplay(code)
+      document.querySelectorAll('.lang-opt').forEach(function(b){b.classList.remove('active')})
+      document.querySelectorAll('.lang-opt').forEach(function(b){
+        if (b.onclick && b.onclick.toString().indexOf("'"+code+"'") > -1) b.classList.add('active')
       })
     }
 
-    // Initialize on load
     ;(function() {
       document.getElementById('currentLang').textContent = LANG_NAMES[currentLangCode] || 'English'
       applyTranslations(currentLangCode)
+      updateCurrencyDisplay(currentLangCode)
     })()
   </script>
 

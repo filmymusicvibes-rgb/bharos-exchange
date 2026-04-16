@@ -163,26 +163,43 @@ export default function EarningGuide() {
           </div>
         </div>
 
-        {/* CTA — View Full Guide */}
+        {/* CTA — Download Guide in Your Language */}
         <div className="relative text-center">
-          <div className="inline-flex flex-col items-center gap-3">
-            <a
-              href="/bharos-earning-guide.html"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group relative inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-yellow-500 to-amber-500 rounded-2xl font-bold text-black text-sm hover:shadow-xl hover:shadow-yellow-500/25 hover:scale-105 transition-all duration-300"
-            >
-              <span className="text-lg">📄</span>
-              View Full Earning Guide
-              <span className="text-lg group-hover:translate-x-1 transition-transform">→</span>
+          <div className="inline-flex flex-col items-center gap-4">
+            <div className="text-center mb-1">
+              <p className="text-xs text-gray-400 font-semibold tracking-wider uppercase mb-2">📥 Download Earning Guide</p>
+              <p className="text-[11px] text-gray-500">Choose your language — opens guide ready to download as PDF</p>
+            </div>
 
-              {/* Shine effect */}
-              <div className="absolute inset-0 rounded-2xl overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-              </div>
-            </a>
-            <p className="text-[11px] text-gray-500">
-              📱 10 Languages • 📸 Save as Image
+            <div className="grid grid-cols-5 sm:grid-cols-5 gap-2 max-w-md mx-auto">
+              {[
+                { code: 'en', flag: '🇺🇸', label: 'English' },
+                { code: 'es', flag: '🇪🇸', label: 'Español' },
+                { code: 'ar', flag: '🇸🇦', label: 'العربية' },
+                { code: 'hi', flag: '🇮🇳', label: 'हिंदी' },
+                { code: 'ta', flag: '🇮🇳', label: 'தமிழ்' },
+                { code: 'kn', flag: '🇮🇳', label: 'ಕನ್ನಡ' },
+                { code: 'ml', flag: '🇮🇳', label: 'മലയാളം' },
+                { code: 'bn', flag: '🇮🇳', label: 'বাংলা' },
+                { code: 'mr', flag: '🇮🇳', label: 'मराठी' },
+                { code: 'te', flag: '🇮🇳', label: 'తెలుగు' },
+              ].map(lang => (
+                <a
+                  key={lang.code}
+                  href={`/bharos-earning-guide.html?lang=${lang.code}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => { localStorage.setItem('guidelang', lang.code) }}
+                  className="group flex flex-col items-center gap-1 px-2 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] hover:bg-gradient-to-br hover:from-yellow-500/15 hover:to-amber-500/10 hover:border-yellow-500/30 transition-all duration-300 hover:scale-105"
+                >
+                  <span className="text-lg group-hover:scale-110 transition-transform">{lang.flag}</span>
+                  <span className="text-[9px] sm:text-[10px] font-semibold text-gray-400 group-hover:text-yellow-400 transition-colors leading-tight text-center">{lang.label}</span>
+                </a>
+              ))}
+            </div>
+
+            <p className="text-[10px] text-gray-600 mt-1">
+              📄 PDF • 💱 Local Currency • 🌐 10 Languages
             </p>
           </div>
         </div>
