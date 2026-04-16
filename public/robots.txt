@@ -1,0 +1,13 @@
+# Bharos Exchange - Official Website
+# https://www.bharosexchange.com
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /_firebase
+
+# Sitemap
+Sitemap: https://www.bharosexchange.com/sitemap.xml
+
+# Crawl-delay (be polite)
+Crawl-delay: 1
