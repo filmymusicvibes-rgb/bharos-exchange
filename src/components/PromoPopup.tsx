@@ -38,7 +38,7 @@ export default function PromoPopup() {
           setImageUrl(promos[0].imageUrl)
           setTitle(promos[0].title || 'Bharos Exchange')
           // Show after 2 seconds
-          setTimeout(() => setShow(true), 2000)
+          setTimeout(() => setShow(true), 1000)
         }
       } catch (err) {
         console.log('PromoPopup load error:', err)
