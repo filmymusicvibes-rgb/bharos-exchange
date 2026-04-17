@@ -100,6 +100,11 @@ export default function AnnouncementBanner() {
         .map(d => ({ id: d.id, ...d.data() } as Announcement))
         .filter(a => a.active === true)
         .filter(a => {
+          // Filter by showOn: text announcements always show, images only if showOn=dashboard
+          if (a.imageUrl) {
+            const showOn = (a as any).showOn || 'home'
+            if (showOn !== 'dashboard') return false
+          }
           // Filter by audience
           const audience = a.targetAudience || 'all'
           if (audience === 'all') return true

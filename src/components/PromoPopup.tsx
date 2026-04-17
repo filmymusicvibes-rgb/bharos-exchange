@@ -43,6 +43,9 @@ export default function PromoPopup() {
           .map(d => ({ id: d.id, ...d.data() } as any))
           .filter(a => a.active === true && a.imageUrl)
           .filter(a => {
+            // Only show home images (or legacy without showOn)
+            const showOn = a.showOn || 'home'
+            if (showOn !== 'home') return false
             // Filter by audience
             const audience = a.targetAudience || 'all'
             if (audience === 'all') return true

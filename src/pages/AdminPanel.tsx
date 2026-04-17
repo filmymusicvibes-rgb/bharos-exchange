@@ -1493,119 +1493,102 @@ export default function AdminPanel() {
             </div>
           </div>
 
-          {/* ═══ SECTION 2: IMAGE POSTER (for Home page) ═══ */}
+          {/* ═══ SECTION 2: IMAGE FOR HOME PAGE (popup) ═══ */}
           <div className="bg-[#1a1a2e] p-6 mb-6 rounded-xl border border-cyan-500/20">
-            <h3 className="text-lg font-bold text-cyan-400 mb-1">🖼️ Upload Poster Image</h3>
-            <p className="text-xs text-gray-500 mb-4">Pick any image → automatically shows as popup on Home page only. No title/message needed!</p>
-            
+            <h3 className="text-lg font-bold text-cyan-400 mb-1">🏠 Image Poster — Home Page</h3>
+            <p className="text-xs text-gray-500 mb-4">Full-screen popup on Home page when user visits.</p>
             <div className="space-y-3">
-              {/* File Upload */}
               <label className="block w-full cursor-pointer">
-                <div className="w-full p-6 rounded-xl border-2 border-dashed border-cyan-500/30 bg-cyan-500/5 hover:bg-cyan-500/10 hover:border-cyan-500/50 transition-all text-center">
-                  <div className="text-3xl mb-2">📷</div>
-                  <p className="text-cyan-400 font-bold text-sm">Click to Select Image</p>
-                  <p className="text-gray-500 text-xs mt-1">JPG, PNG, WebP — any size</p>
+                <div className="w-full p-5 rounded-xl border-2 border-dashed border-cyan-500/30 bg-cyan-500/5 hover:bg-cyan-500/10 hover:border-cyan-500/50 transition-all text-center">
+                  <div className="text-2xl mb-1">📷</div>
+                  <p className="text-cyan-400 font-bold text-sm">Select Image for Home</p>
+                  <p className="text-gray-500 text-xs mt-1">JPG, PNG, WebP — max 2MB</p>
                 </div>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0]
-                    if (!file) return
-                    if (file.size > 2 * 1024 * 1024) {
-                      alert('⚠️ Image too large! Max 2MB. Compress it first.')
-                      return
-                    }
-                    // Convert to base64
-                    const reader = new FileReader()
-                    reader.onload = () => {
-                      const base64 = reader.result as string
-                      setAnnImageUrl(base64)
-                    }
-                    reader.readAsDataURL(file)
-                  }}
-                />
+                <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                  const file = e.target.files?.[0]; if (!file) return
+                  if (file.size > 2*1024*1024) { alert('⚠️ Max 2MB!'); return }
+                  const reader = new FileReader()
+                  reader.onload = () => setAnnImageUrl(reader.result as string)
+                  reader.readAsDataURL(file)
+                }} />
               </label>
-
-              {/* Preview */}
               {annImageUrl && (
                 <div className="relative rounded-xl overflow-hidden border border-green-500/30">
-                  <img src={annImageUrl} alt="Preview" className="w-full max-h-60 object-contain bg-black" />
+                  <img src={annImageUrl} alt="Preview" className="w-full max-h-48 object-contain bg-black" />
                   <div className="absolute top-2 right-2 flex gap-2">
                     <span className="bg-green-500/80 text-white text-[10px] px-2 py-1 rounded-full font-bold">✅ Ready</span>
-                    <button 
-                      onClick={() => setAnnImageUrl('')}
-                      className="bg-red-500/80 text-white text-[10px] px-2 py-1 rounded-full font-bold hover:bg-red-500"
-                    >✕ Remove</button>
+                    <button onClick={() => setAnnImageUrl('')} className="bg-red-500/80 text-white text-[10px] px-2 py-1 rounded-full font-bold">✕</button>
                   </div>
                 </div>
               )}
-
-              {/* Target Audience */}
               <div>
                 <label className="text-xs text-gray-400 mb-2 block">Target Audience</label>
                 <div className="flex gap-2">
-                  <button
-                    id="imgTarget_all"
-                    onClick={() => {
-                      document.getElementById('imgTarget_all')!.className = 'px-4 py-2 rounded-lg text-sm font-bold bg-cyan-500 text-white'
-                      document.getElementById('imgTarget_direct')!.className = 'px-4 py-2 rounded-lg text-sm font-bold bg-gray-700 text-gray-400'
-                      document.getElementById('imgTarget_all')!.setAttribute('data-selected', 'true')
-                      document.getElementById('imgTarget_direct')!.removeAttribute('data-selected')
-                    }}
-                    data-selected="true"
-                    className="px-4 py-2 rounded-lg text-sm font-bold bg-cyan-500 text-white"
-                  >
-                    🌍 All Users
-                  </button>
-                  <button
-                    id="imgTarget_direct"
-                    onClick={() => {
-                      document.getElementById('imgTarget_direct')!.className = 'px-4 py-2 rounded-lg text-sm font-bold bg-amber-500 text-black'
-                      document.getElementById('imgTarget_all')!.className = 'px-4 py-2 rounded-lg text-sm font-bold bg-gray-700 text-gray-400'
-                      document.getElementById('imgTarget_direct')!.setAttribute('data-selected', 'true')
-                      document.getElementById('imgTarget_all')!.removeAttribute('data-selected')
-                    }}
-                    className="px-4 py-2 rounded-lg text-sm font-bold bg-gray-700 text-gray-400"
-                  >
-                    👑 Company Direct Only
-                  </button>
+                  <button id="homeImg_all" data-selected="true" onClick={() => { document.getElementById('homeImg_all')!.className='px-4 py-2 rounded-lg text-sm font-bold bg-cyan-500 text-white'; document.getElementById('homeImg_direct')!.className='px-4 py-2 rounded-lg text-sm font-bold bg-gray-700 text-gray-400'; document.getElementById('homeImg_all')!.setAttribute('data-selected','true'); document.getElementById('homeImg_direct')!.removeAttribute('data-selected') }} className="px-4 py-2 rounded-lg text-sm font-bold bg-cyan-500 text-white">🌍 All Users</button>
+                  <button id="homeImg_direct" onClick={() => { document.getElementById('homeImg_direct')!.className='px-4 py-2 rounded-lg text-sm font-bold bg-amber-500 text-black'; document.getElementById('homeImg_all')!.className='px-4 py-2 rounded-lg text-sm font-bold bg-gray-700 text-gray-400'; document.getElementById('homeImg_direct')!.setAttribute('data-selected','true'); document.getElementById('homeImg_all')!.removeAttribute('data-selected') }} className="px-4 py-2 rounded-lg text-sm font-bold bg-gray-700 text-gray-400">👑 Company Direct Only</button>
                 </div>
               </div>
+              <button onClick={async () => {
+                if (!annImageUrl) { alert('Select image!'); return }
+                const ta = document.getElementById('homeImg_direct')?.hasAttribute('data-selected') ? 'direct' : 'all'
+                try {
+                  if (!auth.currentUser) { alert('⚠️ Session expired!'); navigate('/auth', true); return }
+                  await addDoc(collection(db, "announcements"), { title: '🎉 New Offer!', message: '', type: annType, active: true, targetAudience: ta, showOn: 'home', createdAt: serverTimestamp(), imageUrl: annImageUrl })
+                  setAnnImageUrl(''); alert(`✅ Home popup posted for ${ta === 'direct' ? 'Direct Members' : 'All Users'}!`); loadAnnouncements()
+                } catch (err: any) { alert('Error: ' + (err?.message || 'Failed')) }
+              }} className="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-lg font-bold text-white hover:scale-[1.02] transition-all text-sm">🏠 Post to Home Page (Popup)</button>
+            </div>
+          </div>
 
-              {/* POST IMAGE BUTTON */}
-              <button
-                onClick={async () => {
-                  if (!annImageUrl) { alert('Select an image first!'); return }
-                  const targetAudience = document.getElementById('imgTarget_direct')?.hasAttribute('data-selected') ? 'direct' : 'all'
-                  try {
-                    if (!auth.currentUser) {
-                      alert('⚠️ Session expired! Please login again.')
-                      navigate('/auth', true)
-                      return
-                    }
-                    await addDoc(collection(db, "announcements"), {
-                      title: '🎉 New Offer!',
-                      message: '',
-                      type: annType,
-                      active: true,
-                      targetAudience,
-                      createdAt: serverTimestamp(),
-                      imageUrl: annImageUrl,
-                    })
-                    setAnnImageUrl('')
-                    alert(`✅ Poster posted for ${targetAudience === 'direct' ? 'Company Direct Members' : 'All Users'}! Shows on Home + Dashboard.`)
-                    loadAnnouncements()
-                  } catch (err: any) {
-                    console.error('Announcement error:', err)
-                    alert('Error posting: ' + (err?.message || 'Permission denied'))
+          {/* ═══ SECTION 3: IMAGE FOR DASHBOARD ═══ */}
+          <div className="bg-[#1a1a2e] p-6 mb-6 rounded-xl border border-purple-500/20">
+            <h3 className="text-lg font-bold text-purple-400 mb-1">📊 Image Poster — Dashboard</h3>
+            <p className="text-xs text-gray-500 mb-4">Image shows on Dashboard after login. User can view and close.</p>
+            <div className="space-y-3">
+              <label className="block w-full cursor-pointer">
+                <div className="w-full p-5 rounded-xl border-2 border-dashed border-purple-500/30 bg-purple-500/5 hover:bg-purple-500/10 hover:border-purple-500/50 transition-all text-center">
+                  <div className="text-2xl mb-1">🖼️</div>
+                  <p className="text-purple-400 font-bold text-sm">Select Image for Dashboard</p>
+                  <p className="text-gray-500 text-xs mt-1">JPG, PNG, WebP — max 2MB</p>
+                </div>
+                <input type="file" accept="image/*" className="hidden" id="dashImgFileInput" onChange={(e) => {
+                  const file = e.target.files?.[0]; if (!file) return
+                  if (file.size > 2*1024*1024) { alert('⚠️ Max 2MB!'); return }
+                  const reader = new FileReader()
+                  reader.onload = () => {
+                    const el = document.getElementById('dashImgPreviewImg') as HTMLImageElement
+                    if (el) el.src = reader.result as string
+                    document.getElementById('dashImgPreviewBox')!.style.display = 'block'
+                    ;(window as any).__dashImgBase64 = reader.result as string
                   }
-                }}
-                className="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-lg font-bold text-white hover:scale-[1.02] transition-all text-sm"
-              >
-                🖼️ Post Poster Image (Home + Dashboard)
-              </button>
+                  reader.readAsDataURL(file)
+                }} />
+              </label>
+              <div id="dashImgPreviewBox" className="relative rounded-xl overflow-hidden border border-green-500/30" style={{ display: 'none' }}>
+                <img id="dashImgPreviewImg" src="" alt="Preview" className="w-full max-h-48 object-contain bg-black" />
+                <div className="absolute top-2 right-2 flex gap-2">
+                  <span className="bg-green-500/80 text-white text-[10px] px-2 py-1 rounded-full font-bold">✅ Ready</span>
+                  <button onClick={() => { document.getElementById('dashImgPreviewBox')!.style.display='none'; (window as any).__dashImgBase64='' }} className="bg-red-500/80 text-white text-[10px] px-2 py-1 rounded-full font-bold">✕</button>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-2 block">Target Audience</label>
+                <div className="flex gap-2">
+                  <button id="dashImg_all" data-selected="true" onClick={() => { document.getElementById('dashImg_all')!.className='px-4 py-2 rounded-lg text-sm font-bold bg-purple-500 text-white'; document.getElementById('dashImg_direct')!.className='px-4 py-2 rounded-lg text-sm font-bold bg-gray-700 text-gray-400'; document.getElementById('dashImg_all')!.setAttribute('data-selected','true'); document.getElementById('dashImg_direct')!.removeAttribute('data-selected') }} className="px-4 py-2 rounded-lg text-sm font-bold bg-purple-500 text-white">🌍 All Users</button>
+                  <button id="dashImg_direct" onClick={() => { document.getElementById('dashImg_direct')!.className='px-4 py-2 rounded-lg text-sm font-bold bg-amber-500 text-black'; document.getElementById('dashImg_all')!.className='px-4 py-2 rounded-lg text-sm font-bold bg-gray-700 text-gray-400'; document.getElementById('dashImg_direct')!.setAttribute('data-selected','true'); document.getElementById('dashImg_all')!.removeAttribute('data-selected') }} className="px-4 py-2 rounded-lg text-sm font-bold bg-gray-700 text-gray-400">👑 Company Direct Only</button>
+                </div>
+              </div>
+              <button onClick={async () => {
+                const base64 = (window as any).__dashImgBase64
+                if (!base64) { alert('Select image!'); return }
+                const ta = document.getElementById('dashImg_direct')?.hasAttribute('data-selected') ? 'direct' : 'all'
+                try {
+                  if (!auth.currentUser) { alert('⚠️ Session expired!'); navigate('/auth', true); return }
+                  await addDoc(collection(db, "announcements"), { title: '📊 Update', message: '', type: annType, active: true, targetAudience: ta, showOn: 'dashboard', createdAt: serverTimestamp(), imageUrl: base64 })
+                  document.getElementById('dashImgPreviewBox')!.style.display='none'; (window as any).__dashImgBase64=''
+                  alert(`✅ Dashboard image posted for ${ta === 'direct' ? 'Direct Members' : 'All Users'}!`); loadAnnouncements()
+                } catch (err: any) { alert('Error: ' + (err?.message || 'Failed')) }
+              }} className="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg font-bold text-white hover:scale-[1.02] transition-all text-sm">📊 Post to Dashboard</button>
             </div>
           </div>
 
@@ -1629,6 +1612,7 @@ export default function AdminPanel() {
                     }`}>{ann.active ? '🟢 Live' : '🔴 Off'}</span>
                     {ann.imageUrl && <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-400">🖼️ Has Image</span>}
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${ann.targetAudience === 'direct' ? 'bg-amber-500/20 text-amber-400' : 'bg-blue-500/20 text-blue-400'}`}>{ann.targetAudience === 'direct' ? '👑 Direct Only' : '🌍 All Users'}</span>
+                    {(ann as any).showOn && <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${(ann as any).showOn === 'home' ? 'bg-cyan-500/20 text-cyan-400' : 'bg-purple-500/20 text-purple-400'}`}>{(ann as any).showOn === 'home' ? '🏠 Home' : '📊 Dashboard'}</span>}
                   </div>
                   {ann.message && <p className="text-sm text-gray-400">{ann.message}</p>}
                   {ann.imageUrl && (
