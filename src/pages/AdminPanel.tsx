@@ -1251,84 +1251,124 @@ export default function AdminPanel() {
         <>
           <h1 className="text-3xl mb-6 font-bold">📢 Manage Announcements</h1>
 
-          {/* Create New */}
-          <div className="bg-[#1a1a2e] p-6 mb-6 rounded-xl border border-pink-500/20">
-            <h3 className="text-lg font-bold text-pink-400 mb-4">➕ Create Announcement</h3>
+          {/* ═══ POSTER IMAGE UPLOAD ═══ */}
+          <div className="bg-[#1a1a2e] p-6 mb-6 rounded-xl border border-cyan-500/20">
+            <h3 className="text-lg font-bold text-cyan-400 mb-2">🖼️ Upload Poster Image</h3>
+            <p className="text-xs text-gray-500 mb-4">Pick any image → automatically shows as popup on Home page. No title/message needed!</p>
+            
             <div className="space-y-3">
-              <input
-                value={annTitle}
-                onChange={(e) => setAnnTitle(e.target.value)}
-                placeholder="Title (e.g. Phase 2 Launch!)"
-                className="w-full p-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500"
-              />
-              <textarea
-                value={annMessage}
-                onChange={(e) => setAnnMessage(e.target.value)}
-                placeholder="Message (e.g. Exciting news! BRS trading goes live...)"
-                rows={3}
-                className="w-full p-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500 resize-none"
-              />
-              <input
-                value={annImageUrl}
-                onChange={(e) => setAnnImageUrl(e.target.value)}
-                placeholder="🖼️ Image URL (optional — paste poster image link)"
-                className="w-full p-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500"
-              />
+              {/* File Upload */}
+              <label className="block w-full cursor-pointer">
+                <div className="w-full p-6 rounded-xl border-2 border-dashed border-cyan-500/30 bg-cyan-500/5 hover:bg-cyan-500/10 hover:border-cyan-500/50 transition-all text-center">
+                  <div className="text-3xl mb-2">📷</div>
+                  <p className="text-cyan-400 font-bold text-sm">Click to Select Image</p>
+                  <p className="text-gray-500 text-xs mt-1">JPG, PNG, WebP — any size</p>
+                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    if (file.size > 2 * 1024 * 1024) {
+                      alert('⚠️ Image too large! Max 2MB. Compress it first.')
+                      return
+                    }
+                    // Convert to base64
+                    const reader = new FileReader()
+                    reader.onload = () => {
+                      const base64 = reader.result as string
+                      setAnnImageUrl(base64)
+                    }
+                    reader.readAsDataURL(file)
+                  }}
+                />
+              </label>
+
+              {/* Preview */}
               {annImageUrl && (
-                <div className="relative rounded-lg overflow-hidden border border-cyan-500/30 max-h-40">
-                  <img src={annImageUrl} alt="Preview" className="w-full h-40 object-cover" onError={(e) => (e.currentTarget.style.display = 'none')} />
-                  <span className="absolute top-2 right-2 bg-black/60 text-green-400 text-[10px] px-2 py-1 rounded-full font-bold">✅ Preview</span>
+                <div className="relative rounded-xl overflow-hidden border border-green-500/30">
+                  <img src={annImageUrl} alt="Preview" className="w-full max-h-60 object-contain bg-black" />
+                  <div className="absolute top-2 right-2 flex gap-2">
+                    <span className="bg-green-500/80 text-white text-[10px] px-2 py-1 rounded-full font-bold">✅ Ready</span>
+                    <button 
+                      onClick={() => setAnnImageUrl('')}
+                      className="bg-red-500/80 text-white text-[10px] px-2 py-1 rounded-full font-bold hover:bg-red-500"
+                    >✕ Remove</button>
+                  </div>
                 </div>
               )}
-              <div className="flex gap-2">
-                {(["info", "warning", "promo", "update"] as const).map(type => (
-                  <button
-                    key={type}
-                    onClick={() => setAnnType(type)}
-                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                      annType === type
-                        ? type === 'info' ? 'bg-blue-500 text-white'
-                          : type === 'warning' ? 'bg-orange-500 text-white'
-                          : type === 'promo' ? 'bg-purple-500 text-white'
-                          : 'bg-green-500 text-white'
-                        : 'bg-gray-700 text-gray-400'
-                    }`}
-                  >
-                    {type === 'info' ? 'ℹ️ Info' : type === 'warning' ? '⚠️ Alert' : type === 'promo' ? '🎁 Promo' : '🚀 Update'}
-                  </button>
-                ))}
-              </div>
+
+              {/* Optional: Text announcement too */}
+              <details className="text-gray-500">
+                <summary className="text-xs cursor-pointer hover:text-gray-300 transition">➕ Add text announcement (optional)</summary>
+                <div className="mt-3 space-y-2">
+                  <input
+                    value={annTitle}
+                    onChange={(e) => setAnnTitle(e.target.value)}
+                    placeholder="Title (optional)"
+                    className="w-full p-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500"
+                  />
+                  <textarea
+                    value={annMessage}
+                    onChange={(e) => setAnnMessage(e.target.value)}
+                    placeholder="Message (optional)"
+                    rows={2}
+                    className="w-full p-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500 resize-none"
+                  />
+                  <div className="flex gap-2">
+                    {(["info", "warning", "promo", "update"] as const).map(type => (
+                      <button
+                        key={type}
+                        onClick={() => setAnnType(type)}
+                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                          annType === type
+                            ? type === 'info' ? 'bg-blue-500 text-white'
+                              : type === 'warning' ? 'bg-orange-500 text-white'
+                              : type === 'promo' ? 'bg-purple-500 text-white'
+                              : 'bg-green-500 text-white'
+                            : 'bg-gray-700 text-gray-400'
+                        }`}
+                      >
+                        {type === 'info' ? 'ℹ️ Info' : type === 'warning' ? '⚠️ Alert' : type === 'promo' ? '🎁 Promo' : '🚀 Update'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </details>
+
+              {/* POST BUTTON */}
               <button
                 onClick={async () => {
-                  if (!annTitle.trim() || !annMessage.trim()) { alert('Fill title and message'); return }
+                  if (!annImageUrl && !annTitle.trim()) { alert('Upload an image or add a title!'); return }
                   try {
-                    // Ensure Firebase Auth is active
                     if (!auth.currentUser) {
                       alert('⚠️ Session expired! Please login again.')
                       navigate('/auth', true)
                       return
                     }
                     await addDoc(collection(db, "announcements"), {
-                      title: annTitle.trim(),
-                      message: annMessage.trim(),
+                      title: annTitle.trim() || '🎉 New Offer!',
+                      message: annMessage.trim() || '',
                       type: annType,
                       active: true,
                       createdAt: serverTimestamp(),
-                      ...(annImageUrl.trim() ? { imageUrl: annImageUrl.trim() } : {}),
+                      ...(annImageUrl ? { imageUrl: annImageUrl } : {}),
                     })
                     setAnnTitle('')
                     setAnnMessage('')
                     setAnnImageUrl('')
-                    alert('✅ Announcement posted!')
+                    alert('✅ Announcement posted! Poster will show on Home page!')
                     loadAnnouncements()
                   } catch (err: any) {
                     console.error('Announcement error:', err)
-                    alert('Error posting announcement: ' + (err?.message || 'Permission denied. Re-login from /admin-login'))
+                    alert('Error posting: ' + (err?.message || 'Permission denied'))
                   }
                 }}
-                className="w-full py-3 bg-gradient-to-r from-pink-500 to-purple-600 rounded-lg font-bold text-white hover:scale-[1.02] transition-all"
+                className="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-lg font-bold text-white hover:scale-[1.02] transition-all text-sm"
               >
-                📢 Post Announcement
+                {annImageUrl ? '🖼️ Post Poster Image' : '📢 Post Announcement'}
               </button>
             </div>
           </div>
@@ -1339,7 +1379,7 @@ export default function AdminPanel() {
               ann.active ? 'bg-[#1a1a2e] border-green-500/20' : 'bg-[#0f0f1a] border-gray-700/30 opacity-50'
             }`}>
               <div className="flex justify-between items-start">
-                <div>
+                <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <h4 className="font-bold text-white">{ann.title}</h4>
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
@@ -1351,10 +1391,14 @@ export default function AdminPanel() {
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                       ann.active ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
                     }`}>{ann.active ? '🟢 Live' : '🔴 Off'}</span>
+                    {ann.imageUrl && <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-400">🖼️ Has Image</span>}
                   </div>
-                  <p className="text-sm text-gray-400">{ann.message}</p>
+                  {ann.message && <p className="text-sm text-gray-400">{ann.message}</p>}
+                  {ann.imageUrl && (
+                    <img src={ann.imageUrl} alt="" className="mt-2 w-32 h-20 object-cover rounded-lg border border-white/10" />
+                  )}
                 </div>
-                <div className="flex gap-2 shrink-0">
+                <div className="flex gap-2 shrink-0 ml-3">
                   <button
                     onClick={async () => {
                       await updateDoc(doc(db, "announcements", ann.id), { active: !ann.active })
