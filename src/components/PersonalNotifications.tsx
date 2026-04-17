@@ -30,9 +30,9 @@ export default function PersonalNotifications() {
   }, [])
 
   const loadPersonal = async () => {
-    const email = getUser()
-    if (!email) return
     try {
+      const email = getUser()
+      if (!email) return
       const q = query(
         collection(db, "userNotifications"),
         where("targetUserId", "==", email.toLowerCase())
