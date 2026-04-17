@@ -833,13 +833,18 @@ export default function AdminPanel() {
 
         <button
           onClick={() => setActiveTab("withdraws")}
-          className={`px-4 py-2 rounded ${
+          className={`px-4 py-2 rounded relative ${
             activeTab === "withdraws"
               ? "bg-green-500 text-black"
               : "bg-gray-700"
           }`}
         >
           Withdrawals
+          {withdraws.filter(w => w.status === 'pending').length > 0 && (
+            <span className="absolute -top-2 -right-2 min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center animate-pulse">
+              {withdraws.filter(w => w.status === 'pending').length}
+            </span>
+          )}
         </button>
 
         <button
@@ -1020,12 +1025,43 @@ export default function AdminPanel() {
 
       {activeTab === "withdraws" && (
         <>
-          <h1 className="text-3xl mb-8 font-bold">
+          <h1 className="text-3xl mb-4 font-bold">
             Withdraw Requests
           </h1>
 
-          {withdraws.map((w) => (
-            <div key={w.id} className="bg-[#1a1a2e] p-6 mb-4 rounded-xl border border-cyan-500/10">
+          {/* Pending count notification */}
+          {withdraws.filter(w => w.status === 'pending').length > 0 && (
+            <div className="mb-6 px-4 py-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-center gap-3">
+              <span className="text-2xl">🔔</span>
+              <div>
+                <p className="text-yellow-400 font-bold text-sm">
+                  {withdraws.filter(w => w.status === 'pending').length} Pending Withdrawal{withdraws.filter(w => w.status === 'pending').length > 1 ? 's' : ''}
+                </p>
+                <p className="text-yellow-400/60 text-xs">Action required — review and approve/reject</p>
+              </div>
+            </div>
+          )}
+
+          {withdraws.map((w) => {
+            // Calculate time ago
+            const timeAgo = (() => {
+              if (!w.createdAt) return ''
+              const created = w.createdAt?.toDate ? w.createdAt.toDate() : (w.createdAt?.seconds ? new Date(w.createdAt.seconds * 1000) : null)
+              if (!created) return ''
+              const diffMs = Date.now() - created.getTime()
+              const mins = Math.floor(diffMs / (1000 * 60))
+              const hours = Math.floor(diffMs / (1000 * 60 * 60))
+              const days = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+              if (mins < 1) return '⚡ Just now'
+              if (mins < 60) return `🕐 ${mins} min${mins > 1 ? 's' : ''} ago`
+              if (hours < 24) return `🕐 ${hours} hour${hours > 1 ? 's' : ''} ago`
+              return `🕐 ${days} day${days > 1 ? 's' : ''} ago`
+            })()
+
+            return (
+            <div key={w.id} className={`p-6 mb-4 rounded-xl border ${
+              w.status === 'pending' ? 'bg-yellow-500/5 border-yellow-500/20' : 'bg-[#1a1a2e] border-cyan-500/10'
+            }`}>
 
               <div className="flex flex-wrap items-center gap-3 mb-3">
                 <span className={`px-3 py-1 rounded-full text-xs font-bold ${
@@ -1036,6 +1072,13 @@ export default function AdminPanel() {
                   {w.status === 'pending' ? '⏳ Pending' : w.status === 'approved' ? '✅ Approved' : '❌ Rejected'}
                 </span>
                 <span className="text-cyan-400 text-2xl font-bold">{w.amount} USDT</span>
+                {timeAgo && (
+                  <span className={`ml-auto text-xs font-medium ${
+                    w.status === 'pending' ? 'text-yellow-400/70' : 'text-gray-500'
+                  }`}>
+                    {timeAgo}
+                  </span>
+                )}
               </div>
 
               <p className="text-gray-400 text-sm mb-1">👤 User: <span className="text-white">{w.userId}</span></p>
@@ -1097,7 +1140,7 @@ export default function AdminPanel() {
               )}
 
             </div>
-          ))}
+          )})}
         </>
       )}
 
