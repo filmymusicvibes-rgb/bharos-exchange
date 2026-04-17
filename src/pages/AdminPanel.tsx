@@ -1251,10 +1251,79 @@ export default function AdminPanel() {
         <>
           <h1 className="text-3xl mb-6 font-bold">📢 Manage Announcements</h1>
 
-          {/* ═══ POSTER IMAGE UPLOAD ═══ */}
+          {/* ═══ SECTION 1: TEXT ANNOUNCEMENT (for Dashboard) ═══ */}
+          <div className="bg-[#1a1a2e] p-6 mb-6 rounded-xl border border-green-500/20">
+            <h3 className="text-lg font-bold text-green-400 mb-1">📝 Text Announcement</h3>
+            <p className="text-xs text-gray-500 mb-4">Type title + message → shows on Dashboard after login. Text only, no images.</p>
+            
+            <div className="space-y-3">
+              <input
+                value={annTitle}
+                onChange={(e) => setAnnTitle(e.target.value)}
+                placeholder="Announcement Title (e.g. 🚀 Phase 2 Update)"
+                className="w-full p-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:border-green-500/50 outline-none transition-all"
+              />
+              <textarea
+                value={annMessage}
+                onChange={(e) => setAnnMessage(e.target.value)}
+                placeholder="Announcement Message / Details..."
+                rows={3}
+                className="w-full p-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500 resize-none focus:border-green-500/50 outline-none transition-all"
+              />
+              <div className="flex gap-2 flex-wrap">
+                {(["info", "warning", "promo", "update"] as const).map(type => (
+                  <button
+                    key={type}
+                    onClick={() => setAnnType(type)}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                      annType === type
+                        ? type === 'info' ? 'bg-blue-500 text-white'
+                          : type === 'warning' ? 'bg-orange-500 text-white'
+                          : type === 'promo' ? 'bg-purple-500 text-white'
+                          : 'bg-green-500 text-white'
+                        : 'bg-gray-700 text-gray-400'
+                    }`}
+                  >
+                    {type === 'info' ? 'ℹ️ Info' : type === 'warning' ? '⚠️ Alert' : type === 'promo' ? '🎁 Promo' : '🚀 Update'}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={async () => {
+                  if (!annTitle.trim()) { alert('Enter a title!'); return }
+                  try {
+                    if (!auth.currentUser) {
+                      alert('⚠️ Session expired! Please login again.')
+                      navigate('/auth', true)
+                      return
+                    }
+                    await addDoc(collection(db, "announcements"), {
+                      title: annTitle.trim(),
+                      message: annMessage.trim() || '',
+                      type: annType,
+                      active: true,
+                      createdAt: serverTimestamp(),
+                    })
+                    setAnnTitle('')
+                    setAnnMessage('')
+                    alert('✅ Text announcement posted! Will show on Dashboard.')
+                    loadAnnouncements()
+                  } catch (err: any) {
+                    console.error('Announcement error:', err)
+                    alert('Error posting: ' + (err?.message || 'Permission denied'))
+                  }
+                }}
+                className="w-full py-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg font-bold text-white hover:scale-[1.02] transition-all text-sm"
+              >
+                📢 Post Text Announcement (Dashboard)
+              </button>
+            </div>
+          </div>
+
+          {/* ═══ SECTION 2: IMAGE POSTER (for Home page) ═══ */}
           <div className="bg-[#1a1a2e] p-6 mb-6 rounded-xl border border-cyan-500/20">
-            <h3 className="text-lg font-bold text-cyan-400 mb-2">🖼️ Upload Poster Image</h3>
-            <p className="text-xs text-gray-500 mb-4">Pick any image → automatically shows as popup on Home page. No title/message needed!</p>
+            <h3 className="text-lg font-bold text-cyan-400 mb-1">🖼️ Upload Poster Image</h3>
+            <p className="text-xs text-gray-500 mb-4">Pick any image → automatically shows as popup on Home page only. No title/message needed!</p>
             
             <div className="space-y-3">
               {/* File Upload */}
@@ -1300,48 +1369,10 @@ export default function AdminPanel() {
                 </div>
               )}
 
-              {/* Optional: Text announcement too */}
-              <details className="text-gray-500">
-                <summary className="text-xs cursor-pointer hover:text-gray-300 transition">➕ Add text announcement (optional)</summary>
-                <div className="mt-3 space-y-2">
-                  <input
-                    value={annTitle}
-                    onChange={(e) => setAnnTitle(e.target.value)}
-                    placeholder="Title (optional)"
-                    className="w-full p-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500"
-                  />
-                  <textarea
-                    value={annMessage}
-                    onChange={(e) => setAnnMessage(e.target.value)}
-                    placeholder="Message (optional)"
-                    rows={2}
-                    className="w-full p-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500 resize-none"
-                  />
-                  <div className="flex gap-2">
-                    {(["info", "warning", "promo", "update"] as const).map(type => (
-                      <button
-                        key={type}
-                        onClick={() => setAnnType(type)}
-                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                          annType === type
-                            ? type === 'info' ? 'bg-blue-500 text-white'
-                              : type === 'warning' ? 'bg-orange-500 text-white'
-                              : type === 'promo' ? 'bg-purple-500 text-white'
-                              : 'bg-green-500 text-white'
-                            : 'bg-gray-700 text-gray-400'
-                        }`}
-                      >
-                        {type === 'info' ? 'ℹ️ Info' : type === 'warning' ? '⚠️ Alert' : type === 'promo' ? '🎁 Promo' : '🚀 Update'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </details>
-
-              {/* POST BUTTON */}
+              {/* POST IMAGE BUTTON */}
               <button
                 onClick={async () => {
-                  if (!annImageUrl && !annTitle.trim()) { alert('Upload an image or add a title!'); return }
+                  if (!annImageUrl) { alert('Select an image first!'); return }
                   try {
                     if (!auth.currentUser) {
                       alert('⚠️ Session expired! Please login again.')
@@ -1349,17 +1380,15 @@ export default function AdminPanel() {
                       return
                     }
                     await addDoc(collection(db, "announcements"), {
-                      title: annTitle.trim() || '🎉 New Offer!',
-                      message: annMessage.trim() || '',
+                      title: '🎉 New Offer!',
+                      message: '',
                       type: annType,
                       active: true,
                       createdAt: serverTimestamp(),
-                      ...(annImageUrl ? { imageUrl: annImageUrl } : {}),
+                      imageUrl: annImageUrl,
                     })
-                    setAnnTitle('')
-                    setAnnMessage('')
                     setAnnImageUrl('')
-                    alert('✅ Announcement posted! Poster will show on Home page!')
+                    alert('✅ Poster posted! Will show as popup on Home page.')
                     loadAnnouncements()
                   } catch (err: any) {
                     console.error('Announcement error:', err)
@@ -1368,7 +1397,7 @@ export default function AdminPanel() {
                 }}
                 className="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-lg font-bold text-white hover:scale-[1.02] transition-all text-sm"
               >
-                {annImageUrl ? '🖼️ Post Poster Image' : '📢 Post Announcement'}
+                🖼️ Post Poster Image (Home Page)
               </button>
             </div>
           </div>
