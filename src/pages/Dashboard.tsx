@@ -16,6 +16,7 @@ import { QRCodeSVG } from 'qrcode.react'
 import UserBadgeCard from "../components/UserBadgeCard"
 import AnnouncementBanner from "../components/AnnouncementBanner"
 import PersonalNotifications from "../components/PersonalNotifications"
+import DashboardPromoPopup from "../components/DashboardPromoPopup"
 
 import { logTransaction } from "../lib/commission"
 
@@ -463,6 +464,9 @@ export default function Dashboard() {
           <h2 className="text-2xl font-bold mb-5">
             Welcome, <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">{userName || email?.split("@")[0]}</span>
           </h2>
+
+          {/* 📊 DASHBOARD IMAGE POPUP — full-screen like Home */}
+          <DashboardPromoPopup />
 
           {/* 👤 PERSONAL NOTIFICATIONS from Admin */}
           <PersonalNotifications />

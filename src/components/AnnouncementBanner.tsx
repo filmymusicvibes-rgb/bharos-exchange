@@ -66,7 +66,6 @@ export default function AnnouncementBanner() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
   const [dismissed, setDismissed] = useState<Set<string>>(new Set())
   const [isCompanyDirect, setIsCompanyDirect] = useState(false)
-  const [expandedImage, setExpandedImage] = useState<string | null>(null)
 
   useEffect(() => {
     checkUserAndLoad()
@@ -98,13 +97,8 @@ export default function AnnouncementBanner() {
       const snap = await getDocs(collection(db, "announcements"))
       const items = snap.docs
         .map(d => ({ id: d.id, ...d.data() } as Announcement))
-        .filter(a => a.active === true)
+        .filter(a => a.active === true && !a.imageUrl)
         .filter(a => {
-          // Filter by showOn: text announcements always show, images only if showOn=dashboard
-          if (a.imageUrl) {
-            const showOn = (a as any).showOn || 'home'
-            if (showOn !== 'dashboard') return false
-          }
           // Filter by audience
           const audience = a.targetAudience || 'all'
           if (audience === 'all') return true
@@ -188,23 +182,6 @@ export default function AnnouncementBanner() {
                     </div>
                     {ann.message && <p className="text-xs text-gray-400 leading-relaxed">{ann.message}</p>}
 
-                    {/* Image thumbnail on Dashboard (clickable to expand) */}
-                    {ann.imageUrl && (
-                      <div 
-                        className="mt-2 rounded-xl overflow-hidden border border-white/10 cursor-pointer hover:border-cyan-500/30 transition-all max-w-[280px]"
-                        onClick={() => setExpandedImage(ann.imageUrl || null)}
-                      >
-                        <img 
-                          src={ann.imageUrl} 
-                          alt={ann.title} 
-                          className="w-full max-h-40 object-cover"
-                        />
-                        <div className="bg-white/5 px-2 py-1 text-center">
-                          <span className="text-[10px] text-gray-500">📷 Tap to view full</span>
-                        </div>
-                      </div>
-                    )}
-
                     {ann.createdAt?.seconds && (
                       <p className="text-[10px] text-gray-600 mt-1.5">
                         {new Date(ann.createdAt.seconds * 1000).toLocaleDateString('en-IN', {
@@ -227,24 +204,6 @@ export default function AnnouncementBanner() {
           )
         })}
       </div>
-
-      {/* Full-screen image viewer */}
-      {expandedImage && (
-        <div 
-          className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4"
-          onClick={() => setExpandedImage(null)}
-        >
-          <div className="relative max-w-lg w-full" onClick={e => e.stopPropagation()}>
-            <img src={expandedImage} alt="" className="w-full max-h-[85vh] object-contain rounded-xl" />
-            <button
-              onClick={() => setExpandedImage(null)}
-              className="w-full mt-2 py-3 bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-white/10 rounded-xl text-gray-300 text-sm font-bold hover:text-white transition-all"
-            >
-              ✕ Close
-            </button>
-          </div>
-        </div>
-      )}
 
       <style>{`
         @keyframes annSlideIn {
