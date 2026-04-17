@@ -97,6 +97,101 @@ export default function AdminPanel() {
   const [usdtAuditDone, setUsdtAuditDone] = useState(false)
   const [usdtAuditFixing, setUsdtAuditFixing] = useState(false)
 
+  // 🔔 WITHDRAWAL NOTIFICATION SYSTEM
+  const [lastKnownPendingIds, setLastKnownPendingIds] = useState<Set<string>>(new Set())
+  const [newWithdrawalAlert, setNewWithdrawalAlert] = useState(false)
+
+  // 🔊 Play notification sound
+  const playNotificationSound = () => {
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)()
+      // Play 3 short beeps
+      const playBeep = (startTime: number, freq: number) => {
+        const osc = audioCtx.createOscillator()
+        const gain = audioCtx.createGain()
+        osc.connect(gain)
+        gain.connect(audioCtx.destination)
+        osc.frequency.value = freq
+        osc.type = 'sine'
+        gain.gain.setValueAtTime(0.3, startTime)
+        gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.3)
+        osc.start(startTime)
+        osc.stop(startTime + 0.3)
+      }
+      playBeep(audioCtx.currentTime, 880)
+      playBeep(audioCtx.currentTime + 0.35, 1100)
+      playBeep(audioCtx.currentTime + 0.7, 1320)
+    } catch (e) { console.log('Sound error:', e) }
+  }
+
+  // 🔔 Show browser notification
+  const showBrowserNotification = (title: string, body: string) => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(title, { body, icon: '🔔', tag: 'bharos-admin' })
+    }
+  }
+
+  // Request notification permission on load
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission()
+    }
+  }, [])
+
+  // 🔄 Auto-poll withdrawals every 30 seconds
+  useEffect(() => {
+    const pollWithdrawals = async () => {
+      try {
+        const snap = await getDocs(collection(db, "withdrawals"))
+        const allW = snap.docs.map(d => ({ id: d.id, ...d.data() as any }))
+        const pending = allW.filter(w => w.status === 'pending')
+        const pendingIds = new Set(pending.map(w => w.id))
+
+        // Update withdrawals list
+        const sorted = allW.sort((a: any, b: any) => {
+          const statusOrder: any = { pending: 0, approved: 1, rejected: 2 }
+          return (statusOrder[a.status] || 99) - (statusOrder[b.status] || 99)
+        })
+        setWithdraws(sorted)
+
+        // Check for NEW pending withdrawals
+        if (lastKnownPendingIds.size > 0) {
+          const newOnes = [...pendingIds].filter(id => !lastKnownPendingIds.has(id))
+          if (newOnes.length > 0) {
+            // 🔊 NEW WITHDRAWAL!
+            playNotificationSound()
+            showBrowserNotification(
+              '🔔 New Withdrawal Request!',
+              `${newOnes.length} new withdrawal request${newOnes.length > 1 ? 's' : ''} pending approval.`
+            )
+            setNewWithdrawalAlert(true)
+            // Flash tab title
+            const origTitle = document.title
+            let flash = true
+            const flashInterval = setInterval(() => {
+              document.title = flash ? '🔴 NEW WITHDRAWAL!' : origTitle
+              flash = !flash
+            }, 1000)
+            setTimeout(() => {
+              clearInterval(flashInterval)
+              document.title = origTitle
+            }, 15000)
+          }
+        }
+        setLastKnownPendingIds(pendingIds)
+      } catch (err) {
+        console.log('Poll withdrawals error:', err)
+      }
+    }
+
+    // Initial load
+    pollWithdrawals()
+
+    // Poll every 30 seconds
+    const interval = setInterval(pollWithdrawals, 30000)
+    return () => clearInterval(interval)
+  }, [lastKnownPendingIds])
+
   useEffect(() => {
     const email = getUser()
     const isAdmin = localStorage.getItem("bharos_admin")

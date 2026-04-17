@@ -158,6 +158,20 @@ export default function Withdraw() {
                 createdAt: new Date()
             })
 
+            // 🔔 Notify admin via Telegram
+            try {
+                fetch('/api/notify-admin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: 'withdrawal',
+                        userId: email,
+                        amount: withdrawAmount,
+                        address: address.trim()
+                    })
+                }).catch(() => {}) // Fire and forget — don't block user
+            } catch (e) { /* silent */ }
+
             // 🔒 Save withdrawal timestamp for 24hr cooldown
             await updateDoc(userRef, {
                 lastWithdrawalAt: new Date()
