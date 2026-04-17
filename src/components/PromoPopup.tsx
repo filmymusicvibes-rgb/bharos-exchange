@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
 import { db } from '../lib/firebase'
-import { collection, getDocs } from 'firebase/firestore'
+import { collection, getDocs, doc, getDoc } from 'firebase/firestore'
+import { getUser } from '../lib/session'
 
 /**
  * 🎯 PromoPopup — Full-screen poster popup on Home page
  * 
  * Reads from Firestore "announcements" collection.
  * Shows announcements that have an imageUrl field.
+ * Filters by targetAudience (all users / company direct only).
  * Appears instantly after data loads, once per session.
  * Full-screen on mobile (9:16 support), close button at bottom only.
  */
@@ -20,13 +22,33 @@ export default function PromoPopup() {
     const seen = sessionStorage.getItem('bharos_promo_seen')
     if (seen) return
 
-    // Fetch promo announcements with images from Firebase
     const fetchPromo = async () => {
       try {
+        // Check if user is company direct
+        let isCompanyDirect = false
+        const email = getUser()
+        if (email) {
+          try {
+            const userSnap = await getDoc(doc(db, 'users', email))
+            if (userSnap.exists()) {
+              const userData: any = userSnap.data()
+              isCompanyDirect = userData.referredBy === 'COMPANY_DIRECT' || userData.isCompanyDirect === true
+            }
+          } catch {} // Silent — treat as non-direct
+        }
+
+        // Fetch promo announcements with images from Firebase
         const snap = await getDocs(collection(db, 'announcements'))
         const promos = snap.docs
           .map(d => ({ id: d.id, ...d.data() } as any))
-          .filter(a => a.active === true && a.imageUrl) // Only with images
+          .filter(a => a.active === true && a.imageUrl)
+          .filter(a => {
+            // Filter by audience
+            const audience = a.targetAudience || 'all'
+            if (audience === 'all') return true
+            if (audience === 'direct' && isCompanyDirect) return true
+            return false
+          })
           .sort((a, b) => {
             const timeA = a.createdAt?.seconds || 0
             const timeB = b.createdAt?.seconds || 0

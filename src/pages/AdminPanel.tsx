@@ -1426,9 +1426,43 @@ export default function AdminPanel() {
                   </button>
                 ))}
               </div>
+
+              {/* Target Audience */}
+              <div>
+                <label className="text-xs text-gray-400 mb-2 block">Target Audience</label>
+                <div className="flex gap-2">
+                  <button
+                    id="textTarget_all"
+                    onClick={() => {
+                      document.getElementById('textTarget_all')!.className = 'px-4 py-2 rounded-lg text-sm font-bold bg-green-500 text-white'
+                      document.getElementById('textTarget_direct')!.className = 'px-4 py-2 rounded-lg text-sm font-bold bg-gray-700 text-gray-400'
+                      document.getElementById('textTarget_all')!.setAttribute('data-selected', 'true')
+                      document.getElementById('textTarget_direct')!.removeAttribute('data-selected')
+                    }}
+                    data-selected="true"
+                    className="px-4 py-2 rounded-lg text-sm font-bold bg-green-500 text-white"
+                  >
+                    🌍 All Users
+                  </button>
+                  <button
+                    id="textTarget_direct"
+                    onClick={() => {
+                      document.getElementById('textTarget_direct')!.className = 'px-4 py-2 rounded-lg text-sm font-bold bg-amber-500 text-black'
+                      document.getElementById('textTarget_all')!.className = 'px-4 py-2 rounded-lg text-sm font-bold bg-gray-700 text-gray-400'
+                      document.getElementById('textTarget_direct')!.setAttribute('data-selected', 'true')
+                      document.getElementById('textTarget_all')!.removeAttribute('data-selected')
+                    }}
+                    className="px-4 py-2 rounded-lg text-sm font-bold bg-gray-700 text-gray-400"
+                  >
+                    👑 Company Direct Only
+                  </button>
+                </div>
+              </div>
+
               <button
                 onClick={async () => {
                   if (!annTitle.trim()) { alert('Enter a title!'); return }
+                  const targetAudience = document.getElementById('textTarget_direct')?.hasAttribute('data-selected') ? 'direct' : 'all'
                   try {
                     if (!auth.currentUser) {
                       alert('⚠️ Session expired! Please login again.')
@@ -1440,11 +1474,12 @@ export default function AdminPanel() {
                       message: annMessage.trim() || '',
                       type: annType,
                       active: true,
+                      targetAudience,
                       createdAt: serverTimestamp(),
                     })
                     setAnnTitle('')
                     setAnnMessage('')
-                    alert('✅ Text announcement posted! Will show on Dashboard.')
+                    alert(`✅ Text announcement posted for ${targetAudience === 'direct' ? 'Company Direct Members' : 'All Users'}!`)
                     loadAnnouncements()
                   } catch (err: any) {
                     console.error('Announcement error:', err)
@@ -1507,10 +1542,43 @@ export default function AdminPanel() {
                 </div>
               )}
 
+              {/* Target Audience */}
+              <div>
+                <label className="text-xs text-gray-400 mb-2 block">Target Audience</label>
+                <div className="flex gap-2">
+                  <button
+                    id="imgTarget_all"
+                    onClick={() => {
+                      document.getElementById('imgTarget_all')!.className = 'px-4 py-2 rounded-lg text-sm font-bold bg-cyan-500 text-white'
+                      document.getElementById('imgTarget_direct')!.className = 'px-4 py-2 rounded-lg text-sm font-bold bg-gray-700 text-gray-400'
+                      document.getElementById('imgTarget_all')!.setAttribute('data-selected', 'true')
+                      document.getElementById('imgTarget_direct')!.removeAttribute('data-selected')
+                    }}
+                    data-selected="true"
+                    className="px-4 py-2 rounded-lg text-sm font-bold bg-cyan-500 text-white"
+                  >
+                    🌍 All Users
+                  </button>
+                  <button
+                    id="imgTarget_direct"
+                    onClick={() => {
+                      document.getElementById('imgTarget_direct')!.className = 'px-4 py-2 rounded-lg text-sm font-bold bg-amber-500 text-black'
+                      document.getElementById('imgTarget_all')!.className = 'px-4 py-2 rounded-lg text-sm font-bold bg-gray-700 text-gray-400'
+                      document.getElementById('imgTarget_direct')!.setAttribute('data-selected', 'true')
+                      document.getElementById('imgTarget_all')!.removeAttribute('data-selected')
+                    }}
+                    className="px-4 py-2 rounded-lg text-sm font-bold bg-gray-700 text-gray-400"
+                  >
+                    👑 Company Direct Only
+                  </button>
+                </div>
+              </div>
+
               {/* POST IMAGE BUTTON */}
               <button
                 onClick={async () => {
                   if (!annImageUrl) { alert('Select an image first!'); return }
+                  const targetAudience = document.getElementById('imgTarget_direct')?.hasAttribute('data-selected') ? 'direct' : 'all'
                   try {
                     if (!auth.currentUser) {
                       alert('⚠️ Session expired! Please login again.')
@@ -1522,11 +1590,12 @@ export default function AdminPanel() {
                       message: '',
                       type: annType,
                       active: true,
+                      targetAudience,
                       createdAt: serverTimestamp(),
                       imageUrl: annImageUrl,
                     })
                     setAnnImageUrl('')
-                    alert('✅ Poster posted! Will show as popup on Home page.')
+                    alert(`✅ Poster posted for ${targetAudience === 'direct' ? 'Company Direct Members' : 'All Users'}! Shows on Home + Dashboard.`)
                     loadAnnouncements()
                   } catch (err: any) {
                     console.error('Announcement error:', err)
@@ -1535,7 +1604,7 @@ export default function AdminPanel() {
                 }}
                 className="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-lg font-bold text-white hover:scale-[1.02] transition-all text-sm"
               >
-                🖼️ Post Poster Image (Home Page)
+                🖼️ Post Poster Image (Home + Dashboard)
               </button>
             </div>
           </div>
@@ -1559,6 +1628,7 @@ export default function AdminPanel() {
                       ann.active ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
                     }`}>{ann.active ? '🟢 Live' : '🔴 Off'}</span>
                     {ann.imageUrl && <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-400">🖼️ Has Image</span>}
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${ann.targetAudience === 'direct' ? 'bg-amber-500/20 text-amber-400' : 'bg-blue-500/20 text-blue-400'}`}>{ann.targetAudience === 'direct' ? '👑 Direct Only' : '🌍 All Users'}</span>
                   </div>
                   {ann.message && <p className="text-sm text-gray-400">{ann.message}</p>}
                   {ann.imageUrl && (

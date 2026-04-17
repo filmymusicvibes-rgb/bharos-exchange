@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { db } from "../lib/firebase"
-import { collection, getDocs } from "firebase/firestore"
+import { collection, getDocs, doc, getDoc } from "firebase/firestore"
+import { getUser } from "../lib/session"
 import { X, AlertTriangle, Info, Gift, Zap, Megaphone } from "lucide-react"
 
 interface Announcement {
@@ -11,6 +12,7 @@ interface Announcement {
   active: boolean
   createdAt: any
   imageUrl?: string
+  targetAudience?: string // 'all' | 'direct'
 }
 
 const TYPE_CONFIG = {
@@ -63,18 +65,47 @@ const TYPE_CONFIG = {
 export default function AnnouncementBanner() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
   const [dismissed, setDismissed] = useState<Set<string>>(new Set())
+  const [isCompanyDirect, setIsCompanyDirect] = useState(false)
+  const [expandedImage, setExpandedImage] = useState<string | null>(null)
 
   useEffect(() => {
-    loadAnnouncements()
+    checkUserAndLoad()
   }, [])
 
-  const loadAnnouncements = async () => {
+  const checkUserAndLoad = async () => {
+    const email = getUser()
+    if (!email) {
+      loadAnnouncements(false)
+      return
+    }
     try {
-      // Simple query — no composite index needed
+      const snap = await getDoc(doc(db, "users", email))
+      if (snap.exists()) {
+        const data: any = snap.data()
+        const isDirect = data.referredBy === 'COMPANY_DIRECT' || data.isCompanyDirect === true
+        setIsCompanyDirect(isDirect)
+        loadAnnouncements(isDirect)
+      } else {
+        loadAnnouncements(false)
+      }
+    } catch {
+      loadAnnouncements(false)
+    }
+  }
+
+  const loadAnnouncements = async (isDirect: boolean) => {
+    try {
       const snap = await getDocs(collection(db, "announcements"))
       const items = snap.docs
         .map(d => ({ id: d.id, ...d.data() } as Announcement))
         .filter(a => a.active === true)
+        .filter(a => {
+          // Filter by audience
+          const audience = a.targetAudience || 'all'
+          if (audience === 'all') return true
+          if (audience === 'direct' && isDirect) return true
+          return false
+        })
         .sort((a, b) => {
           const timeA = a.createdAt?.seconds || 0
           const timeB = b.createdAt?.seconds || 0
@@ -142,7 +173,7 @@ export default function AnnouncementBanner() {
                     <Icon className={`w-4.5 h-4.5 ${config.textColor}`} />
                   </div>
 
-                  {/* Content — TEXT ONLY, no images on Dashboard */}
+                  {/* Content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <h4 className={`text-sm font-bold ${config.textColor}`}>{ann.title}</h4>
@@ -150,7 +181,24 @@ export default function AnnouncementBanner() {
                         {config.label}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-400 leading-relaxed">{ann.message}</p>
+                    {ann.message && <p className="text-xs text-gray-400 leading-relaxed">{ann.message}</p>}
+
+                    {/* Image thumbnail on Dashboard (clickable to expand) */}
+                    {ann.imageUrl && (
+                      <div 
+                        className="mt-2 rounded-xl overflow-hidden border border-white/10 cursor-pointer hover:border-cyan-500/30 transition-all max-w-[280px]"
+                        onClick={() => setExpandedImage(ann.imageUrl || null)}
+                      >
+                        <img 
+                          src={ann.imageUrl} 
+                          alt={ann.title} 
+                          className="w-full max-h-40 object-cover"
+                        />
+                        <div className="bg-white/5 px-2 py-1 text-center">
+                          <span className="text-[10px] text-gray-500">📷 Tap to view full</span>
+                        </div>
+                      </div>
+                    )}
 
                     {ann.createdAt?.seconds && (
                       <p className="text-[10px] text-gray-600 mt-1.5">
@@ -174,6 +222,24 @@ export default function AnnouncementBanner() {
           )
         })}
       </div>
+
+      {/* Full-screen image viewer */}
+      {expandedImage && (
+        <div 
+          className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setExpandedImage(null)}
+        >
+          <div className="relative max-w-lg w-full" onClick={e => e.stopPropagation()}>
+            <img src={expandedImage} alt="" className="w-full max-h-[85vh] object-contain rounded-xl" />
+            <button
+              onClick={() => setExpandedImage(null)}
+              className="w-full mt-2 py-3 bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-white/10 rounded-xl text-gray-300 text-sm font-bold hover:text-white transition-all"
+            >
+              ✕ Close
+            </button>
+          </div>
+        </div>
+      )}
 
       <style>{`
         @keyframes annSlideIn {
