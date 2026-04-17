@@ -152,5 +152,17 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+
+    // ═══════════════════════════════════════════
+    // 👤 USER NOTIFICATIONS — Personal messages from admin
+    //    Read/Update: authenticated, Create/Delete: authenticated (admin)
+    // ═══════════════════════════════════════════
+    match /userNotifications/{id} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null;
+      allow delete: if request.auth != null;
+    }
+
   }
 }

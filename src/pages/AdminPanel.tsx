@@ -1861,6 +1861,119 @@ export default function AdminPanel() {
       {activeTab === "pushNotifs" && (
         <>
           <h1 className="text-3xl mb-6 font-bold">🔔 Send Notifications</h1>
+
+          {/* ═══ SECTION 1: SEND TO INDIVIDUAL USER ═══ */}
+          <div className="bg-[#1a1a2e] p-6 mb-6 rounded-xl border border-amber-500/20">
+            <h3 className="text-lg font-bold text-amber-400 mb-1">👤 Send to Individual User</h3>
+            <p className="text-xs text-gray-500 mb-4">Personal message to a specific user — only they will see it on their Dashboard.</p>
+            <div className="space-y-3">
+              {/* User email search */}
+              <div className="relative">
+                <input
+                  id="personalUserEmail"
+                  placeholder="Type user email (e.g. user@gmail.com)"
+                  className="w-full p-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:border-amber-500/50 outline-none transition-all"
+                  onChange={(e) => {
+                    const val = e.target.value.toLowerCase().trim()
+                    // Show matching users from allUsersList
+                    if (val.length >= 2 && allUsersList.length > 0) {
+                      const matches = allUsersList.filter((u: any) => 
+                        (u.email || u.id || '').toLowerCase().includes(val)
+                      ).slice(0, 5)
+                      const container = document.getElementById('personalSuggestions')
+                      if (container) {
+                        container.innerHTML = matches.map((u: any) => 
+                          `<div class="px-3 py-2 hover:bg-white/10 cursor-pointer text-sm text-gray-300 border-b border-white/5" onclick="document.getElementById('personalUserEmail').value='${u.email || u.id}'; document.getElementById('personalSuggestions').style.display='none'">
+                            📧 ${u.email || u.id} ${u.userName ? `(${u.userName})` : ''}
+                          </div>`
+                        ).join('')
+                        container.style.display = matches.length > 0 ? 'block' : 'none'
+                      }
+                    } else {
+                      const container = document.getElementById('personalSuggestions')
+                      if (container) container.style.display = 'none'
+                    }
+                  }}
+                />
+                <div id="personalSuggestions" className="absolute top-full left-0 right-0 bg-[#0d1117] border border-white/10 rounded-lg mt-1 z-50 max-h-40 overflow-y-auto" style={{ display: 'none' }} />
+              </div>
+
+              <input
+                id="personalTitle"
+                placeholder="Title (e.g. 🏆 Congratulations!)"
+                className="w-full p-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:border-amber-500/50 outline-none"
+              />
+              <textarea
+                id="personalMessage"
+                placeholder="Personal message (e.g. You've qualified for Goa Trip! Contact admin to claim.)"
+                rows={3}
+                className="w-full p-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500 resize-none focus:border-amber-500/50 outline-none"
+              />
+
+              {/* Type */}
+              <div className="flex gap-2 flex-wrap">
+                {[
+                  { key: 'reward', label: '🏆 Reward', color: 'bg-green-500' },
+                  { key: 'congrats', label: '🎉 Congrats', color: 'bg-purple-500' },
+                  { key: 'info', label: 'ℹ️ Info', color: 'bg-blue-500' },
+                  { key: 'warning', label: '⚠️ Warning', color: 'bg-orange-500' },
+                  { key: 'trip', label: '✈️ Trip', color: 'bg-cyan-500' },
+                ].map(t => (
+                  <button
+                    key={t.key}
+                    id={`ptype_${t.key}`}
+                    onClick={(e) => {
+                      document.querySelectorAll('[id^="ptype_"]').forEach(b => b.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-gray-700 text-gray-400')
+                      e.currentTarget.className = `px-3 py-1.5 rounded-lg text-xs font-bold ${t.color} text-white`
+                      e.currentTarget.setAttribute('data-selected', 'true')
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold ${t.key === 'reward' ? t.color + ' text-white' : 'bg-gray-700 text-gray-400'}`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Send Button */}
+              <button
+                onClick={async () => {
+                  const email = (document.getElementById('personalUserEmail') as HTMLInputElement)?.value?.trim()
+                  const title = (document.getElementById('personalTitle') as HTMLInputElement)?.value?.trim()
+                  const message = (document.getElementById('personalMessage') as HTMLTextAreaElement)?.value?.trim()
+                  const selectedType = document.querySelector('[id^="ptype_"][data-selected="true"]')?.id?.replace('ptype_', '') || 'reward'
+
+                  if (!email) { alert('Enter user email!'); return }
+                  if (!title) { alert('Enter a title!'); return }
+                  if (!auth.currentUser) {
+                    alert('⚠️ Session expired!'); navigate('/auth', true); return
+                  }
+                  try {
+                    await addDoc(collection(db, "userNotifications"), {
+                      targetUserId: email.toLowerCase(),
+                      title: title,
+                      message: message || '',
+                      type: selectedType,
+                      read: false,
+                      createdBy: getUser() || 'admin',
+                      createdAt: serverTimestamp(),
+                    })
+                    ;(document.getElementById('personalUserEmail') as HTMLInputElement).value = ''
+                    ;(document.getElementById('personalTitle') as HTMLInputElement).value = ''
+                    ;(document.getElementById('personalMessage') as HTMLTextAreaElement).value = ''
+                    alert(`✅ Personal notification sent to ${email}!`)
+                  } catch (err: any) {
+                    console.error('Personal notification error:', err)
+                    alert('Error: ' + (err?.message || 'Permission denied'))
+                  }
+                }}
+                className="w-full py-3 bg-gradient-to-r from-amber-500 to-yellow-600 rounded-lg font-bold text-black hover:scale-[1.02] transition-all shadow-lg shadow-amber-500/20"
+              >
+                📤 Send Personal Notification
+              </button>
+            </div>
+          </div>
+
+          {/* ═══ SECTION 2: SEND TO ALL USERS (existing) ═══ */}
           <p className="text-gray-400 text-sm mb-6">
             Send notifications that appear in every user's notification bell. All active users will see these instantly.
           </p>
