@@ -71,7 +71,10 @@ function ActivateMembership() {
             })
             await logTransaction(email, 150, "BRS", "Membership activation reward (auto-recovered)")
           }
-          await runFullActivation(email)
+          // ✅ FIX: Do NOT call runFullActivation here!
+          // The polling blockchain detect at line 235 handles commissions.
+          // This self-healing path is only for status recovery.
+          // Calling it here caused DOUBLE commissions when both paths fired.
 
           setStep("done")
           setTimeout(() => navigate("/dashboard"), 3000)

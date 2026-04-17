@@ -10,6 +10,7 @@ interface Announcement {
   type: "info" | "warning" | "promo" | "update"
   active: boolean
   createdAt: any
+  imageUrl?: string
 }
 
 const TYPE_CONFIG = {
@@ -150,6 +151,14 @@ export default function AnnouncementBanner() {
                       </span>
                     </div>
                     <p className="text-xs text-gray-400 leading-relaxed">{ann.message}</p>
+
+                    {/* 🖼️ Poster Image */}
+                    {ann.imageUrl && (
+                      <div className="mt-3 rounded-xl overflow-hidden border border-white/10 hover:border-cyan-500/40 transition-all cursor-pointer" onClick={() => window.open(ann.imageUrl, '_blank')}>
+                        <img src={ann.imageUrl} alt={ann.title} className="w-full max-h-48 object-cover hover:scale-[1.02] transition-transform duration-300" />
+                      </div>
+                    )}
+
                     {ann.createdAt?.seconds && (
                       <p className="text-[10px] text-gray-600 mt-1.5">
                         {new Date(ann.createdAt.seconds * 1000).toLocaleDateString('en-IN', {

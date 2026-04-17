@@ -15,7 +15,7 @@ import BRSPriceCard from "../components/BRSPriceCard"
 import { QRCodeSVG } from 'qrcode.react'
 import UserBadgeCard from "../components/UserBadgeCard"
 import AnnouncementBanner from "../components/AnnouncementBanner"
-import { logTransaction, runFullActivation } from "../lib/commission"
+import { logTransaction } from "../lib/commission"
 
 export default function Dashboard() {
 
@@ -276,7 +276,7 @@ export default function Dashboard() {
             })
 
             if (myDeposit) {
-              console.log("🔄 Self-healing: Deposit found but user not active. Auto-activating...")
+              console.log("🔄 Self-healing: Deposit found but user not active. Fixing status...")
 
               // 🔒 FRESH DB check — prevents race condition with ActivateMembership
               const freshHealSnap = await getDoc(ref)
@@ -298,9 +298,11 @@ export default function Dashboard() {
                 })
                 await logTransaction(email, 150, "BRS", "Membership activation reward (auto-recovered)")
               }
-              await runFullActivation(email)
+              // ✅ FIX: Do NOT call runFullActivation here!
+              // Commissions are handled by ActivateMembership or AdminPanel only.
+              // Calling it here caused DOUBLE commissions due to race conditions.
               setStatus("active")
-              console.log("✅ Self-healing complete!")
+              console.log("✅ Self-healing complete (status fixed, commissions handled by activation flow)")
             }
           } catch (err) {
             console.error("Self-healing error:", err)

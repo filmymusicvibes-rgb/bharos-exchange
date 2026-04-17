@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sofviz Technologies — Company Profile</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: #0a0a1a;
+      min-height: 100vh;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    @media print {
+      body { background: #fff; }
+      .no-print { display: none !important; }
+      .profile-container { box-shadow: none !important; margin: 0 !important; border-radius: 0 !important; }
+      .editable:hover { outline: none !important; background: transparent !important; }
+      @page { margin: 8mm; size: A4; }
+    }
+
+    /* ═══ TOOLBAR ═══ */
+    .toolbar {
+      position: sticky; top: 0; z-index: 200;
+      background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 50%, #0d0d2b 100%);
+      padding: 14px 28px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 4px 30px rgba(0,0,0,0.5);
+      border-bottom: 1px solid rgba(99,102,241,0.3);
+    }
+    .toolbar-left { display: flex; align-items: center; gap: 16px; }
+    .toolbar-left h3 { color: #fff; font-size: 15px; font-weight: 600; }
+    .toolbar-left .badge {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff; font-size: 10px; font-weight: 700;
+      padding: 3px 12px; border-radius: 20px;
+      letter-spacing: 0.8px; text-transform: uppercase;
+    }
+    .tb-btn {
+      border: none; padding: 8px 20px; border-radius: 10px;
+      font-weight: 600; font-size: 12px; cursor: pointer; font-family: inherit;
+      transition: all 0.2s; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff;
+    }
+    .tb-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(99,102,241,0.5); }
+
+    .help-tip {
+      background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+      border: 1px solid #c7d2fe; border-radius: 12px;
+      padding: 12px 20px; max-width: 900px; margin: 16px auto 0;
+      display: flex; align-items: center; gap: 10px;
+      font-size: 12px; color: #4338ca;
+    }
+
+    .editable {
+      cursor: text; transition: all 0.2s; border-radius: 4px;
+      padding: 1px 4px; margin: -1px -4px;
+    }
+    .editable:hover {
+      outline: 2px dashed #6366f1; outline-offset: 2px;
+      background: rgba(99,102,241,0.04);
+    }
+    .editable:focus {
+      outline: 2px solid #6366f1; outline-offset: 2px;
+      background: rgba(99,102,241,0.06);
+    }
+
+    /* ═══ PROFILE CONTAINER ═══ */
+    .profile-container {
+      max-width: 900px; margin: 24px auto;
+      background: #fff; border-radius: 16px; overflow: hidden;
+      box-shadow: 0 4px 40px rgba(0,0,0,0.3), 0 0 80px rgba(99,102,241,0.1);
+    }
+
+    /* ═══ COVER HEADER ═══ */
+    .cover {
+      background: linear-gradient(135deg, #0f0e2e 0%, #1a1849 30%, #252369 60%, #1e1b4b 100%);
+      padding: 48px 48px 40px;
+      position: relative; overflow: hidden;
+    }
+    .cover::before {
+      content: '';
+      position: absolute; top: -40%; right: -15%;
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(99,102,241,0.2) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .cover::after {
+      content: '';
+      position: absolute; bottom: -30%; left: -10%;
+      width: 300px; height: 300px;
+      background: radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .cover-top {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      position: relative; z-index: 2;
+    }
+
+    .cover-logo {
+      width: 72px; height: 72px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 18px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 30px; font-weight: 900; color: #fff;
+      letter-spacing: -2px;
+      box-shadow: 0 8px 30px rgba(99,102,241,0.4);
+    }
+
+    .cover-info { flex: 1; margin-left: 20px; }
+    .cover-info h1 {
+      font-size: 28px; font-weight: 900; color: #fff;
+      letter-spacing: -0.8px;
+    }
+    .cover-info .tagline {
+      font-size: 12px; color: #a5b4fc; font-weight: 600;
+      letter-spacing: 2px; text-transform: uppercase; margin-top: 4px;
+    }
+
+    .cover-badge {
+      background: rgba(99,102,241,0.2);
+      border: 1px solid rgba(99,102,241,0.4);
+      border-radius: 10px; padding: 10px 18px;
+      text-align: center;
+    }
+    .cover-badge .label {
+      font-size: 9px; color: #a5b4fc; text-transform: uppercase;
+      letter-spacing: 1.2px; font-weight: 700;
+    }
+    .cover-badge .value {
+      font-size: 14px; color: #fff; font-weight: 700; margin-top: 2px;
+    }
+
+    .cover-divider {
+      width: 60px; height: 3px;
+      background: linear-gradient(90deg, #6366f1, #8b5cf6);
+      border-radius: 2px; margin: 20px 0 16px;
+      position: relative; z-index: 2;
+    }
+
+    .cover-desc {
+      font-size: 14px; color: #c7d2fe; line-height: 1.8;
+      max-width: 600px; position: relative; z-index: 2;
+    }
+
+    .cover-contact {
+      display: flex; gap: 24px; margin-top: 20px;
+      position: relative; z-index: 2; flex-wrap: wrap;
+    }
+    .cover-contact-item {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; color: #e0e7ff;
+    }
+    .cover-contact-item .icon {
+      width: 30px; height: 30px;
+      background: rgba(99,102,241,0.2);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px;
+    }
+
+    /* ═══ SECTION STYLES ═══ */
+    .section {
+      padding: 32px 48px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .section:last-child { border-bottom: none; }
+
+    .section-title {
+      font-size: 16px; font-weight: 800; color: #0f172a;
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 16px; letter-spacing: -0.3px;
+    }
+    .section-title .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    }
+
+    /* ═══ ABOUT SECTION ═══ */
+    .about-content {
+      font-size: 13px; color: #475569; line-height: 1.9;
+    }
+
+    /* ═══ DETAILS GRID ═══ */
+    .details-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .detail-item {
+      display: flex; gap: 12px; align-items: flex-start;
+    }
+    .detail-item .icon {
+      width: 36px; height: 36px; min-width: 36px;
+      background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+    .detail-item .text { }
+    .detail-item .label {
+      font-size: 10px; text-transform: uppercase;
+      letter-spacing: 1px; color: #94a3b8; font-weight: 700;
+    }
+    .detail-item .value {
+      font-size: 13px; color: #0f172a; font-weight: 600; margin-top: 2px;
+    }
+
+    /* ═══ SERVICES GRID ═══ */
+    .services-grid {
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+    }
+    .service-card {
+      background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+      border: 1px solid #e2e8f0; border-radius: 12px;
+      padding: 20px; text-align: center;
+      transition: all 0.2s;
+    }
+    .service-card:hover { border-color: #c7d2fe; background: linear-gradient(135deg, #eef2ff, #e0e7ff); }
+    .service-card .svc-icon {
+      width: 44px; height: 44px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 12px; margin: 0 auto 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+    .service-card h4 {
+      font-size: 12px; font-weight: 700; color: #0f172a;
+      margin-bottom: 4px;
+    }
+    .service-card p {
+      font-size: 10px; color: #64748b; line-height: 1.5;
+    }
+
+    /* ═══ TECH STACK ═══ */
+    .tech-tags {
+      display: flex; flex-wrap: wrap; gap: 8px;
+    }
+    .tech-tag {
+      background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+      color: #4338ca; font-size: 11px; font-weight: 600;
+      padding: 6px 14px; border-radius: 8px;
+      border: 1px solid #c7d2fe;
+    }
+
+    /* ═══ WHY US ═══ */
+    .why-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .why-item {
+      display: flex; gap: 10px; align-items: flex-start;
+      padding: 12px; background: #f8fafc; border-radius: 10px;
+      border: 1px solid #f1f5f9;
+    }
+    .why-item .emoji { font-size: 20px; min-width: 28px; }
+    .why-item h4 { font-size: 12px; font-weight: 700; color: #0f172a; }
+    .why-item p { font-size: 10px; color: #64748b; margin-top: 2px; line-height: 1.5; }
+
+    /* ═══ STATS BAR ═══ */
+    .stats-bar {
+      display: flex; justify-content: space-around;
+      background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+      border: 1px solid #bbf7d0; border-radius: 12px;
+      padding: 20px;
+    }
+    .stat-item { text-align: center; }
+    .stat-item .num {
+      font-size: 24px; font-weight: 800; color: #0f172a;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .stat-item .lbl {
+      font-size: 10px; color: #166534; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px;
+    }
+
+    /* ═══ TEAM ═══ */
+    .team-card {
+      display: flex; gap: 20px; align-items: center;
+      background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+      border: 1px solid #e2e8f0; border-radius: 14px;
+      padding: 24px;
+    }
+    .team-avatar {
+      width: 72px; height: 72px; min-width: 72px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; font-weight: 800; color: #fff;
+    }
+    .team-info h4 { font-size: 16px; font-weight: 700; color: #0f172a; }
+    .team-info .role {
+      font-size: 12px; color: #6366f1; font-weight: 600; margin-top: 2px;
+    }
+    .team-info p {
+      font-size: 11px; color: #64748b; line-height: 1.7; margin-top: 6px;
+    }
+
+    /* ═══ REGISTRATION SECTION ═══ */
+    .reg-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .reg-card {
+      background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+      border: 1px solid #c7d2fe; border-radius: 12px;
+      padding: 18px;
+    }
+    .reg-card .reg-label {
+      font-size: 10px; text-transform: uppercase;
+      letter-spacing: 1px; color: #6366f1; font-weight: 700;
+    }
+    .reg-card .reg-value {
+      font-size: 14px; color: #0f172a; font-weight: 700; margin-top: 4px;
+    }
+    .reg-card .reg-desc {
+      font-size: 10px; color: #64748b; margin-top: 2px;
+    }
+
+    /* ═══ CLIENTS ═══ */
+    .client-logos {
+      display: flex; gap: 16px; flex-wrap: wrap;
+    }
+    .client-logo {
+      background: #f8fafc; border: 1px solid #e2e8f0;
+      border-radius: 10px; padding: 12px 20px;
+      font-size: 12px; font-weight: 600; color: #475569;
+    }
+
+    /* ═══ FOOTER ═══ */
+    .profile-footer {
+      padding: 28px 48px;
+      background: linear-gradient(135deg, #0f0e2e, #1a1849);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .profile-footer .brand {
+      font-size: 18px; font-weight: 800; color: #fff;
+    }
+    .profile-footer .brand-tag {
+      font-size: 10px; color: #a5b4fc; margin-top: 2px;
+    }
+    .profile-footer .contact-mini {
+      text-align: right; font-size: 11px; color: #c7d2fe; line-height: 1.8;
+    }
+    .profile-footer .contact-mini strong { color: #fff; }
+
+    /* ═══ CONFIDENTIAL STAMP ═══ */
+    .conf-stamp {
+      text-align: center; padding: 12px;
+      background: #fffbeb; border-top: 1px solid #fde68a;
+      font-size: 10px; color: #92400e; font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOOLBAR -->
+  <div class="toolbar no-print">
+    <div class="toolbar-left">
+      <h3>🏢 Sofviz Company Profile</h3>
+      <span class="badge">✏️ Editable</span>
+    </div>
+    <button class="tb-btn" onclick="window.print()">🖨️ Print / Save PDF</button>
+  </div>
+
+  <div class="help-tip no-print">
+    <span style="font-size: 18px;">💡</span>
+    <div>
+      <strong>Company Profile:</strong> Click any text to edit → 🖨️ Print to save as PDF.
+      Perfect for <strong style="color:#6366f1;">PhonePe verification, client presentations, bank documentation</strong>.
+    </div>
+  </div>
+
+  <!-- PROFILE -->
+  <div class="profile-container">
+
+    <!-- ═══ COVER HEADER ═══ -->
+    <div class="cover">
+      <div class="cover-top">
+        <div style="display: flex; align-items: center;">
+          <div class="cover-logo">SV</div>
+          <div class="cover-info">
+            <h1>Sofviz Technologies</h1>
+            <div class="tagline">Smart Solutions • Real Results</div>
+          </div>
+        </div>
+        <div class="cover-badge">
+          <div class="label">Established</div>
+          <div class="value editable" contenteditable="true">2026</div>
+        </div>
+      </div>
+
+      <div class="cover-divider"></div>
+
+      <p class="cover-desc editable" contenteditable="true">
+        Sofviz Technologies is a cutting-edge software development company specializing in web applications, 
+        mobile apps, AI solutions, and digital transformation services. Based in Visakhapatnam, India, 
+        we empower businesses worldwide with scalable, beautiful, and intelligent digital products.
+      </p>
+
+      <div class="cover-contact">
+        <div class="cover-contact-item">
+          <div class="icon">📱</div>
+          <span class="editable" contenteditable="true">+91 89854 54477</span>
+        </div>
+        <div class="cover-contact-item">
+          <div class="icon">📧</div>
+          <span class="editable" contenteditable="true">info@sofviz.live</span>
+        </div>
+        <div class="cover-contact-item">
+          <div class="icon">🌐</div>
+          <span class="editable" contenteditable="true">sofviz.live</span>
+        </div>
+        <div class="cover-contact-item">
+          <div class="icon">📍</div>
+          <span class="editable" contenteditable="true">Visakhapatnam, AP, India</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ REGISTRATION & LEGAL ═══ -->
+    <div class="section">
+      <div class="section-title"><span class="dot"></span> Registration & Legal Information</div>
+      <div class="reg-grid">
+        <div class="reg-card">
+          <div class="reg-label">MSME / Udyam Registration</div>
+          <div class="reg-value editable" contenteditable="true">UDYAM-I-AP-10-7080188</div>
+          <div class="reg-desc">Govt. of India — Ministry of MSME</div>
+        </div>
+        <div class="reg-card">
+          <div class="reg-label">Business Type</div>
+          <div class="reg-value editable" contenteditable="true">Proprietorship</div>
+          <div class="reg-desc">IT Services & Software Development</div>
+        </div>
+        <div class="reg-card">
+          <div class="reg-label">Proprietor Name</div>
+          <div class="reg-value editable" contenteditable="true">Suresh Arika</div>
+          <div class="reg-desc">Founder & CEO</div>
+        </div>
+        <div class="reg-card">
+          <div class="reg-label">Industry Classification</div>
+          <div class="reg-value editable" contenteditable="true">NIC Code: 62011</div>
+          <div class="reg-desc editable" contenteditable="true">Computer Programming & Software Development</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ COMPANY DETAILS ═══ -->
+    <div class="section">
+      <div class="section-title"><span class="dot"></span> Company Details</div>
+      <div class="details-grid">
+        <div class="detail-item">
+          <div class="icon">🏢</div>
+          <div class="text">
+            <div class="label">Company Name</div>
+            <div class="value">Sofviz Technologies</div>
+          </div>
+        </div>
+        <div class="detail-item">
+          <div class="icon">👤</div>
+          <div class="text">
+            <div class="label">Proprietor</div>
+            <div class="value editable" contenteditable="true">Suresh Arika</div>
+          </div>
+        </div>
+        <div class="detail-item">
+          <div class="icon">📍</div>
+          <div class="text">
+            <div class="label">Registered Address</div>
+            <div class="value editable" contenteditable="true">Visakhapatnam, Andhra Pradesh — 530001</div>
+          </div>
+        </div>
+        <div class="detail-item">
+          <div class="icon">📅</div>
+          <div class="text">
+            <div class="label">Year of Establishment</div>
+            <div class="value editable" contenteditable="true">2026</div>
+          </div>
+        </div>
+        <div class="detail-item">
+          <div class="icon">📞</div>
+          <div class="text">
+            <div class="label">Phone / WhatsApp</div>
+            <div class="value editable" contenteditable="true">+91 89854 54477</div>
+          </div>
+        </div>
+        <div class="detail-item">
+          <div class="icon">📧</div>
+          <div class="text">
+            <div class="label">Email</div>
+            <div class="value editable" contenteditable="true">info@sofviz.live</div>
+          </div>
+        </div>
+        <div class="detail-item">
+          <div class="icon">🌐</div>
+          <div class="text">
+            <div class="label">Website</div>
+            <div class="value editable" contenteditable="true">https://sofviz.live</div>
+          </div>
+        </div>
+        <div class="detail-item">
+          <div class="icon">💼</div>
+          <div class="text">
+            <div class="label">Nature of Business</div>
+            <div class="value editable" contenteditable="true">IT Services & Software Development</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ ABOUT US ═══ -->
+    <div class="section">
+      <div class="section-title"><span class="dot"></span> About Us</div>
+      <div class="about-content editable" contenteditable="true">
+        Sofviz Technologies is a forward-thinking software development company committed to delivering 
+        high-quality, scalable digital solutions. Founded by Suresh Arika, a visionary tech leader with 
+        deep expertise in full-stack development, AI, and mobile application engineering, Sofviz has 
+        rapidly grown into a trusted partner for businesses seeking digital transformation.
+        <br><br>
+        Our mission is simple: <strong>Smart Solutions, Real Results</strong>. We believe that technology 
+        should be accessible, beautiful, and impactful. From concept to deployment, we work closely with 
+        our clients to build products that not only meet requirements but exceed expectations.
+        <br><br>
+        With a portfolio spanning web applications, mobile apps, AI-powered tools, e-commerce platforms, 
+        and custom SaaS products, Sofviz is equipped to handle projects of any scale. Our commitment to 
+        quality, security, and client satisfaction sets us apart in a competitive industry.
+      </div>
+    </div>
+
+    <!-- ═══ STATS ═══ -->
+    <div class="section">
+      <div class="stats-bar">
+        <div class="stat-item">
+          <div class="num editable" contenteditable="true">50+</div>
+          <div class="lbl">Projects Delivered</div>
+        </div>
+        <div class="stat-item">
+          <div class="num editable" contenteditable="true">30+</div>
+          <div class="lbl">Happy Clients</div>
+        </div>
+        <div class="stat-item">
+          <div class="num editable" contenteditable="true">99%</div>
+          <div class="lbl">Satisfaction Rate</div>
+        </div>
+        <div class="stat-item">
+          <div class="num editable" contenteditable="true">24/7</div>
+          <div class="lbl">Support Available</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ SERVICES ═══ -->
+    <div class="section">
+      <div class="section-title"><span class="dot"></span> Our Services</div>
+      <div class="services-grid">
+        <div class="service-card">
+          <div class="svc-icon">🌐</div>
+          <h4>Website Development</h4>
+          <p class="editable" contenteditable="true">Premium responsive websites with React, Next.js, and modern frameworks. SEO-optimized and blazing fast.</p>
+        </div>
+        <div class="service-card">
+          <div class="svc-icon">📱</div>
+          <h4>Mobile Applications</h4>
+          <p class="editable" contenteditable="true">Cross-platform apps with React Native & Flutter. Fluid animations and seamless user experience.</p>
+        </div>
+        <div class="service-card">
+          <div class="svc-icon">🤖</div>
+          <h4>AI & Chatbots</h4>
+          <p class="editable" contenteditable="true">Intelligent chatbots, automation tools, and AI-powered solutions for business efficiency.</p>
+        </div>
+        <div class="service-card">
+          <div class="svc-icon">🛒</div>
+          <h4>E-Commerce</h4>
+          <p class="editable" contenteditable="true">Complete online stores with payment integration, inventory management, and analytics.</p>
+        </div>
+        <div class="service-card">
+          <div class="svc-icon">☁️</div>
+          <h4>Cloud & SaaS</h4>
+          <p class="editable" contenteditable="true">Custom software solutions — CRM, ERP, dashboards, and admin panels built for scale.</p>
+        </div>
+        <div class="service-card">
+          <div class="svc-icon">🎨</div>
+          <h4>UI/UX Design</h4>
+          <p class="editable" contenteditable="true">Pixel-perfect interfaces with modern aesthetics. Design systems and brand identity.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ TECH STACK ═══ -->
+    <div class="section">
+      <div class="section-title"><span class="dot"></span> Technology Stack</div>
+      <div class="tech-tags">
+        <span class="tech-tag">React</span>
+        <span class="tech-tag">React Native</span>
+        <span class="tech-tag">Next.js</span>
+        <span class="tech-tag">Node.js</span>
+        <span class="tech-tag">TypeScript</span>
+        <span class="tech-tag">Python</span>
+        <span class="tech-tag">Firebase</span>
+        <span class="tech-tag">AWS</span>
+        <span class="tech-tag">MongoDB</span>
+        <span class="tech-tag">PostgreSQL</span>
+        <span class="tech-tag">Docker</span>
+        <span class="tech-tag">Figma</span>
+        <span class="tech-tag">TensorFlow</span>
+        <span class="tech-tag">Flutter</span>
+        <span class="tech-tag">Vite</span>
+        <span class="tech-tag">Stripe</span>
+      </div>
+    </div>
+
+    <!-- ═══ WHY CHOOSE US ═══ -->
+    <div class="section">
+      <div class="section-title"><span class="dot"></span> Why Choose Sofviz?</div>
+      <div class="why-grid">
+        <div class="why-item">
+          <div class="emoji">⚡</div>
+          <div>
+            <h4>Lightning Fast Delivery</h4>
+            <p>2× faster development without compromising on quality or standards.</p>
+          </div>
+        </div>
+        <div class="why-item">
+          <div class="emoji">🎨</div>
+          <div>
+            <h4>Premium Design</h4>
+            <p>Every pixel crafted for maximum impact, engagement, and conversion.</p>
+          </div>
+        </div>
+        <div class="why-item">
+          <div class="emoji">🔒</div>
+          <div>
+            <h4>Enterprise Security</h4>
+            <p>Bank-grade security protocols and encryption that scale with your business.</p>
+          </div>
+        </div>
+        <div class="why-item">
+          <div class="emoji">💬</div>
+          <div>
+            <h4>24/7 Dedicated Support</h4>
+            <p>Every client gets a dedicated project manager for seamless communication.</p>
+          </div>
+        </div>
+        <div class="why-item">
+          <div class="emoji">🧠</div>
+          <div>
+            <h4>AI-First Approach</h4>
+            <p>Intelligent automation integrated into every solution we build.</p>
+          </div>
+        </div>
+        <div class="why-item">
+          <div class="emoji">💎</div>
+          <div>
+            <h4>Uncompromising Quality</h4>
+            <p>Products rigorously tested and built to stand the test of time.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ FOUNDER ═══ -->
+    <div class="section">
+      <div class="section-title"><span class="dot"></span> Leadership</div>
+      <div class="team-card">
+        <div class="team-avatar">SA</div>
+        <div class="team-info">
+          <h4 class="editable" contenteditable="true">Suresh Arika</h4>
+          <div class="role editable" contenteditable="true">Founder & CEO</div>
+          <p class="editable" contenteditable="true">
+            Visionary tech leader with deep expertise in full-stack development, mobile engineering, 
+            and AI solutions. Passionate about building scalable, beautiful digital products that 
+            empower businesses worldwide. Leading Sofviz Technologies with a mission to deliver 
+            Smart Solutions with Real Results.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ CLIENTS & INDUSTRIES ═══ -->
+    <div class="section">
+      <div class="section-title"><span class="dot"></span> Industries We Serve</div>
+      <div class="client-logos">
+        <div class="client-logo">🚗 Transportation</div>
+        <div class="client-logo">🛒 E-Commerce</div>
+        <div class="client-logo">💰 FinTech</div>
+        <div class="client-logo">📚 EdTech</div>
+        <div class="client-logo">🏥 HealthTech</div>
+        <div class="client-logo">🍔 Food & Delivery</div>
+        <div class="client-logo">🏢 Enterprise</div>
+        <div class="client-logo">🤖 AI / ML</div>
+      </div>
+    </div>
+
+    <!-- ═══ BANK DETAILS ═══ -->
+    <div class="section">
+      <div class="section-title"><span class="dot"></span> Banking Information</div>
+      <div class="details-grid">
+        <div class="detail-item">
+          <div class="icon">🏦</div>
+          <div class="text">
+            <div class="label">Bank Name</div>
+            <div class="value editable" contenteditable="true">State Bank of India</div>
+          </div>
+        </div>
+        <div class="detail-item">
+          <div class="icon">👤</div>
+          <div class="text">
+            <div class="label">Account Name</div>
+            <div class="value editable" contenteditable="true">Suresh Arika</div>
+          </div>
+        </div>
+        <div class="detail-item">
+          <div class="icon">🔢</div>
+          <div class="text">
+            <div class="label">Account Number</div>
+            <div class="value editable" contenteditable="true">XXXXXXXXXX</div>
+          </div>
+        </div>
+        <div class="detail-item">
+          <div class="icon">📋</div>
+          <div class="text">
+            <div class="label">IFSC Code</div>
+            <div class="value editable" contenteditable="true">SBIN0XXXXXX</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ CONFIDENTIAL ═══ -->
+    <div class="conf-stamp">
+      🔒 CONFIDENTIAL — This document is the property of Sofviz Technologies. Unauthorized distribution is prohibited.
+    </div>
+
+    <!-- ═══ FOOTER ═══ -->
+    <div class="profile-footer">
+      <div>
+        <div class="brand">Sofviz Technologies</div>
+        <div class="brand-tag">Smart Solutions • Real Results</div>
+      </div>
+      <div class="contact-mini">
+        <strong>📱 +91 89854 54477</strong><br>
+        📧 info@sofviz.live<br>
+        🌐 sofviz.live
+      </div>
+    </div>
+
+  </div>
+
+  <div style="text-align: center; padding: 16px; font-size: 10px; color: #64748b;" class="no-print">
+    ✏️ Click any text to edit → 🖨️ Print / Ctrl+P to save as PDF
+  </div>
+
+</body>
+</html>

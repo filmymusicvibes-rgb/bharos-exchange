@@ -12,7 +12,8 @@ import {
   updateDoc,
   getDoc,
   addDoc,
-  increment
+  increment,
+  runTransaction
 } from "firebase/firestore"
 import { updateTokenPhase } from "./tokenPhase"
 
@@ -56,10 +57,11 @@ export const distributeReferral = async (userData: any, allUsers: any[]) => {
 
     if (!uplineUser || !uplineUser.email) break
 
-    // 🏢 SKIP company account — no commissions needed for company
+    // 🏢 SKIP company account — transparent pass-through (does NOT consume a level)
     if (uplineUser.role === "company" || uplineUser.referralCode === "BRS44447") {
-      console.log(`🏢 Skipped Level ${i + 1} — company account (${uplineUser.email})`)
+      console.log(`🏢 Skipped company account (${uplineUser.email}) — level ${i + 1} preserved for next upline`)
       currentRef = uplineUser.referredBy
+      i-- // 🔥 FIX: Don't consume a level slot — next real user gets the correct rate
       continue
     }
 
@@ -213,24 +215,41 @@ export const runFullActivation = async (userEmail: string) => {
 
   try {
 
+    // 🔒 BULLETPROOF: Atomic check-and-set using Firestore Transaction
+    // Even if 100 callers fire simultaneously, only ONE will win and distribute
+    const userRef = doc(db, "users", userEmail)
+
+    const shouldDistribute = await runTransaction(db, async (transaction) => {
+      const snap = await transaction.get(userRef)
+      if (!snap.exists()) return false
+
+      const data = snap.data()
+      if (data.commissionsPaid) {
+        console.log(`🔒 Commissions already distributed for ${userEmail} — BLOCKED by transaction`)
+        return false
+      }
+
+      // ✅ Atomically set flag — no other caller can sneak through
+      transaction.update(userRef, { commissionsPaid: true })
+      return true
+    })
+
+    if (!shouldDistribute) {
+      console.log(`🔒 runFullActivation skipped for ${userEmail} — already processed or not found`)
+      return
+    }
+
+    console.log(`✅ runFullActivation LOCK acquired for ${userEmail} — distributing commissions...`)
+
     // Fetch all users ONCE and reuse
     const allUsersSnap = await getDocs(collection(db, "users"))
     const allUsers = allUsersSnap.docs.map(d => d.data())
 
     // Get activated user's data
-    const userSnap = await getDoc(doc(db, "users", userEmail))
+    const userSnap = await getDoc(userRef)
     const userData: any = userSnap.data()
 
     if (!userData) return
-
-    // 🔒 DUPLICATE PROTECTION: Skip if commissions already paid
-    if (userData.commissionsPaid) {
-      console.log(`🔒 Commissions already distributed for ${userEmail} — skipping`)
-      return
-    }
-
-    // Mark commissions as paid BEFORE distributing (prevents race condition)
-    await updateDoc(doc(db, "users", userEmail), { commissionsPaid: true })
 
     // 🔥 COMMISSION SYSTEM (12 LEVELS)
     await distributeReferral(userData, allUsers)

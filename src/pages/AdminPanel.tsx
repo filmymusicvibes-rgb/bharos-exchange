@@ -54,6 +54,7 @@ export default function AdminPanel() {
   const [annTitle, setAnnTitle] = useState("")
   const [annMessage, setAnnMessage] = useState("")
   const [annType, setAnnType] = useState<"info" | "warning" | "promo" | "update">("info")
+  const [annImageUrl, setAnnImageUrl] = useState("")
 
   const [deposits, setDeposits] = useState<any[]>([])
   const [withdraws, setWithdraws] = useState<any[]>([])
@@ -712,11 +713,11 @@ export default function AdminPanel() {
         return
       }
 
-      const balance = user.usdtBalance || 0
-
+      // ✅ FIX: Use atomic increment() — prevents stale read overwrite
+      // Old code used Math.max(0, balance - amount) which could lose concurrent commission credits
       await updateDoc(userRef, {
-        usdtBalance: Math.max(0, balance - amount),
-        usdtFrozen: Math.max(0, frozen - amount)
+        usdtBalance: increment(-amount),
+        usdtFrozen: increment(-amount)
       })
 
       await updateDoc(doc(db, "withdrawals", withdrawId), {
@@ -778,8 +779,9 @@ export default function AdminPanel() {
         return
       }
 
+      // ✅ FIX: Use atomic increment() — prevents stale read overwrite
       await updateDoc(userRef, {
-        usdtFrozen: Math.max(0, frozen - amount)
+        usdtFrozen: increment(-amount)
       })
 
       await updateDoc(doc(db, "withdrawals", withdrawId), {
@@ -1266,6 +1268,18 @@ export default function AdminPanel() {
                 rows={3}
                 className="w-full p-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500 resize-none"
               />
+              <input
+                value={annImageUrl}
+                onChange={(e) => setAnnImageUrl(e.target.value)}
+                placeholder="🖼️ Image URL (optional — paste poster image link)"
+                className="w-full p-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500"
+              />
+              {annImageUrl && (
+                <div className="relative rounded-lg overflow-hidden border border-cyan-500/30 max-h-40">
+                  <img src={annImageUrl} alt="Preview" className="w-full h-40 object-cover" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                  <span className="absolute top-2 right-2 bg-black/60 text-green-400 text-[10px] px-2 py-1 rounded-full font-bold">✅ Preview</span>
+                </div>
+              )}
               <div className="flex gap-2">
                 {(["info", "warning", "promo", "update"] as const).map(type => (
                   <button
@@ -1300,9 +1314,11 @@ export default function AdminPanel() {
                       type: annType,
                       active: true,
                       createdAt: serverTimestamp(),
+                      ...(annImageUrl.trim() ? { imageUrl: annImageUrl.trim() } : {}),
                     })
                     setAnnTitle('')
                     setAnnMessage('')
+                    setAnnImageUrl('')
                     alert('✅ Announcement posted!')
                     loadAnnouncements()
                   } catch (err: any) {
