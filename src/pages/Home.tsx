@@ -19,6 +19,7 @@ import Footer from "@/components/Footer"
 import Navbar from "@/components/Navbar"
 import ParticleBackground from "@/components/ParticleBackground"
 import TrustSection from "@/components/TrustSection"
+import PromoPopup from "@/components/PromoPopup"
 
 function Home() {
 
@@ -35,6 +36,7 @@ function Home() {
 
       <ParticleBackground />
       <Navbar />
+      <PromoPopup />
 
       <main className={`relative z-10 px-4 transition-opacity duration-1000 ${mounted ? "opacity-100" : "opacity-0"}`}>
 
