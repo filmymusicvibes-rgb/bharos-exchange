@@ -113,6 +113,14 @@ function ActivateMembership() {
     }
   }
 
+  // 🔒 Helper: Load fresh used txHashes from Firestore
+  const loadUsedHashes = async (): Promise<string[]> => {
+    const depositsSnap = await getDocs(collection(db, "deposits"))
+    return depositsSnap.docs
+      .map((d: any) => d.data().txHash?.toLowerCase())
+      .filter(Boolean)
+  }
+
   // 🔴 Start auto-detection
   const startPolling = async () => {
     const email = getUser()
@@ -138,15 +146,10 @@ function ActivateMembership() {
       console.error("Status update error:", err)
     }
 
-    // Get used hashes
-    const depositsSnap = await getDocs(collection(db, "deposits"))
-    const usedHashes = depositsSnap.docs
-      .map((d: any) => d.data().txHash?.toLowerCase())
-      .filter(Boolean)
-
     if (pollRef.current) clearInterval(pollRef.current)
 
-    // Immediate check
+    // Immediate check with fresh hashes
+    const usedHashes = await loadUsedHashes()
     const immediateResult = await detectPayment(PAYMENT_AMOUNT, usedHashes)
     if (immediateResult.verified && !activatingRef.current) {
       activatingRef.current = true
@@ -171,7 +174,9 @@ function ActivateMembership() {
       }
 
       try {
-        const result = await detectPayment(PAYMENT_AMOUNT, usedHashes)
+        // 🔄 Layer 1: Load FRESH usedHashes every poll — never stale!
+        const freshHashes = await loadUsedHashes()
+        const result = await detectPayment(PAYMENT_AMOUNT, freshHashes)
         if (result.verified && !activatingRef.current) {
           activatingRef.current = true
           if (pollRef.current) clearInterval(pollRef.current)
@@ -199,7 +204,7 @@ function ActivateMembership() {
     startPolling()
   }
 
-  // ✅ ACTIVATE (with duplicate protection)
+  // ✅ ACTIVATE (with duplicate protection + txHash claim guard)
   const activateUser = async (amount: number, email: string, fromAddress: string, txHash: string) => {
     setStep("activating")
 
@@ -212,6 +217,23 @@ function ActivateMembership() {
           console.log("⚠️ User already active — skipping duplicate activation")
           setStep("done")
           setTimeout(() => navigate("/dashboard"), 2000)
+          return
+        }
+      }
+
+      // 🔒 Layer 2: FINAL SAFETY — check if txHash already claimed by ANYONE
+      if (txHash) {
+        const depositsSnap = await getDocs(collection(db, "deposits"))
+        const alreadyClaimed = depositsSnap.docs.some((d: any) => {
+          const data = d.data()
+          return data.txHash?.toLowerCase() === txHash.toLowerCase() && data.status === "verified"
+        })
+        if (alreadyClaimed) {
+          console.log("🔒 txHash already claimed by another user — skipping!")
+          activatingRef.current = false
+          // Continue scanning for a different payment
+          setStep("scanning")
+          startPolling()
           return
         }
       }
